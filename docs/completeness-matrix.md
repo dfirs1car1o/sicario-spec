@@ -8,6 +8,8 @@ artifact, validator, CI gate, and evidence output.
 | Prompt injection | AI / LLM Risk | threat model, abuse cases | `sicario verify` | Sicario verify | gate summary |
 | Broken access control | Security Requirements | tests, threat model | test suite | CI test | test report |
 | Hardcoded secret | Secrets / Credential Handling | gate summary | secret pattern scan | secret scan | gate summary |
+| Missing data classification | Data Classification | data-classification.md | `sicario verify` | Sicario verify | spec-run evidence |
+| Missing tagging discipline | Tagging Discipline | tagging-taxonomy.md | `sicario verify` | Sicario verify | spec-run evidence |
 | Unsafe external write | External System Access | human approval record | plan review | Sicario review | evidence index |
 | Unpinned dependency | Supply Chain | SBOM/provenance note | dependency scan | SCA | SBOM/evidence |
 | Missing threat model | Threat Model | threat-model.md | `sicario verify` | Sicario verify | gate summary |
@@ -16,6 +18,7 @@ artifact, validator, CI gate, and evidence output.
 | Excessive IAM privilege | Cloud / IaC Risk | cloud risk template | IaC/policy scan | policy-as-code | evidence index |
 | Missing cloud logging | Cloud / IaC Risk | cloud risk template | IaC/policy scan | policy-as-code | evidence index |
 | No data residency decision | Cloud / IaC Risk | cloud risk template | plan review | Sicario review | evidence index |
+| Untagged cloud/resource ownership | Tagging Plan | tagging taxonomy, IaC tags | policy-as-code / review | IaC scan | evidence index |
 | Cost runaway risk | Cloud / IaC Risk | cloud risk template | plan review | Sicario review | evidence index |
 | Missing audit evidence | Evidence Outputs | evidence-index.md | `sicario verify` | Sicario verify | evidence index |
 | Missing CCM/SOX traceability | Compliance / Control Applicability | control maps | `sicario verify` | Sicario verify | evidence index |

@@ -5,10 +5,21 @@ Parameters:
   Environment:
     Type: String
     Description: Deployment environment
+  Owner:
+    Type: String
+    Description: Required owner tag
+  DataClassification:
+    Type: String
+    Description: Required data-classification tag
+    AllowedValues:
+      - public
+      - internal
+      - confidential
+      - restricted
+      - regulated
 
 Resources: {}
 
 Outputs:
   SicarioIacProfile:
     Value: cloud-iac
-

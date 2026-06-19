@@ -2,6 +2,7 @@
 
 Every implementation plan must identify:
 
+- data classification and tagging updates for docs, diagrams, evidence, screenshots, and examples
 - docs files to update
 - diagrams to create or regenerate
 - docs-site pages affected
@@ -15,3 +16,11 @@ Default documentation stack:
 - Mermaid source under `docs/diagrams/`
 - CI gate for docs-site build and diagram source presence
 
+## Documentation Classification And Tagging Plan
+
+- Highest classification:
+- Classification owner:
+- Redaction or masking:
+- Public/internal publication decision:
+- Required tags:
+- Accepted values source: `docs/governance/tagging-taxonomy.md`

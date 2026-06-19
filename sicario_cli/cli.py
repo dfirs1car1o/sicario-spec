@@ -99,6 +99,8 @@ TEXT_SUFFIXES = {
     ".yml",
 }
 
+DATA_CLASSIFICATION_VALUES = {"public", "internal", "confidential", "restricted", "regulated"}
+
 SECRET_PATTERNS = [
     re.compile(r"(?i)\b(api[_-]?key|secret|token|password)\b\s*[:=]\s*['\"][^'\"]{12,}['\"]"),
     re.compile(r"AKIA[0-9A-Z]{16}"),
@@ -331,6 +333,20 @@ def init_project(args: argparse.Namespace) -> int:
         actions=actions,
     )
     _write_text(
+        target / "docs" / "governance" / "data-classification.md",
+        _default_data_classification(),
+        force=args.force,
+        dry_run=args.dry_run,
+        actions=actions,
+    )
+    _write_text(
+        target / "docs" / "governance" / "tagging-taxonomy.md",
+        _default_tagging_taxonomy(),
+        force=args.force,
+        dry_run=args.dry_run,
+        actions=actions,
+    )
+    _write_text(
         target / "docs" / "compliance" / "control-applicability.md",
         _default_control_applicability(),
         force=args.force,
@@ -552,6 +568,76 @@ def _default_abuse_cases() -> str:
 """
 
 
+def _default_data_classification() -> str:
+    return """# Data Classification
+
+Use the highest applicable classification for each feature, dataset, evidence
+artifact, log stream, model prompt, model output, queue message, and generated
+document.
+
+## Levels
+
+| Level | Description | Examples | Minimum Handling |
+|---|---|---|---|
+| Public | Approved for public release | docs, public examples | Source review before publication |
+| Internal | Internal project or operational data | backlog notes, internal diagrams | Repository access controls |
+| Confidential | Business, customer, or security-sensitive data | customer config, private architecture | Need-to-know access and redaction |
+| Restricted | Highly sensitive security, credential, or regulated data | secrets, tokens, vuln details | Do not commit; approved secure storage only |
+| Regulated | Data under legal, contractual, or audit scope | PII, PHI, PCI, SOX evidence | Control mapping, retention, and reviewer approval |
+
+## Register
+
+| Asset / Flow | Owner | Classification | Regulated Data | Retention | Residency | Sharing / Egress | Redaction | Evidence |
+|---|---|---|---|---|---|---|---|---|
+| Initial project artifacts | Maintainers | Internal | none | Per release | N/A | Repository collaborators | Secrets redacted | generated/sicario/gate-summary.json |
+
+## Rules
+
+- Classification must be explicit before data storage, logging, telemetry,
+  training/evaluation, external sharing, or release packaging.
+- Restricted data and secrets must not enter git, logs, generated artifacts, or
+  LLM context.
+- Evidence that contains customer, tenant, vulnerability, credential, or audit
+  details must carry the same or higher classification as the source data.
+"""
+
+
+def _default_tagging_taxonomy() -> str:
+    return """# Tagging Taxonomy
+
+Use stable tags so data handling, ownership, cost, evidence, risk, and exception
+decisions can be found and enforced.
+
+## Required Tags
+
+| Tag | Required For | Accepted Values / Format | Purpose |
+|---|---|---|---|
+| owner | all artifacts/resources | team or person handle | accountability |
+| system | all artifacts/resources | system or repo slug | grouping |
+| environment | runtime resources/evidence | dev, test, staging, prod, shared, local | blast-radius context |
+| data-classification | data, resources, evidence | public, internal, confidential, restricted, regulated | handling requirements |
+| retention | data/evidence/logs | duration or policy name | deletion expectations |
+| compliance-scope | scoped artifacts | none, sox, ccm, pci, hipaa, gdpr, ai-rmf, other | control mapping |
+| cost-center | cloud/resources | org-approved value | cost accountability |
+| source-repo | generated/runtime artifacts | owner/repo | traceability |
+| managed-by | runtime resources | terraform, bicep, cloudformation, kubernetes, manual | drift ownership |
+| expires-on | temporary resources/exceptions | YYYY-MM-DD or N/A | cleanup discipline |
+| feature-id | feature evidence | specs/NNN-name | feature traceability |
+| control-id | control evidence | framework control ID or N/A | audit traceability |
+| risk-id | risk evidence | risk register ID or N/A | risk traceability |
+| exception-id | exceptions | exception register ID or N/A | exception traceability |
+
+## Discipline
+
+- Do not invent one-off tag keys when an approved key exists.
+- Temporary resources and exceptions require `expires-on`.
+- Findings and evidence should carry `feature-id`, `control-id`, `risk-id`, or
+  `exception-id` when applicable.
+- Public examples must not contain real customer, tenant, credential, or private
+  infrastructure values.
+"""
+
+
 def _default_control_applicability() -> str:
     return """# Control Applicability
 
@@ -565,6 +651,7 @@ def _default_control_applicability() -> str:
 | SOX 404 / ICFR | TBD | ITGC evidence, access/change/operations evidence |
 | Supply Chain | TBD | SBOM, dependency scan, provenance |
 | Compliance | TBD | evidence index, risk acceptance |
+| Data Classification | TBD | data classification register, tagging taxonomy |
 """
 
 
@@ -575,6 +662,8 @@ def _default_evidence_index() -> str:
 |---|---|---|---|
 | Threat model | SicarioSpec / human reviewer | Per feature | docs/security/threat-model.md |
 | Abuse cases | SicarioSpec / human reviewer | Per feature | docs/security/abuse-cases.md |
+| Data classification | Maintainers / data owner | Per feature | docs/governance/data-classification.md |
+| Tagging taxonomy | Maintainers | Per release | docs/governance/tagging-taxonomy.md |
 | Control maps | Maintainers | Per release | docs/compliance/control-maps |
 | Risk register | Maintainers | Per release | docs/risk/risk-register.md |
 | Security exceptions | Security owner | Per exception | docs/risk/security-exceptions.md |
@@ -714,6 +803,8 @@ current as part of every change.
 
 - Threat model
 - Abuse cases
+- Data classification
+- Tagging taxonomy
 - Control applicability
 - Evidence index
 - Control maps
@@ -745,12 +836,24 @@ Use SicarioSpec guardrails for all non-trivial changes.
 - Add negative/security tests when risk applies.
 - Run `sicario verify` before handoff.
 - Keep security exceptions owned, approved, time-bound, and evidenced.
+- Keep data classification and tags current for specs, evidence, resources, and releases.
 - Do not place secrets in files, logs, artifacts, or LLM context.
 """
 
 
 def iter_text_files(root: Path) -> Iterable[Path]:
-    skip_dirs = {".git", ".venv", "venv", "node_modules", "__pycache__", ".pytest_cache"}
+    skip_dirs = {
+        ".git",
+        ".venv",
+        "venv",
+        "node_modules",
+        "__pycache__",
+        ".pytest_cache",
+        "build",
+        "dist",
+        "generated",
+        "sicario_spec.egg-info",
+    }
     for dirpath, dirnames, filenames in os.walk(str(root)):
         dirnames[:] = [name for name in dirnames if name not in skip_dirs]
         current = Path(dirpath)
@@ -801,6 +904,29 @@ def verify_project(path: Path, *, write: bool = True) -> List[Finding]:
             )
         )
 
+    governance_files = [
+        (
+            root / "docs" / "governance" / "data-classification.md",
+            "SICARIO-MISSING-DATA-CLASSIFICATION",
+            "Missing docs/governance/data-classification.md",
+        ),
+        (
+            root / "docs" / "governance" / "tagging-taxonomy.md",
+            "SICARIO-MISSING-TAGGING-TAXONOMY",
+            "Missing docs/governance/tagging-taxonomy.md",
+        ),
+    ]
+    for governance_file, code, message in governance_files:
+        if not governance_file.exists():
+            findings.append(
+                Finding(
+                    "high",
+                    code,
+                    message,
+                    str(governance_file.relative_to(root)),
+                )
+            )
+
     control_maps_present = (root / "docs" / "compliance" / "control-maps").exists() or (
         root / "control_maps"
     ).exists()
@@ -850,6 +976,7 @@ def verify_project(path: Path, *, write: bool = True) -> List[Finding]:
         rel = str(spec.relative_to(root))
         required = [
             "Data Classification",
+            "Tagging Discipline",
             "Trust Boundaries",
             "Security Requirements",
             "Abuse Cases",
@@ -860,6 +987,7 @@ def verify_project(path: Path, *, write: bool = True) -> List[Finding]:
                 findings.append(
                     Finding("high", "SICARIO-SPEC-SECTION", f"spec.md missing {heading}", rel)
                 )
+        findings.extend(_validate_spec_classification_and_tags(root, spec, text))
         if AI_KEYWORDS.search(text) and not _contains_any(text, ["prompt injection", "tool boundary"]):
             findings.append(
                 Finding(
@@ -894,6 +1022,8 @@ def verify_project(path: Path, *, write: bool = True) -> List[Finding]:
         rel = str(plan.relative_to(root))
         for heading in [
             "Threat Model",
+            "Data Classification",
+            "Tagging",
             "Well-Architected",
             "Supply Chain",
             "Rollback",
@@ -911,6 +1041,8 @@ def verify_project(path: Path, *, write: bool = True) -> List[Finding]:
         task_checks = [
             ("security test", "tasks.md missing security test task"),
             ("negative", "tasks.md missing negative test task"),
+            ("classification", "tasks.md missing data classification task"),
+            ("tagging", "tasks.md missing tagging task"),
             ("docs impact", "tasks.md missing docs impact task"),
             ("evidence", "tasks.md missing evidence generation task"),
             ("threat model", "tasks.md missing threat model update task"),
@@ -950,6 +1082,49 @@ def _validate_active_risk_rows(root: Path, path: Path) -> List[Finding]:
     return findings
 
 
+def _validate_spec_classification_and_tags(root: Path, path: Path, text: str) -> List[Finding]:
+    findings: List[Finding] = []
+    rel = str(path.relative_to(root))
+    lower = text.lower()
+
+    if "data classification" in lower:
+        required_phrases = [
+            "classification owner",
+            "retention",
+            "residency",
+            "sharing",
+            "redaction",
+        ]
+        missing = [phrase for phrase in required_phrases if phrase not in lower]
+        has_level = any(level in lower for level in DATA_CLASSIFICATION_VALUES)
+        if missing or not has_level:
+            details = ", ".join(missing + ([] if has_level else ["classification level"]))
+            findings.append(
+                Finding(
+                    "high",
+                    "SICARIO-DATA-CLASSIFICATION-INCOMPLETE",
+                    "Data classification must include owner, level, retention, residency, sharing, and redaction fields"
+                    + (f": {details}" if details else ""),
+                    rel,
+                )
+            )
+
+    if "tagging discipline" in lower:
+        required_tag_terms = ["owner", "system", "environment", "data-classification", "retention"]
+        missing_tags = [tag for tag in required_tag_terms if tag not in lower]
+        if missing_tags:
+            findings.append(
+                Finding(
+                    "high",
+                    "SICARIO-TAGGING-DISCIPLINE-INCOMPLETE",
+                    "Tagging discipline must include owner, system, environment, data-classification, and retention tags",
+                    rel,
+                )
+            )
+
+    return findings
+
+
 def _write_evidence(root: Path, findings: Sequence[Finding]) -> None:
     out_dir = root / "generated" / "sicario"
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -966,6 +1141,8 @@ def _write_evidence(root: Path, findings: Sequence[Finding]) -> None:
         "evidence": [
             "docs/security/threat-model.md",
             "docs/security/abuse-cases.md",
+            "docs/governance/data-classification.md",
+            "docs/governance/tagging-taxonomy.md",
             "docs/compliance/control-applicability.md",
             "docs/compliance/evidence-index.md",
             "docs/compliance/control-maps",

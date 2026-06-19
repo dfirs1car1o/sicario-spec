@@ -22,9 +22,22 @@
 ## Data Classification
 
 - Data types processed:
-- Sensitivity level:
-- Regulated data involved:
+- Highest classification: Public / Internal / Confidential / Restricted / Regulated
+- Classification owner:
+- Regulated data involved: none / PII / PHI / PCI / SOX / export-controlled / customer confidential / other
 - Data retention and deletion expectations:
+- Data residency or sovereignty constraints:
+- Sharing, egress, or third-party disclosure:
+- Redaction or masking requirements:
+- Agent memory, queue, trace, or transcript sensitivity:
+
+## Tagging Discipline
+
+- Required metadata tags: owner, system, environment, data-classification, retention, compliance-scope
+- Fleet tags: workflow-id, agent-id, queue-topic, tenant, approval-boundary
+- Evidence tags: feature-id, control-id, risk-id, exception-id where applicable
+- Accepted values source: `docs/governance/tagging-taxonomy.md`
+- Enforcement location: plan review / policy-as-code / CI / `sicario verify`
 
 ## Roles, Assets, And Abuse Actors
 
@@ -131,6 +144,8 @@ tool calling, autonomous workflows, or generated code.
 
 - Threat model update:
 - Abuse-case update:
+- Data classification record:
+- Tagging taxonomy updates:
 - Workflow/state graph:
 - Queue and worker inventory:
 - Tests:

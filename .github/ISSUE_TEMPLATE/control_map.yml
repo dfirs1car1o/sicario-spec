@@ -21,6 +21,13 @@ body:
     validations:
       required: true
   - type: textarea
+    id: classification_tagging
+    attributes:
+      label: Classification or tagging impact
+      description: Identify data classification, retention, evidence, risk, exception, or resource tags this mapping should require.
+    validations:
+      required: true
+  - type: textarea
     id: authority
     attributes:
       label: Source authority

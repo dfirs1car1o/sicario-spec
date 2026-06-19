@@ -4,20 +4,25 @@
 **Created**: [DATE]
 **Feature**: [link]
 
+## Classification And Tagging
+
+- [ ] CHK001 Data classification covers scanner output, SBOMs, findings, evidence, and release artifacts.
+- [ ] CHK002 Tagging discipline covers scanners, artifact types, evidence paths, findings, risks, and exceptions.
+
 ## Toolchain
 
-- [ ] CHK001 Secret scan passed.
-- [ ] CHK002 SAST/static checks passed.
-- [ ] CHK003 Dependency/SCA scan passed.
-- [ ] CHK004 SBOM generated or no-impact decision recorded.
-- [ ] CHK005 Container scan passed where applicable.
-- [ ] CHK006 IaC scan passed where applicable.
-- [ ] CHK007 Policy-as-code checks passed where applicable.
-- [ ] CHK008 Findings are linked to tickets, accepted risk, or remediation.
+- [ ] CHK003 Secret scan passed.
+- [ ] CHK004 SAST/static checks passed.
+- [ ] CHK005 Dependency/SCA scan passed.
+- [ ] CHK006 SBOM generated or no-impact decision recorded.
+- [ ] CHK007 Container scan passed where applicable.
+- [ ] CHK008 IaC scan passed where applicable.
+- [ ] CHK009 Policy-as-code checks passed where applicable.
+- [ ] CHK010 Findings are linked to tickets, accepted risk, or remediation.
 
 ## Evidence
 
-- [ ] CHK009 Evidence index is updated.
-- [ ] CHK010 Gate summary is generated.
-- [ ] CHK011 Security exceptions are time-bound and approved.
-- [ ] CHK012 `sicario verify` passed.
+- [ ] CHK011 Evidence index is updated.
+- [ ] CHK012 Gate summary is generated.
+- [ ] CHK013 Security exceptions are time-bound and approved.
+- [ ] CHK014 `sicario verify` passed.

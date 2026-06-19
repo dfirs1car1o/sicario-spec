@@ -15,6 +15,24 @@
 **Target Platform**: [TBD]
 **Project Type**: [TBD]
 
+## Data Classification And Handling
+
+- Highest classification:
+- Classification owner:
+- Regulated data:
+- Retention and deletion:
+- Residency constraints:
+- Sharing and third-party disclosure:
+- Redaction, masking, or tokenization:
+
+## Tagging Plan
+
+- Required tags:
+- Accepted values source: `docs/governance/tagging-taxonomy.md`
+- Cloud/IaC tagging enforcement:
+- Evidence, risk, and exception tag mapping:
+- Temporary resource expiration tags:
+
 ## Threat Model
 
 - Assets:
@@ -109,6 +127,8 @@ actor -> boundary -> component -> boundary -> data/evidence/output
 
 - Threat model:
 - Abuse cases:
+- Data classification register:
+- Tagging taxonomy:
 - Control applicability:
 - Evidence index:
 - Gate summary:

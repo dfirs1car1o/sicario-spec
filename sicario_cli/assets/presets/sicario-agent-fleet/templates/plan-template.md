@@ -15,6 +15,25 @@
 **Target Platform**: [TBD]
 **Project Type**: [TBD]
 
+## Data Classification And Handling
+
+- Highest classification:
+- Classification owner:
+- Regulated data:
+- Retention and deletion:
+- Residency constraints:
+- Sharing and third-party disclosure:
+- Redaction, masking, or tokenization:
+- Agent memory, queue, trace, or transcript controls:
+
+## Tagging Plan
+
+- Required tags:
+- Accepted values source: `docs/governance/tagging-taxonomy.md`
+- Workflow, agent, queue, tenant, and approval-boundary tags:
+- Evidence, risk, and exception tag mapping:
+- Temporary resource expiration tags:
+
 ## Threat Model
 
 - Assets:
@@ -131,6 +150,8 @@ event -> queue/state -> orchestrator -> worker/agent -> tool/action -> evidence
 
 - Threat model:
 - Abuse cases:
+- Data classification register:
+- Tagging taxonomy:
 - Workflow/state graph:
 - Queue and worker inventory:
 - Control applicability:
