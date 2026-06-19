@@ -1,7 +1,7 @@
 {
   "id": "sox-404-itgc-sicario",
   "name": "SOX 404 / ICFR ITGC to SicarioSpec Evidence Map",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "framework": {
     "name": "Sarbanes-Oxley Section 404 / Internal Control Over Financial Reporting",
     "abbreviation": "SOX 404 / ICFR",

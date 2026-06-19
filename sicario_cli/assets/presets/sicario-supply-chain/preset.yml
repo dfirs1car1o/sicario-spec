@@ -1,6 +1,6 @@
 id: sicario-supply-chain
 name: SicarioSpec Supply Chain
-version: 0.1.0
+version: 0.1.1
 description: Build and release integrity profile with SBOM, SCA, provenance, and SLSA-style checks.
 license: MIT
 tags: [supply-chain, sbom, sca, slsa, provenance]
