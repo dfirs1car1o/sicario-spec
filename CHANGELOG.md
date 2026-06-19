@@ -6,6 +6,25 @@ The project follows semantic versioning once the public API stabilizes. During
 the `0.x` line, minor versions may introduce breaking changes when needed to
 improve the security model.
 
+## [0.1.1] - 2026-06-19
+
+Patch release for repository hardening after the initial public release.
+
+### Added
+
+- Machine-user pull request workflow with an audited maintainer fallback for
+  environments that cannot provision a machine account.
+- Data classification and tagging evidence requirements in the public
+  contribution and repository governance workflow.
+
+### Fixed
+
+- Release workflow now builds, smoke-tests, uploads the workflow artifact,
+  emits provenance attestations, and treats existing GitHub releases as
+  immutable.
+- Release reruns no longer attempt to add, replace, delete, or rename assets on
+  an existing immutable release.
+
 ## [0.1.0] - 2026-06-19
 
 Initial public release.

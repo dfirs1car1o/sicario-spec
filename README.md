@@ -71,7 +71,7 @@ python3 -m pip install "git+https://github.com/dfirs1car1o/sicario-spec.git"
 Install a specific release:
 
 ```bash
-python3 -m pip install "git+https://github.com/dfirs1car1o/sicario-spec.git@v0.1.0"
+python3 -m pip install "git+https://github.com/dfirs1car1o/sicario-spec.git@v0.1.1"
 ```
 
 ## Quickstart
