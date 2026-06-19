@@ -87,15 +87,8 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
-            existing_assets="$(gh release view "$RELEASE_TAG" --json assets --jq '.assets[].name')"
-            for asset in dist/*; do
-              name="$(basename "$asset")"
-              if grep -Fxq "$name" <<< "$existing_assets"; then
-                echo "Release asset already exists on immutable release; skipping: $name"
-              else
-                gh release upload "$RELEASE_TAG" "$asset"
-              fi
-            done
+            echo "Release $RELEASE_TAG already exists; immutable release assets will not be modified."
+            gh release view "$RELEASE_TAG" --json assets --jq '.assets[].name'
           else
             gh release create "$RELEASE_TAG" dist/* \
               --verify-tag \

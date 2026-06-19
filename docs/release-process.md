@@ -57,8 +57,13 @@ git push origin main "v$version"
 
 The release workflow runs on the pushed tag. It verifies the tag against
 `VERSION`, `pyproject.toml`, and `sicario_cli/version.py`, builds the sdist and
-wheel, smoke-tests the wheel, uploads release assets, and emits artifact
-attestations.
+wheel, smoke-tests the wheel, emits artifact attestations, and creates the
+GitHub release with assets when the release does not already exist.
+
+Existing GitHub releases are treated as immutable. A rerun for an existing tag
+will rebuild, smoke-test, upload the workflow artifact, and emit attestations,
+but it will not add, delete, replace, or rename release assets. Ship a new patch
+release if published assets need to change.
 
 If the GitHub release does not already exist, the workflow creates it with
 generated release notes. To curate release notes before packaging, create a
