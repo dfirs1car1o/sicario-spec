@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "sicario-spec"
-version = "0.1.1"
+version = "0.1.2"
 description = "Secure-by-default governance bundle for GitHub Spec Kit."
 readme = "README.md"
 requires-python = ">=3.9"
@@ -31,6 +31,7 @@ classifiers = [
 
 [project.urls]
 Homepage = "https://github.com/dfirs1car1o/sicario-spec"
+Documentation = "https://dfirs1car1o.github.io/sicario-spec/"
 Repository = "https://github.com/dfirs1car1o/sicario-spec"
 Issues = "https://github.com/dfirs1car1o/sicario-spec/issues"
 Changelog = "https://github.com/dfirs1car1o/sicario-spec/blob/main/CHANGELOG.md"

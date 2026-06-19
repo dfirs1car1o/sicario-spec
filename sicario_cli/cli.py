@@ -438,14 +438,13 @@ def init_project(args: argparse.Namespace) -> int:
         actions=actions,
     )
 
-    if args.integration == "claude":
-        _write_text(
-            target / "CLAUDE.md",
-            _claude_instructions(),
-            force=args.force,
-            dry_run=args.dry_run,
-            actions=actions,
-        )
+    _write_agent_integrations(
+        target,
+        args.integration,
+        force=args.force,
+        dry_run=args.dry_run,
+        actions=actions,
+    )
 
     for workflow_name in ["sicario-verify.yml", "docs-site.yml"]:
         workflow_src = WORKFLOW_ROOT / workflow_name
@@ -841,6 +840,323 @@ Use SicarioSpec guardrails for all non-trivial changes.
 """
 
 
+def _agent_instructions() -> str:
+    return """# Agent Project Instructions
+
+Use SicarioSpec guardrails for all non-trivial changes.
+
+These instructions apply to Codex, GitHub Copilot coding agent, and other
+agents that read `AGENTS.md`.
+
+## Required Workflow
+
+- Start with the spec before code for meaningful behavior changes.
+- Run `sicario verify` before handoff, pull request, release, or deployment.
+- Keep AI out of authoritative security, compliance, legal, financial, or
+  production-impacting decisions.
+- Add or update threat model and abuse cases for meaningful features.
+- Add data classification and tagging updates when data, evidence, resources,
+  release artifacts, or logs change.
+- Add negative/security tests when risk applies.
+- Keep security exceptions owned, approved, time-bound, and evidenced.
+- Do not place secrets in files, logs, artifacts, prompts, generated output, or
+  model context.
+
+## Pull Requests
+
+- Summarize security, governance, data classification, tagging, and release
+  impact.
+- Include verification commands and results.
+- Use the machine-user PR flow when available; document fallback reason when it
+  is not available.
+- Do not merge failed checks or unresolved review comments.
+"""
+
+
+def _copilot_instructions() -> str:
+    return """# GitHub Copilot Instructions
+
+Follow SicarioSpec guardrails for every generated change.
+
+- Prefer small, reviewable pull requests with clear evidence.
+- Run `python3 -m sicario_cli.cli verify .` or `sicario verify` before handoff
+  when the CLI is installed.
+- Update specs, plans, tasks, threat models, abuse cases, data classification,
+  tagging taxonomy, risk registers, and evidence paths when affected.
+- Do not add secrets, tenant identifiers, customer data, private evidence, or
+  unpublished vulnerability details to prompts, logs, docs, tests, artifacts, or
+  release assets.
+- Do not move or rewrite published release tags.
+- For security, compliance, data, release, or production-impacting changes,
+  require human approval and document the approval boundary.
+- If Copilot cannot run a verification command, state exactly what was skipped
+  and why in the pull request.
+"""
+
+
+def _copilot_governance_instructions() -> str:
+    return """---
+applyTo: "**"
+---
+
+# SicarioSpec Governance Instructions
+
+Use these instructions for Copilot Chat, Copilot coding agent, and Copilot code
+review when working in this repository.
+
+- Treat `SICARIO.md`, `docs/governance/data-classification.md`, and
+  `docs/governance/tagging-taxonomy.md` as required context.
+- For AI, agent, RAG, MCP, or model-output changes, require prompt-injection,
+  tool-boundary, memory, eval, and human-approval evidence.
+- For multi-agent, queue, workflow, or SOAR changes, require retry,
+  idempotency, dead-letter, observability, kill-switch, and approval-boundary
+  evidence.
+- For cloud/IaC changes, require least privilege, network exposure, encryption,
+  secrets, logging, data residency, drift, policy-as-code, and tag evidence.
+- For release changes, require version sync, immutable tags, workflow evidence,
+  artifact classification, and provenance or attestation notes.
+"""
+
+
+def _copilot_setup_steps() -> str:
+    return """name: "Copilot Setup Steps"
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - .github/workflows/copilot-setup-steps.yml
+  pull_request:
+    paths:
+      - .github/workflows/copilot-setup-steps.yml
+
+jobs:
+  copilot-setup-steps:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+      - name: Install SicarioSpec project
+        run: |
+          if [ -f pyproject.toml ] || [ -f setup.py ]; then
+            python -m pip install --upgrade pip
+            python -m pip install -e .
+          else
+            echo "No Python package metadata found; Copilot will continue with repository checkout."
+          fi
+      - name: Verify SicarioSpec context
+        run: |
+          if python -m sicario_cli.cli --version >/dev/null 2>&1; then
+            python -m sicario_cli.cli verify .
+          elif command -v sicario >/dev/null 2>&1; then
+            sicario verify .
+          else
+            echo "SicarioSpec CLI is not installed in this repository."
+          fi
+"""
+
+
+def _skill_sicario_verify() -> str:
+    return """---
+name: sicario-verify
+description: Run and interpret SicarioSpec verification gates before handoff, pull request, release, or when governance files change.
+---
+
+# SicarioSpec Verify
+
+Use this skill when a change needs deterministic SicarioSpec validation.
+
+1. Inspect the working tree and identify changed specs, plans, tasks, docs,
+   workflows, release files, cloud/IaC files, and agent instructions.
+2. Run the best available verifier:
+   - `sicario verify .`
+   - or `python3 -m sicario_cli.cli verify .`
+3. If verification fails, summarize each finding by severity, code, path, and
+   required remediation.
+4. If verification passes, report the command and result.
+5. Do not claim security or compliance approval from a passing verifier alone;
+   human review is still required for high-impact changes.
+"""
+
+
+def _skill_governance_review() -> str:
+    return """---
+name: sicario-governance-review
+description: Review a change for SicarioSpec security, data classification, tagging, evidence, risk, and approval gaps.
+---
+
+# SicarioSpec Governance Review
+
+Use this skill before pull request handoff or when reviewing an AI-authored
+change.
+
+Check:
+
+- Threat model and abuse cases are present and current.
+- Data classification covers inputs, outputs, logs, evidence, artifacts, and
+  release assets.
+- Tagging discipline covers owner, system, environment, data classification,
+  retention, evidence, risk, and exception records.
+- Security exceptions are owned, approved, time-bound, and evidenced.
+- AI/agent/tool-use changes include prompt injection, tool boundary, eval,
+  memory, and human approval controls.
+- Workflow/agent-fleet changes include retry, idempotency, dead-letter,
+  observability, kill switch, and approval boundaries.
+- PR summary includes verification commands and security/governance impact.
+"""
+
+
+def _skill_release_readiness() -> str:
+    return """---
+name: sicario-release-readiness
+description: Check SicarioSpec version, changelog, immutable tag, artifact classification, and release evidence before publishing.
+---
+
+# SicarioSpec Release Readiness
+
+Use this skill before tagging or publishing a release.
+
+1. Confirm version metadata is synchronized across package metadata, CLI
+   version, presets, extensions, and control maps.
+2. Confirm `CHANGELOG.md` describes the release.
+3. Confirm release artifacts are classified for public release and contain no
+   secrets, private evidence, tenant identifiers, customer data, or unpublished
+   vulnerability details.
+4. Confirm release workflow, tests, verifier, artifact upload, and provenance or
+   attestation evidence are green.
+5. Do not move, delete, or rewrite a published tag. Ship a new patch release
+   instead.
+"""
+
+
+def _claude_security_reviewer_agent() -> str:
+    return """---
+name: sicario-security-reviewer
+description: Reviews changes for SicarioSpec security, data classification, tagging, threat-model, and evidence gaps.
+tools: Read, Glob, Grep, Bash
+model: inherit
+---
+
+You are a read-first SicarioSpec security reviewer. Review the repository and
+diff for missing or stale threat models, abuse cases, data classification,
+tagging taxonomy, evidence, risk entries, exception ownership, and approval
+boundaries.
+
+Prefer read-only commands. Do not edit files unless explicitly asked. Report
+findings with file paths, concrete risk, and recommended remediation.
+"""
+
+
+def _claude_release_manager_agent() -> str:
+    return """---
+name: sicario-release-manager
+description: Checks release readiness, version synchronization, changelog, immutable tags, artifacts, and provenance evidence.
+tools: Read, Glob, Grep, Bash
+model: inherit
+---
+
+You are a SicarioSpec release manager. Verify version metadata, changelog,
+release workflow, artifact classification, immutable tag discipline, and
+provenance or attestation evidence.
+
+Prefer read-only commands. Do not move, delete, or rewrite published tags.
+Report blockers and exact verification commands.
+"""
+
+
+def _write_agent_integrations(target: Path, integration: str, *, force: bool, dry_run: bool, actions: List[str]) -> None:
+    if integration in {"claude", "all"}:
+        _write_text(target / "CLAUDE.md", _claude_instructions(), force=force, dry_run=dry_run, actions=actions)
+        _write_text(
+            target / ".claude" / "skills" / "sicario-verify" / "SKILL.md",
+            _skill_sicario_verify(),
+            force=force,
+            dry_run=dry_run,
+            actions=actions,
+        )
+        _write_text(
+            target / ".claude" / "skills" / "sicario-governance-review" / "SKILL.md",
+            _skill_governance_review(),
+            force=force,
+            dry_run=dry_run,
+            actions=actions,
+        )
+        _write_text(
+            target / ".claude" / "skills" / "sicario-release-readiness" / "SKILL.md",
+            _skill_release_readiness(),
+            force=force,
+            dry_run=dry_run,
+            actions=actions,
+        )
+        _write_text(
+            target / ".claude" / "agents" / "sicario-security-reviewer.md",
+            _claude_security_reviewer_agent(),
+            force=force,
+            dry_run=dry_run,
+            actions=actions,
+        )
+        _write_text(
+            target / ".claude" / "agents" / "sicario-release-manager.md",
+            _claude_release_manager_agent(),
+            force=force,
+            dry_run=dry_run,
+            actions=actions,
+        )
+
+    if integration in {"codex", "copilot", "all"}:
+        _write_text(target / "AGENTS.md", _agent_instructions(), force=force, dry_run=dry_run, actions=actions)
+
+    if integration in {"codex", "all"}:
+        _write_text(
+            target / ".agents" / "skills" / "sicario-verify" / "SKILL.md",
+            _skill_sicario_verify(),
+            force=force,
+            dry_run=dry_run,
+            actions=actions,
+        )
+        _write_text(
+            target / ".agents" / "skills" / "sicario-governance-review" / "SKILL.md",
+            _skill_governance_review(),
+            force=force,
+            dry_run=dry_run,
+            actions=actions,
+        )
+        _write_text(
+            target / ".agents" / "skills" / "sicario-release-readiness" / "SKILL.md",
+            _skill_release_readiness(),
+            force=force,
+            dry_run=dry_run,
+            actions=actions,
+        )
+
+    if integration in {"copilot", "all"}:
+        _write_text(
+            target / ".github" / "copilot-instructions.md",
+            _copilot_instructions(),
+            force=force,
+            dry_run=dry_run,
+            actions=actions,
+        )
+        _write_text(
+            target / ".github" / "instructions" / "sicario-governance.instructions.md",
+            _copilot_governance_instructions(),
+            force=force,
+            dry_run=dry_run,
+            actions=actions,
+        )
+        _write_text(
+            target / ".github" / "workflows" / "copilot-setup-steps.yml",
+            _copilot_setup_steps(),
+            force=force,
+            dry_run=dry_run,
+            actions=actions,
+        )
+
+
 def iter_text_files(root: Path) -> Iterable[Path]:
     skip_dirs = {
         ".git",
@@ -1191,7 +1507,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     init = sub.add_parser("init", help="Initialize SicarioSpec in a project")
     init.add_argument("project", help="Target project directory")
-    init.add_argument("--integration", default="claude", choices=["claude", "generic"])
+    init.add_argument("--integration", default="claude", choices=["claude", "codex", "copilot", "all", "generic"])
     init.add_argument("--profile", default="public-core", help="Comma-separated profile list")
     init.add_argument("--dry-run", action="store_true")
     init.add_argument("--force", action="store_true")

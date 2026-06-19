@@ -83,6 +83,52 @@ class SicarioCliBehaviorTests(unittest.TestCase):
             self.assertTrue((target / "docs" / "compliance" / "control-maps").exists())
             self.assertTrue((target / "docs" / "risk" / "risk-register.md").exists())
 
+    def test_all_integration_generates_agent_surfaces(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            target = Path(tmp) / "project"
+            self.assertEqual(0, main(["init", str(target), "--integration", "all", "--profile", "ai-system"]))
+
+            expected = [
+                "CLAUDE.md",
+                "AGENTS.md",
+                ".claude/skills/sicario-verify/SKILL.md",
+                ".claude/skills/sicario-governance-review/SKILL.md",
+                ".claude/skills/sicario-release-readiness/SKILL.md",
+                ".claude/agents/sicario-security-reviewer.md",
+                ".claude/agents/sicario-release-manager.md",
+                ".agents/skills/sicario-verify/SKILL.md",
+                ".agents/skills/sicario-governance-review/SKILL.md",
+                ".agents/skills/sicario-release-readiness/SKILL.md",
+                ".github/copilot-instructions.md",
+                ".github/instructions/sicario-governance.instructions.md",
+                ".github/workflows/copilot-setup-steps.yml",
+            ]
+            for relative in expected:
+                self.assertTrue((target / relative).exists(), relative)
+
+            self.assertIn("AGENTS.md", (target / "AGENTS.md").read_text(encoding="utf-8"))
+            self.assertIn("copilot-setup-steps", (target / ".github" / "workflows" / "copilot-setup-steps.yml").read_text(encoding="utf-8"))
+            self.assertIn("sicario verify", (target / ".agents" / "skills" / "sicario-verify" / "SKILL.md").read_text(encoding="utf-8"))
+
+    def test_codex_integration_generates_agents_md_and_codex_skills_only(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            target = Path(tmp) / "project"
+            self.assertEqual(0, main(["init", str(target), "--integration", "codex"]))
+            self.assertTrue((target / "AGENTS.md").exists())
+            self.assertTrue((target / ".agents" / "skills" / "sicario-verify" / "SKILL.md").exists())
+            self.assertFalse((target / "CLAUDE.md").exists())
+            self.assertFalse((target / ".github" / "copilot-instructions.md").exists())
+
+    def test_copilot_integration_generates_copilot_environment(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            target = Path(tmp) / "project"
+            self.assertEqual(0, main(["init", str(target), "--integration", "copilot"]))
+            self.assertTrue((target / "AGENTS.md").exists())
+            self.assertTrue((target / ".github" / "copilot-instructions.md").exists())
+            self.assertTrue((target / ".github" / "workflows" / "copilot-setup-steps.yml").exists())
+            self.assertFalse((target / "CLAUDE.md").exists())
+            self.assertFalse((target / ".agents" / "skills" / "sicario-verify" / "SKILL.md").exists())
+
     def test_missing_threat_model_fails(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             target = Path(tmp) / "project"
