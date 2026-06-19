@@ -1,0 +1,18 @@
+id: sicario-ai-system
+name: SicarioSpec AI System
+version: 0.1.0
+description: AI, agent, RAG, MCP, LLM, and tool-use security profile.
+license: MIT
+tags: [ai-security, llm, agentic-ai, owasp-llm, nist-ai-rmf]
+requires:
+  spec-kit: ">=0.9.0"
+extends: [sicario-core]
+focus:
+  - prompt-injection
+  - tool-boundaries
+  - model-routing
+  - memory-poisoning
+  - data-leakage
+  - aibom
+  - ai-evals
+

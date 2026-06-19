@@ -1,0 +1,75 @@
+# Presets
+
+Presets define what every generated Spec Kit artifact must contain.
+
+## sicario-core
+
+Always installed. Covers least privilege, deterministic authority, evidence
+integrity, trust-boundary sanitization, source-of-truth authority, quality gates,
+architecture discipline, well-architected review, honest documentation, human
+approval, and secret handling.
+
+## sicario-docs
+
+Installed by default. Covers docs impact, public docs, internal docs, diagrams,
+docs-site build, and generated documentation evidence.
+
+## sicario-appsec
+
+For apps, APIs, and services. Covers authn/authz, input validation, output
+handling, API security, secure errors, rate limits, and audit logging.
+
+## sicario-ai-system
+
+For AI systems, agents, RAG, MCP, LLM workflows, and model/tool use. Covers
+prompt injection, model routing, memory poisoning, data leakage, AIBOM, evals,
+red-team tests, and human approval gates.
+
+## sicario-agent-fleet
+
+For multi-agent, worker, queue, workflow, SOAR, and orchestration systems.
+Covers LangGraph-style state graphs, Temporal-style durable workflows,
+Ray/Celery-style distributed execution, MCP tool fleets, retry and idempotency,
+dead-letter handling, backpressure, kill switches, approval gates, and workflow
+evidence.
+
+## sicario-cloud-iac
+
+For Terraform/OpenTofu, Azure Verified Modules, Azure Bicep, Azure VM-oriented
+builds, AWS CloudFormation/CDK-style repos, GCP Terraform, containers,
+Kubernetes, and serverless. Covers IAM, network exposure, encryption, secrets,
+logs, policy-as-code, drift, IaC scans, container scans, data residency, and
+cost guardrails.
+
+Cloud profile bootstrap creates starter folders under:
+
+- `infra/terraform`
+- `infra/azure-avm-bicep`
+- `infra/azure-avm-terraform`
+- `infra/azure-bicep`
+- `infra/aws-cloudformation`
+- `infra/gcp-terraform`
+- `infra/kubernetes`
+- `policy/policy-as-code`
+
+## sicario-security-toolchain
+
+For security scanning and evidence. Covers secret scanning, SAST/static checks,
+dependency/SCA, SBOM, container scanning, IaC scanning, policy-as-code, evidence
+paths, and exception handling.
+
+## sicario-supply-chain
+
+For build and release integrity. Covers dependency review, SBOM, SCA, provenance,
+pinned dependencies/actions, and SLSA-style build integrity.
+
+## sicario-compliance
+
+For regulated and audit-driven projects. Covers control applicability, evidence
+index, CSA CCM v4.1 traceability, SOX 404 / ICFR ITGC evidence readiness, risk
+acceptance, owner/reviewer, evidence freshness, and audit trail.
+
+## sicario-enterprise-strict
+
+For high-assurance environments. Covers CODEOWNERS, required reviewers, change
+control, production write gates, release approval, and exception registers.

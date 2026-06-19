@@ -1,0 +1,19 @@
+id: sicario-core
+name: SicarioSpec Core
+version: 0.1.0
+description: Baseline secure-by-default Spec Kit governance profile.
+license: MIT
+tags:
+  - governance
+  - appsec
+  - devsecops
+  - secure-by-default
+requires:
+  spec-kit: ">=0.9.0"
+templates:
+  - templates/spec-template.md
+  - templates/plan-template.md
+  - templates/tasks-template.md
+  - templates/checklist-template.md
+  - templates/constitution-template.md
+

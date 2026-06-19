@@ -1,0 +1,17 @@
+id: sicario-enterprise-strict
+name: SicarioSpec Enterprise Strict
+version: 0.1.0
+description: High-assurance enterprise profile for approval, release, and exception governance.
+license: MIT
+tags: [enterprise, change-control, codeowners, release-governance]
+requires:
+  spec-kit: ">=0.9.0"
+extends: [sicario-core, sicario-appsec, sicario-supply-chain, sicario-compliance]
+focus:
+  - codeowners
+  - required-reviewers
+  - change-control
+  - production-write-gates
+  - release-approval
+  - exception-register
+

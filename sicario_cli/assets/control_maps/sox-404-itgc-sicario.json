@@ -1,0 +1,58 @@
+{
+  "id": "sox-404-itgc-sicario",
+  "name": "SOX 404 / ICFR ITGC to SicarioSpec Evidence Map",
+  "version": "0.1.0",
+  "framework": {
+    "name": "Sarbanes-Oxley Section 404 / Internal Control Over Financial Reporting",
+    "abbreviation": "SOX 404 / ICFR",
+    "official_sources": [
+      "https://www.gao.gov/products/gao-25-107500",
+      "https://pcaobus.org/oversight/standards/auditing-standards/details/AS2201"
+    ]
+  },
+  "scope_note": "SOX is not a cybersecurity control catalog. This starter map focuses on IT general controls and application controls that can support management assessment and auditor evidence for systems relevant to financial reporting.",
+  "control_area_mappings": [
+    {
+      "area": "Entity-level IT governance",
+      "purpose": "Show that technology risks affecting financial reporting are governed, owned, reviewed, and evidenced.",
+      "sicario_evidence": ["docs/compliance/control-applicability.md", "docs/risk/risk-register.md", "docs/compliance/evidence-index.md"],
+      "sicario_presets": ["sicario-compliance", "sicario-enterprise-strict"]
+    },
+    {
+      "area": "Access to financially relevant systems",
+      "purpose": "Support least privilege, authorization, segregation of duties, privileged access review, and user lifecycle evidence.",
+      "sicario_evidence": ["specs/**/plan.md#authn--authz-design", "tests", "docs/security/threat-model.md"],
+      "sicario_presets": ["sicario-appsec", "sicario-cloud-iac"]
+    },
+    {
+      "area": "Change management",
+      "purpose": "Show that changes to financial applications, data pipelines, infrastructure, and control logic are authorized, tested, reviewed, and traceable.",
+      "sicario_evidence": ["specs/**/plan.md", "specs/**/tasks.md", "docs/docs-impact.md", ".github/workflows/sicario-verify.yml"],
+      "sicario_presets": ["sicario-core", "sicario-enterprise-strict"]
+    },
+    {
+      "area": "IT operations",
+      "purpose": "Support job monitoring, alerting, backup, recovery, incident handling, and operational evidence for systems in ICFR scope.",
+      "sicario_evidence": ["specs/**/plan.md#well-architected-review", "docs/architecture/system-context.md", "docs/risk/risk-register.md"],
+      "sicario_presets": ["sicario-core", "sicario-cloud-iac", "sicario-agent-fleet"]
+    },
+    {
+      "area": "Interface, report, and data integrity controls",
+      "purpose": "Support completeness, accuracy, validity, and restricted modification of data moving into reports or financial processes.",
+      "sicario_evidence": ["specs/**/spec.md#data-classification", "specs/**/plan.md#data-flow-and-trust-boundaries", "tests"],
+      "sicario_presets": ["sicario-appsec", "sicario-compliance"]
+    },
+    {
+      "area": "Third-party and SaaS control reliance",
+      "purpose": "Track reliance on vendors, SaaS platforms, SOC reports, shared responsibility, and compensating controls.",
+      "sicario_evidence": ["docs/compliance/control-applicability.md", "docs/compliance/evidence-index.md", "docs/risk/accepted-risk-log.md"],
+      "sicario_presets": ["sicario-compliance"]
+    },
+    {
+      "area": "Exception and deficiency management",
+      "purpose": "Keep exceptions time-bound, approved, remediated, and connected to evidence.",
+      "sicario_evidence": ["docs/risk/security-exceptions.md", "docs/risk/accepted-risk-log.md", "generated/sicario/gate-summary.json"],
+      "sicario_presets": ["sicario-compliance", "sicario-enterprise-strict"]
+    }
+  ]
+}

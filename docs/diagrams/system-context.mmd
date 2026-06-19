@@ -1,0 +1,11 @@
+flowchart LR
+    Dev[Developer] --> CLI[sicario CLI]
+    CLI --> Presets[SicarioSpec Presets]
+    CLI --> Extension[sicario-guard Extension]
+    CLI --> Target[Target Project]
+    Target --> Specs[Spec Kit Artifacts]
+    Target --> Docs[Docs and Diagrams]
+    Target --> Evidence[Evidence Artifacts]
+    CLI --> Verify[Deterministic Verify]
+    Verify --> Evidence
+

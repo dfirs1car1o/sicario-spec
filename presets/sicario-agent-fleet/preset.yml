@@ -1,0 +1,19 @@
+id: sicario-agent-fleet
+name: SicarioSpec Agent Fleet
+version: 0.1.0
+description: Governance for multi-agent, worker, queue, workflow, SOAR, and orchestration systems.
+license: MIT
+tags: [agentic-ai, orchestration, langgraph, temporal, celery, ray, soar, workers]
+requires:
+  spec-kit: ">=0.9.0"
+extends: [sicario-core, sicario-ai-system]
+focus:
+  - workflow-state
+  - durable-execution
+  - queue-worker-safety
+  - idempotency
+  - retry-and-dead-letter
+  - distributed-permissions
+  - approval-boundaries
+  - observability
+  - drift-remediation

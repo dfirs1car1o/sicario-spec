@@ -1,0 +1,9 @@
+quiet: true
+compact: true
+framework:
+  - terraform
+  - bicep
+  - cloudformation
+  - kubernetes
+skip-check: []
+

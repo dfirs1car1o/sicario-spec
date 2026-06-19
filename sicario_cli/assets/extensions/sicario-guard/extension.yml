@@ -1,0 +1,24 @@
+id: sicario-guard
+name: SicarioSpec Guard
+version: 0.1.0
+description: Commands and hooks for secure-by-default Spec Kit verification.
+license: MIT
+requirements:
+  spec-kit: ">=0.9.0"
+commands:
+  - sicario.init
+  - sicario.assess
+  - sicario.threatmodel
+  - sicario.controls
+  - sicario.evidence
+  - sicario.verify
+  - sicario.review
+  - sicario.apply-findings
+hooks:
+  after_specify:
+    - sicario.threatmodel
+  after_plan:
+    - sicario.review
+  after_tasks:
+    - sicario.verify
+

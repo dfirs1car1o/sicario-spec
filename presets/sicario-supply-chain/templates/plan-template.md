@@ -1,0 +1,141 @@
+# Implementation Plan: [FEATURE]
+
+**Branch**: `[###-feature-name]` | **Date**: [DATE] | **Spec**: [link]
+
+## Summary
+
+[Extract primary requirement and implementation approach.]
+
+## Technical Context
+
+**Language/Version**: [TBD]
+**Primary Dependencies**: [TBD]
+**Storage**: [TBD]
+**Testing**: [TBD]
+**Target Platform**: [TBD]
+**Project Type**: [TBD]
+
+## Threat Model
+
+- Assets:
+- Entry points:
+- Trust boundaries:
+- Threat actors:
+- Abuse cases:
+- Required controls:
+- Residual risks:
+
+## Architecture / Security Decision Record
+
+- Decision:
+- Alternatives:
+- Security tradeoffs:
+- Approval needed:
+
+## Well-Architected Review
+
+- Operational excellence:
+- Security:
+- Reliability:
+- Performance efficiency:
+- Cost optimization:
+- Sustainability:
+- Tradeoffs accepted:
+
+## Authn / Authz Design
+
+- Identity source:
+- Authorization checks:
+- Privilege boundaries:
+- Negative tests:
+
+## Data Flow And Trust Boundaries
+
+```text
+actor -> boundary -> component -> boundary -> data/evidence/output
+```
+
+## Supply Chain
+
+- New dependencies:
+- Dependency review:
+- SBOM impact:
+- Pinned actions/images:
+- Build provenance:
+
+## Cloud / IaC Risk
+
+- IAM:
+- Network exposure:
+- Encryption:
+- Secrets:
+- Logging:
+- Drift/policy checks:
+
+## AI / Tool Boundary
+
+- Prompt injection controls:
+- Tool allowlist:
+- Model routing:
+- Memory controls:
+- Human approval gates:
+- Evals/red-team tests:
+
+## Test Strategy
+
+- Unit tests:
+- Integration tests:
+- Negative/security tests:
+- Regression tests:
+- Offline test constraints:
+
+## CI / Security Gates
+
+- Lint/type gates:
+- Secret scan:
+- SAST:
+- Dependency/SCA:
+- IaC/container scan:
+- SicarioSpec verification:
+
+## Rollback
+
+- Rollback trigger:
+- Revert steps:
+- Data migration rollback:
+- Evidence of rollback readiness:
+
+## Evidence Outputs
+
+- Threat model:
+- Abuse cases:
+- Control applicability:
+- Evidence index:
+- Gate summary:
+- Reviewer approval:
+
+## Human Approval Points
+
+- Production write:
+- External system write:
+- Security exception:
+- Release:
+
+## Constitution Check
+
+| Principle | Status | Evidence |
+|---|---|---|
+| Least privilege | TBD | TBD |
+| Deterministic authority | TBD | TBD |
+| Evidence integrity | TBD | TBD |
+| Trust-boundary sanitization | TBD | TBD |
+| Source-of-truth authority | TBD | TBD |
+| Quality gates | TBD | TBD |
+| Architecture discipline | TBD | TBD |
+| Well-architected review | TBD | TBD |
+| Operability and resilience | TBD | TBD |
+| Honest documentation | TBD | TBD |
+
+## Project Structure
+
+[Describe real files and directories.]

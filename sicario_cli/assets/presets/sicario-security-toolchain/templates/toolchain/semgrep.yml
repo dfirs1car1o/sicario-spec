@@ -1,0 +1,6 @@
+rules:
+  - id: sicario-placeholder-no-hardcoded-secret
+    message: "Potential hardcoded secret pattern. Replace with runtime secret injection."
+    severity: ERROR
+    languages: [generic]
+    pattern-regex: "(?i)(api[_-]?key|secret|token|password)\\s*[:=]\\s*['\\\"][^'\\\"]{12,}['\\\"]"

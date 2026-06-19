@@ -1,0 +1,6 @@
+title = "SicarioSpec Gitleaks starter"
+
+[allowlist]
+description = "Repository-specific allowlist. Keep this small and reviewed."
+paths = []
+regexes = []

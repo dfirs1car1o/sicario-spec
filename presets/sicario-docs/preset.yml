@@ -1,0 +1,16 @@
+id: sicario-docs
+name: SicarioSpec Docs And Diagrams
+version: 0.1.0
+description: Documentation, diagram, docs-impact, and docs-site governance profile.
+license: MIT
+tags: [documentation, diagrams, docusaurus, docs-as-code, evidence]
+requires:
+  spec-kit: ">=0.9.0"
+extends: [sicario-core]
+focus:
+  - docs-impact
+  - docusaurus
+  - diagram-source-control
+  - generated-docs-drift
+  - architecture-decision-records
+

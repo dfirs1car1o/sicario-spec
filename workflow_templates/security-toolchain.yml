@@ -1,0 +1,27 @@
+name: security-toolchain
+
+on:
+  pull_request:
+  merge_group:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  toolchain:
+    name: Security toolchain evidence
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: python -m pip install -e .
+      - run: mkdir -p generated/security
+      - run: sicario verify .
+      - name: Toolchain notice
+        run: |
+          echo "Configure pinned scanner versions before enforcing external tools."
+          echo "Expected evidence paths are documented in security/toolchain/security-tools.md."

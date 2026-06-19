@@ -1,0 +1,36 @@
+{
+  "properties": {
+    "displayName": "SicarioSpec - deny public blob access",
+    "policyType": "Custom",
+    "mode": "Indexed",
+    "description": "Deny storage accounts that allow public blob access unless an approved exception exists.",
+    "metadata": {
+      "category": "Storage",
+      "managedBy": "sicario-spec"
+    },
+    "parameters": {
+      "effect": {
+        "type": "String",
+        "defaultValue": "Deny",
+        "allowedValues": ["Audit", "Deny", "Disabled"]
+      }
+    },
+    "policyRule": {
+      "if": {
+        "allOf": [
+          {
+            "field": "type",
+            "equals": "Microsoft.Storage/storageAccounts"
+          },
+          {
+            "field": "Microsoft.Storage/storageAccounts/allowBlobPublicAccess",
+            "equals": true
+          }
+        ]
+      },
+      "then": {
+        "effect": "[parameters('effect')]"
+      }
+    }
+  }
+}

@@ -1,0 +1,52 @@
+id: sicario-cloud-iac
+name: SicarioSpec Cloud IaC
+version: 0.1.0
+description: Multi-cloud infrastructure-as-code profile for Terraform/OpenTofu, Azure Verified Modules, Azure Bicep, AWS, GCP, Kubernetes, containers, and policy-as-code.
+license: MIT
+tags: [cloud, iac, terraform, opentofu, azure, avm, azure-verified-modules, bicep, aws, gcp, kubernetes, containers, policy-as-code]
+requires:
+  spec-kit: ">=0.9.0"
+extends: [sicario-core]
+focus:
+  - provider-selection
+  - iam
+  - network-exposure
+  - encryption
+  - secrets-management
+  - data-residency
+  - cost-guardrails
+  - drift-detection
+  - iac-scanning
+  - container-scanning
+  - compliance-as-code
+  - policy-as-code
+providers:
+  - terraform
+  - opentofu
+  - azure-bicep
+  - azure-verified-modules-bicep
+  - azure-verified-modules-terraform
+  - azure-vm
+  - aws-cloudformation
+  - aws-cdk
+  - gcp-terraform
+  - kubernetes
+  - containers
+starter_templates:
+  - templates/terraform/main.tf
+  - templates/terraform/variables.tf
+  - templates/terraform/outputs.tf
+  - templates/azure-bicep/main.bicep
+  - templates/azure-avm-bicep/main.bicep
+  - templates/azure-avm-terraform/main.tf
+  - templates/azure-avm-terraform/variables.tf
+  - templates/azure-avm-terraform/outputs.tf
+  - templates/aws-cloudformation/template.yaml
+  - templates/gcp/main.tf
+  - templates/kubernetes/namespace.yaml
+  - templates/containers/Dockerfile
+  - templates/policy-as-code/README.md
+  - templates/policy-as-code/checkov.yml
+  - templates/policy-as-code/opa/conftest/iac.rego
+  - templates/policy-as-code/azure-policy/deny-public-storage.json
+  - templates/policy-as-code/kubernetes/kyverno-require-non-root.yaml

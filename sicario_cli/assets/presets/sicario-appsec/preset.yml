@@ -1,0 +1,17 @@
+id: sicario-appsec
+name: SicarioSpec AppSec
+version: 0.1.0
+description: Application security profile for apps, APIs, and services.
+license: MIT
+tags: [appsec, asvs, api-security, secure-coding]
+requires:
+  spec-kit: ">=0.9.0"
+extends: [sicario-core]
+focus:
+  - authn-authz
+  - session-token-handling
+  - input-validation
+  - api-security
+  - secure-errors
+  - audit-logging
+

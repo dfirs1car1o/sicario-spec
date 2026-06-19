@@ -1,0 +1,17 @@
+id: sicario-supply-chain
+name: SicarioSpec Supply Chain
+version: 0.1.0
+description: Build and release integrity profile with SBOM, SCA, provenance, and SLSA-style checks.
+license: MIT
+tags: [supply-chain, sbom, sca, slsa, provenance]
+requires:
+  spec-kit: ">=0.9.0"
+extends: [sicario-core]
+focus:
+  - dependency-review
+  - sbom
+  - pinned-dependencies
+  - github-actions-hardening
+  - provenance
+  - artifact-signing-readiness
+
