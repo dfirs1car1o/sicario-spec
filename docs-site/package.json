@@ -1,0 +1,34 @@
+{
+  "name": "sicario-spec-docs-site",
+  "version": "0.1.2",
+  "private": true,
+  "description": "Public documentation site for SicarioSpec.",
+  "scripts": {
+    "build": "docusaurus build",
+    "clear": "docusaurus clear",
+    "start": "docusaurus start --host 0.0.0.0",
+    "serve": "docusaurus serve --host 0.0.0.0"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@docusaurus/core": "3.10.1",
+    "@docusaurus/preset-classic": "3.10.1",
+    "@mdx-js/react": "^3.1.0",
+    "clsx": "^2.1.1",
+    "prism-react-renderer": "^2.4.1",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1"
+  },
+  "overrides": {
+    "copy-webpack-plugin": "14.0.0",
+    "css-minimizer-webpack-plugin": "8.0.0",
+    "gray-matter": "4.0.3",
+    "http-proxy-middleware": "4.1.1",
+    "js-yaml": "4.2.0",
+    "serialize-javascript": "7.0.6",
+    "uuid": "14.0.0"
+  },
+  "devDependencies": {}
+}

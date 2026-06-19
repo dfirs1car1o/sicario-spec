@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256" role="img" aria-labelledby="title desc">
+  <title id="title">SicarioSpec mark</title>
+  <desc id="desc">A shield and crosshair mark representing risk controls before release.</desc>
+  <rect width="256" height="256" rx="42" fill="#0f172a"/>
+  <path d="M128 28l76 28v60c0 50-31 88-76 112-45-24-76-62-76-112V56l76-28z" fill="#f8fafc"/>
+  <path d="M128 45l59 22v49c0 40-23 70-59 91-36-21-59-51-59-91V67l59-22z" fill="#111827"/>
+  <circle cx="128" cy="125" r="48" fill="none" stroke="#e11d48" stroke-width="12"/>
+  <circle cx="128" cy="125" r="17" fill="#e11d48"/>
+  <path d="M128 64v35M128 151v35M67 125h35M154 125h35" stroke="#f8fafc" stroke-width="10" stroke-linecap="round"/>
+  <path d="M92 87l72 72M164 87l-72 72" stroke="#38bdf8" stroke-width="8" stroke-linecap="round"/>
+</svg>

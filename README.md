@@ -11,34 +11,54 @@
   <a href="https://github.com/dfirs1car1o/sicario-spec/actions/workflows/codeql.yml"><img alt="CodeQL" src="https://github.com/dfirs1car1o/sicario-spec/actions/workflows/codeql.yml/badge.svg"></a>
   <a href="https://github.com/dfirs1car1o/sicario-spec/actions/workflows/release.yml"><img alt="Release packaging" src="https://github.com/dfirs1car1o/sicario-spec/actions/workflows/release.yml/badge.svg"></a>
   <a href="https://scorecard.dev/viewer/?uri=github.com/dfirs1car1o/sicario-spec"><img alt="OpenSSF Scorecard" src="https://api.scorecard.dev/projects/github.com/dfirs1car1o/sicario-spec/badge"></a>
+  <a href="https://dfirs1car1o.github.io/sicario-spec/"><img alt="Docs" src="https://img.shields.io/badge/docs-GitHub%20Pages-0f766e.svg"></a>
   <a href="https://github.com/dfirs1car1o/sicario-spec/releases"><img alt="GitHub release" src="https://img.shields.io/github/v/release/dfirs1car1o/sicario-spec?sort=semver"></a>
+  <a href="https://github.com/dfirs1car1o/sicario-spec/issues"><img alt="Issues" src="https://img.shields.io/github/issues/dfirs1car1o/sicario-spec"></a>
   <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-green.svg"></a>
   <a href="pyproject.toml"><img alt="Python 3.9+" src="https://img.shields.io/badge/python-3.9%2B-blue.svg"></a>
 </p>
 
-SicarioSpec is a secure-by-default governance bundle for GitHub Spec Kit. It
-adds AppSec, AI security, agent-fleet orchestration, cloud/IaC security,
-supply-chain security, CCM/SOX evidence mapping, docs-as-code, diagrams,
-well-architected review, risk exceptions, and human approval gates to
-specification-driven development.
+SicarioSpec turns GitHub Spec Kit into a security, governance, and evidence
+system for AI-era software delivery. It gives Claude Code, Codex/GPT, GitHub
+Copilot, and human reviewers the same operating model: classify the data, name
+the risk, map the controls, generate the evidence, and block unsafe changes
+before merge, deploy, or release.
 
-The goal is simple: make secure architecture, compliance evidence, and risk
-decisions part of the spec before code is written.
+Specs are where risk becomes work. SicarioSpec makes that work explicit.
 
-## What It Adds
+## Why It Exists
+
+AI agents can write code faster than most teams can explain the risk behind the
+change. Compliance evidence is often reconstructed after the fact. Security
+review gets pushed to the end, when architecture and delivery pressure are
+already locked in.
+
+SicarioSpec moves those decisions forward:
+
+- every feature starts with data classification, tagging, threat modeling,
+  controls, docs impact, and risk ownership
+- every agent gets repo-native instructions and repeatable governance skills
+- every release has a deterministic verification path before human approval
+- every exception has an owner, expiration, rationale, compensating control, and
+  evidence trail
+
+## What You Get
 
 SicarioSpec provides:
 
 - **Presets** that change what every Spec Kit spec, plan, task list, checklist,
   and constitution must contain.
+- **Agent-native instructions** for Claude Code, Codex/GPT, GitHub Copilot, and
+  generic agent environments.
 - **Guard extension commands** for review, threat modeling, controls, evidence,
   verification, and finding remediation.
-- **Bootstrap CLI** to install the bundle into a target repo with one command.
 - **Control maps** for CSA CCM v4.1 and SOX 404 / ICFR ITGC evidence readiness.
 - **Policy-as-code starters** for Checkov, OPA/Conftest, Azure Policy, and
   Kubernetes admission policy.
 - **Security toolchain starters** for secrets, SAST, SCA, SBOM, container/IaC
   scanning, and evidence paths.
+- **Open-source repo hygiene**: issue forms, security policy, code of conduct,
+  Dependabot, CodeQL, OpenSSF Scorecard, release packaging, and Pages docs.
 
 ```text
 spec idea
@@ -71,16 +91,20 @@ python3 -m pip install "git+https://github.com/dfirs1car1o/sicario-spec.git"
 Install a specific release:
 
 ```bash
-python3 -m pip install "git+https://github.com/dfirs1car1o/sicario-spec.git@v0.1.1"
+python3 -m pip install "git+https://github.com/dfirs1car1o/sicario-spec.git@v0.1.2"
 ```
 
 ## Quickstart
 
 ```bash
-sicario init my-project --integration claude --profile public-core
+sicario init my-project --integration all --profile public-core
 cd my-project
 sicario verify
 ```
+
+That single command gives the target repo a Spec Kit governance baseline,
+security/compliance docs, risk registers, Docusaurus docs scaffold, GitHub
+Actions gates, and agent instructions for Claude Code, Codex/GPT, and Copilot.
 
 Useful profile combinations:
 
@@ -110,6 +134,32 @@ Profiles are composable:
 ```bash
 sicario init my-service --profile appsec,ai-system,agent-fleet,security-toolchain,supply-chain
 ```
+
+## Agent-Native Delivery
+
+Use `--integration all` when multiple coding agents touch the repo:
+
+| Environment | Generated support |
+|---|---|
+| Claude Code | `CLAUDE.md`, `.claude/skills/*`, `.claude/agents/*` |
+| Codex / GPT | `AGENTS.md`, `.agents/skills/*` |
+| GitHub Copilot | `AGENTS.md`, `.github/copilot-instructions.md`, path-specific instructions, setup workflow |
+| Generic agents | `SICARIO.md`, Spec Kit templates, docs, workflows, and guard commands |
+
+The generated instructions use a machine-user-first flow when available:
+agents prepare code changes, a human maintainer approves with personal
+credentials, and a documented single-maintainer fallback remains available for
+organizations that cannot provision machine users.
+
+## Use It When
+
+- you are adopting Spec Kit and want security/compliance built into the spec
+- AI agents are opening PRs and you need consistent repository instructions
+- evidence, data classification, tagging, or release approval is currently
+  manual or inconsistent
+- your team needs a public-repo-ready security posture from day one
+- auditors, security reviewers, or platform teams need traceability from
+  feature intent to release evidence
 
 ## Constitution Foundation
 
@@ -144,6 +194,14 @@ Provider-specific lenses may add detail, but they do not remove the baseline.
 - `.specify/extensions.yml`
 - `SICARIO.md`
 - `CLAUDE.md` when using `--integration claude`
+- `AGENTS.md` when using `--integration codex`, `--integration copilot`, or
+  `--integration all`
+- `.claude/skills/*` and `.claude/agents/*` when using `--integration claude`
+  or `--integration all`
+- `.agents/skills/*` when using `--integration codex` or `--integration all`
+- `.github/copilot-instructions.md`, `.github/instructions/*`, and
+  `.github/workflows/copilot-setup-steps.yml` when using
+  `--integration copilot` or `--integration all`
 - `docs/security/threat-model.md`
 - `docs/security/abuse-cases.md`
 - `docs/governance/data-classification.md`
@@ -250,4 +308,5 @@ common unsafe paths before merge.
 - Changelog: [CHANGELOG.md](CHANGELOG.md)
 - Release process: [docs/release-process.md](docs/release-process.md)
 - Repository settings: [docs/repository-settings.md](docs/repository-settings.md)
+- Agent environments: [docs/agent-environments.md](docs/agent-environments.md)
 - OpenSSF posture: [docs/openssf.md](docs/openssf.md)

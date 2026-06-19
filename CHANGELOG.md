@@ -6,6 +6,29 @@ The project follows semantic versioning once the public API stabilizes. During
 the `0.x` line, minor versions may introduce breaking changes when needed to
 improve the security model.
 
+## [0.1.2] - 2026-06-19
+
+Release for agent-native environments, the public documentation site, and
+clearer launch positioning.
+
+### Added
+
+- Agent-native bootstrap outputs for Claude Code, Codex, and GitHub Copilot
+  coding agent through `--integration codex`, `--integration copilot`, and
+  `--integration all`.
+- Repo-scoped SicarioSpec skills for verification, governance review, and
+  release readiness.
+- Copilot instructions and setup workflow for cloud-agent environments.
+- Public GitHub Pages documentation site backed by the repository `docs/`
+  content.
+- Adoption and launch guide for positioning, proof points, and first outreach
+  messages.
+
+### Changed
+
+- README positioning, badges, quickstart, generated artifact list, and
+  agent-native delivery guidance.
+
 ## [0.1.1] - 2026-06-19
 
 Patch release for repository hardening after the initial public release.

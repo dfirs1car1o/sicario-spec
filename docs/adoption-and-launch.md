@@ -1,0 +1,108 @@
+# Adoption and Launch
+
+SicarioSpec should be marketed as an operating model, not a checklist. The
+message is simple: teams using AI coding agents need risk, evidence, and human
+approval built into the spec before code starts moving.
+
+## Positioning
+
+Use this short description when introducing the project:
+
+> SicarioSpec turns GitHub Spec Kit into a security, governance, and evidence
+> system for AI-era software delivery. It gives Claude Code, Codex/GPT, GitHub
+> Copilot, and human reviewers one shared workflow for data classification,
+> controls, risk exceptions, verification, and release approval.
+
+Use this one-line version in social posts and repository descriptions:
+
+> Secure-by-default Spec Kit governance for AI-assisted software teams.
+
+## Audience
+
+Primary audiences:
+
+- security engineers who need repeatable AppSec and AI security gates
+- platform teams standardizing agent-assisted delivery
+- compliance and assurance teams that need evidence before release
+- maintainers of public or regulated repositories
+- teams adopting Claude Code, Codex/GPT, and GitHub Copilot together
+
+## Proof Points
+
+Lead with concrete artifacts instead of broad claims:
+
+- one-command bootstrap for governed Spec Kit projects
+- agent-native instructions for Claude Code, Codex/GPT, and Copilot
+- data classification and tagging built into specs, plans, tasks, and docs
+- threat model, abuse cases, control maps, evidence index, and risk registers
+- GitHub Actions verification, CodeQL, Dependabot, OpenSSF Scorecard, and
+  release packaging
+- MIT license, security policy, code of conduct, issue forms, and Pages docs
+
+## Launch Checklist
+
+Before announcing:
+
+- publish the GitHub Pages docs site
+- cut a tagged release with attached distributions and attestations
+- confirm CI, CodeQL, Scorecard, release, and Pages badges resolve
+- open one or two starter issues that invite useful community contribution
+- add repository topics such as `spec-kit`, `appsec`, `ai-security`,
+  `devsecops`, `governance`, `openssf`, and `compliance`
+- pin the release and docs link in the repository sidebar
+
+## First Posts
+
+GitHub release notes:
+
+```text
+SicarioSpec is live: secure-by-default Spec Kit governance for AI-assisted
+software teams.
+
+This release bootstraps data classification, tagging discipline, threat
+modeling, control maps, evidence indexes, risk registers, docs-as-code, GitHub
+Actions gates, and agent-native instructions for Claude Code, Codex/GPT, and
+GitHub Copilot.
+```
+
+Short social post:
+
+```text
+I released SicarioSpec: a Spec Kit governance bundle for AI-era delivery.
+
+It gives Claude Code, Codex/GPT, Copilot, and humans the same rules for data
+classification, threat modeling, evidence, risk exceptions, and release gates.
+
+Repo: https://github.com/dfirs1car1o/sicario-spec
+Docs: https://dfirs1car1o.github.io/sicario-spec/
+```
+
+Longer launch post:
+
+```text
+AI coding agents are changing delivery speed, but most teams still bolt on
+security review and evidence collection at the end.
+
+SicarioSpec moves that work into the spec. It extends GitHub Spec Kit with
+data classification, tagging discipline, threat modeling, control maps,
+evidence indexes, risk registers, docs-as-code, GitHub Actions gates, and
+agent-native instructions for Claude Code, Codex/GPT, and GitHub Copilot.
+
+The goal is not to claim security or compliance by magic. The goal is to make
+risk visible early, turn it into work, and require deterministic evidence
+before human approval.
+```
+
+## Contribution Hooks
+
+Good first external contribution areas:
+
+- additional control-map coverage
+- cloud-provider policy examples
+- agent workflow examples
+- docs-site examples and diagrams
+- OpenSSF hardening improvements
+- verifier checks for new risk or evidence patterns
+
+Do not market incomplete governance as certification. Keep claims tied to what
+the repository actually generates and verifies.
