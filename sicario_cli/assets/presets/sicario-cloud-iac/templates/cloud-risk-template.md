@@ -9,6 +9,7 @@ Complete this for every infrastructure spec.
 - Environment: dev / test / staging / prod
 - Region(s):
 - Data residency:
+- Data classification:
 
 ## Identity And Access
 
@@ -63,5 +64,20 @@ Complete this for every infrastructure spec.
 - SKU/instance restrictions:
 - Budget threshold:
 - Auto-shutdown:
-- Tagging:
+- Required tags/labels:
+- Temporary resource expiration:
 
+## Tagging Discipline
+
+Required tags/labels should follow `docs/governance/tagging-taxonomy.md`:
+
+- owner
+- system
+- environment
+- data-classification
+- retention
+- compliance-scope
+- cost-center
+- source-repo
+- managed-by
+- expires-on for temporary resources

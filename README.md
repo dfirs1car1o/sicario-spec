@@ -9,6 +9,7 @@
 <p align="center">
   <a href="https://github.com/dfirs1car1o/sicario-spec/actions/workflows/test.yml"><img alt="CI" src="https://github.com/dfirs1car1o/sicario-spec/actions/workflows/test.yml/badge.svg"></a>
   <a href="https://github.com/dfirs1car1o/sicario-spec/actions/workflows/codeql.yml"><img alt="CodeQL" src="https://github.com/dfirs1car1o/sicario-spec/actions/workflows/codeql.yml/badge.svg"></a>
+  <a href="https://github.com/dfirs1car1o/sicario-spec/actions/workflows/release.yml"><img alt="Release packaging" src="https://github.com/dfirs1car1o/sicario-spec/actions/workflows/release.yml/badge.svg"></a>
   <a href="https://scorecard.dev/viewer/?uri=github.com/dfirs1car1o/sicario-spec"><img alt="OpenSSF Scorecard" src="https://api.scorecard.dev/projects/github.com/dfirs1car1o/sicario-spec/badge"></a>
   <a href="https://github.com/dfirs1car1o/sicario-spec/releases"><img alt="GitHub release" src="https://img.shields.io/github/v/release/dfirs1car1o/sicario-spec?sort=semver"></a>
   <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-green.svg"></a>
@@ -94,7 +95,7 @@ sicario init my-audit-ready-build --profile appsec,cloud-iac,security-toolchain,
 
 | Profile | Purpose |
 |---|---|
-| `public-core` | Core governance, docs, diagrams, threat model, evidence, and risk registers. |
+| `public-core` | Core governance, data classification, tagging discipline, docs, diagrams, threat model, evidence, and risk registers. |
 | `appsec` | Application/API security requirements, authn/authz, validation, logging, and negative tests. |
 | `ai-system` | AI, LLM, agent, RAG, MCP, model output, tool boundary, eval, and red-team requirements. |
 | `agent-fleet` | LangGraph-style state graphs, durable workflows, queues, workers, distributed execution, SOAR playbooks, and multi-agent orchestration. |
@@ -117,6 +118,8 @@ The core constitution requires:
 - least privilege and read-only defaults
 - deterministic authority for pass/fail decisions
 - evidence integrity
+- data classification before storage, logging, external sharing, or release
+- consistent tagging for data, resources, evidence, risk, and exceptions
 - trust-boundary sanitization
 - source-of-truth authority
 - quality gates
@@ -143,6 +146,8 @@ Provider-specific lenses may add detail, but they do not remove the baseline.
 - `CLAUDE.md` when using `--integration claude`
 - `docs/security/threat-model.md`
 - `docs/security/abuse-cases.md`
+- `docs/governance/data-classification.md`
+- `docs/governance/tagging-taxonomy.md`
 - `docs/compliance/control-applicability.md`
 - `docs/compliance/evidence-index.md`
 - `docs/compliance/control-maps/*`
@@ -178,12 +183,13 @@ sicario verify
 
 The verifier currently checks for:
 
-- required threat model, abuse cases, docs impact, diagrams, control maps, and
-  risk registers
+- required threat model, abuse cases, data classification, tagging taxonomy,
+  docs impact, diagrams, control maps, and risk registers
 - hardcoded secret patterns
-- required spec sections
-- required plan sections, including well-architected review
-- required security/docs/evidence/threat-model tasks
+- required spec sections, including data classification and tagging discipline
+- required plan sections, including data classification, tagging, and
+  well-architected review
+- required security/docs/evidence/threat-model/classification/tagging tasks
 - AI-sensitive specs missing prompt-injection or tool-boundary guardrails
 - orchestration specs missing retry, idempotency, dead-letter, workflow state,
   or approval guardrails
@@ -203,6 +209,7 @@ SicarioSpec ships public-repo hygiene for legitimate open source maintenance:
 - CodeQL workflow
 - OpenSSF Scorecard workflow and badge
 - changelog and release process
+- immutable semantic release tag discipline
 
 OpenSSF Best Practices status is not claimed yet. It should only be displayed
 after the external self-assessment is actually completed.

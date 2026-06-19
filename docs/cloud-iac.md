@@ -27,7 +27,15 @@ Every infrastructure spec must address:
 - drift and change control
 - rollback
 - data residency
+- data classification
+- required resource tags and labels
 - cost guardrails
+
+Resource tagging must use the taxonomy in
+`docs/governance/tagging-taxonomy.md`. At minimum, production-bound
+infrastructure should carry `owner`, `system`, `environment`,
+`data-classification`, `retention`, `compliance-scope`, `cost-center`,
+`source-repo`, and `managed-by`; temporary resources also require `expires-on`.
 
 ## Azure Verified Modules
 

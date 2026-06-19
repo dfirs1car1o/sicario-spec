@@ -28,6 +28,20 @@ body:
         - Not sure
     validations:
       required: true
+  - type: dropdown
+    id: data_classification
+    attributes:
+      label: Highest data classification
+      description: Use private vulnerability reporting for restricted details or exploitable vulnerability information.
+      options:
+        - Public
+        - Internal
+        - Confidential
+        - Restricted - use private reporting
+        - Regulated - use private reporting
+        - Not sure
+    validations:
+      required: true
   - type: textarea
     id: proposal
     attributes:

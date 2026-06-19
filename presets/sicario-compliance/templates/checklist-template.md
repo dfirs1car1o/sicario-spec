@@ -6,31 +6,32 @@
 
 ## Specification
 
-- [ ] CHK001 Data classification is complete.
-- [ ] CHK002 Trust boundaries are documented.
-- [ ] CHK003 Abuse cases are documented.
-- [ ] CHK004 Security acceptance criteria are measurable.
-- [ ] CHK005 Evidence outputs are identified.
+- [ ] CHK001 Data classification is complete, including owner, retention, residency, and disclosure.
+- [ ] CHK002 Tagging discipline is defined for data, resources, evidence, risk, and exceptions.
+- [ ] CHK003 Trust boundaries are documented.
+- [ ] CHK004 Abuse cases are documented.
+- [ ] CHK005 Security acceptance criteria are measurable.
+- [ ] CHK006 Evidence outputs are identified.
 
 ## Plan
 
-- [ ] CHK006 Threat model is complete.
-- [ ] CHK007 Supply-chain impact is reviewed.
-- [ ] CHK008 AI/tool boundary is reviewed where applicable.
-- [ ] CHK009 Rollback is documented.
-- [ ] CHK010 Human approval points are explicit.
+- [ ] CHK007 Threat model is complete.
+- [ ] CHK008 Supply-chain impact is reviewed.
+- [ ] CHK009 AI/tool boundary is reviewed where applicable.
+- [ ] CHK010 Rollback is documented.
+- [ ] CHK011 Human approval points are explicit.
 
 ## Tasks
 
-- [ ] CHK011 Negative/security tests are present.
-- [ ] CHK012 Docs impact task is present.
-- [ ] CHK013 Evidence generation task is present.
-- [ ] CHK014 SicarioSpec verification task is present.
+- [ ] CHK012 Negative/security tests are present.
+- [ ] CHK013 Classification and tagging tasks are present.
+- [ ] CHK014 Docs impact task is present.
+- [ ] CHK015 Evidence generation task is present.
+- [ ] CHK016 SicarioSpec verification task is present.
 
 ## Verification
 
-- [ ] CHK015 Secret scan passed.
-- [ ] CHK016 Dependency/SCA scan passed.
-- [ ] CHK017 SAST/static checks passed.
-- [ ] CHK018 `sicario verify` passed.
-
+- [ ] CHK017 Secret scan passed.
+- [ ] CHK018 Dependency/SCA scan passed.
+- [ ] CHK019 SAST/static checks passed.
+- [ ] CHK020 `sicario verify` passed.

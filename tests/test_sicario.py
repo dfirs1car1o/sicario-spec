@@ -78,6 +78,8 @@ class SicarioCliBehaviorTests(unittest.TestCase):
             self.assertEqual("pass", summary["status"])
             self.assertTrue((target / "docs-site" / "package.json").exists())
             self.assertTrue((target / "docs" / "diagrams" / "system-context.mmd").exists())
+            self.assertTrue((target / "docs" / "governance" / "data-classification.md").exists())
+            self.assertTrue((target / "docs" / "governance" / "tagging-taxonomy.md").exists())
             self.assertTrue((target / "docs" / "compliance" / "control-maps").exists())
             self.assertTrue((target / "docs" / "risk" / "risk-register.md").exists())
 
@@ -120,6 +122,45 @@ class SicarioCliBehaviorTests(unittest.TestCase):
             codes = {finding.code for finding in findings}
             self.assertIn("SICARIO-INCOMPLETE-ACTIVE-RISK", codes)
 
+    def test_missing_data_classification_register_fails(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            target = Path(tmp) / "project"
+            self.assertEqual(0, main(["init", str(target)]))
+            (target / "docs" / "governance" / "data-classification.md").unlink()
+            findings = verify_project(target, write=False)
+            codes = {finding.code for finding in findings}
+            self.assertIn("SICARIO-MISSING-DATA-CLASSIFICATION", codes)
+
+    def test_shallow_data_classification_fails(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            target = Path(tmp) / "project"
+            self.assertEqual(0, main(["init", str(target)]))
+            spec_dir = target / "specs" / "001-classification"
+            spec_dir.mkdir(parents=True)
+            (spec_dir / "spec.md").write_text(
+                "\n".join(
+                    [
+                        "# Feature Specification: customer export",
+                        "## Data Classification",
+                        "Internal.",
+                        "## Tagging Discipline",
+                        "- owner, system, environment, data-classification, retention",
+                        "## Trust Boundaries",
+                        "User to service.",
+                        "## Security Requirements",
+                        "Validate input.",
+                        "## Abuse Cases",
+                        "Misuse.",
+                        "## Evidence",
+                        "Tests.",
+                    ]
+                ),
+                encoding="utf-8",
+            )
+            findings = verify_project(target, write=False)
+            codes = {finding.code for finding in findings}
+            self.assertIn("SICARIO-DATA-CLASSIFICATION-INCOMPLETE", codes)
+
     def test_ai_spec_without_guardrails_fails(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             target = Path(tmp) / "project"
@@ -131,7 +172,14 @@ class SicarioCliBehaviorTests(unittest.TestCase):
                     [
                         "# Feature Specification: AI helper",
                         "## Data Classification",
-                        "Internal.",
+                        "- Highest classification: Internal",
+                        "- Classification owner: Maintainers",
+                        "- Data retention and deletion expectations: Per release",
+                        "- Data residency or sovereignty constraints: N/A",
+                        "- Sharing, egress, or third-party disclosure: None",
+                        "- Redaction or masking requirements: Secrets redacted",
+                        "## Tagging Discipline",
+                        "- owner, system, environment, data-classification, retention",
                         "## Trust Boundaries",
                         "User to model.",
                         "## Security Requirements",
@@ -160,7 +208,14 @@ class SicarioCliBehaviorTests(unittest.TestCase):
                     [
                         "# Feature Specification: LangGraph remediation workflow",
                         "## Data Classification",
-                        "Internal.",
+                        "- Highest classification: Internal",
+                        "- Classification owner: Maintainers",
+                        "- Data retention and deletion expectations: Per release",
+                        "- Data residency or sovereignty constraints: N/A",
+                        "- Sharing, egress, or third-party disclosure: None",
+                        "- Redaction or masking requirements: Secrets redacted",
+                        "## Tagging Discipline",
+                        "- owner, system, environment, data-classification, retention",
                         "## Trust Boundaries",
                         "User to orchestrator to workers.",
                         "## Security Requirements",

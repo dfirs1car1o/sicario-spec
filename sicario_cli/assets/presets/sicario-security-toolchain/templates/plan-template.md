@@ -6,6 +6,23 @@
 
 [Extract primary requirement and implementation approach.]
 
+## Data Classification And Handling
+
+- Highest classification:
+- Classification owner:
+- Regulated data:
+- Retention and deletion:
+- Residency constraints:
+- Scanner output, SBOM, finding, and evidence sensitivity:
+- Redaction, masking, or tokenization:
+
+## Tagging Plan
+
+- Required tags:
+- Accepted values source: `docs/governance/tagging-taxonomy.md`
+- Scanner, artifact, evidence, finding, risk, and exception tag mapping:
+- Temporary artifact expiration tags:
+
 ## Threat Model
 
 - Assets:
@@ -62,6 +79,8 @@
 
 - Threat model:
 - Abuse cases:
+- Data classification register:
+- Tagging taxonomy:
 - Toolchain scan results:
 - SBOM:
 - Gate summary:

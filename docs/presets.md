@@ -6,13 +6,14 @@ Presets define what every generated Spec Kit artifact must contain.
 
 Always installed. Covers least privilege, deterministic authority, evidence
 integrity, trust-boundary sanitization, source-of-truth authority, quality gates,
-architecture discipline, well-architected review, honest documentation, human
-approval, and secret handling.
+architecture discipline, well-architected review, data classification, tagging
+discipline, honest documentation, human approval, and secret handling.
 
 ## sicario-docs
 
 Installed by default. Covers docs impact, public docs, internal docs, diagrams,
-docs-site build, and generated documentation evidence.
+docs-site build, documentation data classification, documentation tagging, and
+generated documentation evidence.
 
 ## sicario-appsec
 
@@ -39,7 +40,7 @@ For Terraform/OpenTofu, Azure Verified Modules, Azure Bicep, Azure VM-oriented
 builds, AWS CloudFormation/CDK-style repos, GCP Terraform, containers,
 Kubernetes, and serverless. Covers IAM, network exposure, encryption, secrets,
 logs, policy-as-code, drift, IaC scans, container scans, data residency, and
-cost guardrails.
+required cloud/resource tags.
 
 Cloud profile bootstrap creates starter folders under:
 
@@ -57,17 +58,21 @@ Cloud profile bootstrap creates starter folders under:
 For security scanning and evidence. Covers secret scanning, SAST/static checks,
 dependency/SCA, SBOM, container scanning, IaC scanning, policy-as-code, evidence
 paths, and exception handling.
+Scanner output, findings, SBOMs, and release artifacts inherit classification
+and tagging requirements.
 
 ## sicario-supply-chain
 
 For build and release integrity. Covers dependency review, SBOM, SCA, provenance,
-pinned dependencies/actions, and SLSA-style build integrity.
+pinned dependencies/actions, immutable semantic release tags, and SLSA-style
+build integrity.
 
 ## sicario-compliance
 
 For regulated and audit-driven projects. Covers control applicability, evidence
 index, CSA CCM v4.1 traceability, SOX 404 / ICFR ITGC evidence readiness, risk
-acceptance, owner/reviewer, evidence freshness, and audit trail.
+acceptance, owner/reviewer, evidence freshness, classification, tagging, and
+audit trail.
 
 ## sicario-enterprise-strict
 

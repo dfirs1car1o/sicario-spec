@@ -37,6 +37,24 @@ body:
         - not sure
     validations:
       required: true
+  - type: dropdown
+    id: data_classification
+    attributes:
+      label: Expected highest data classification
+      options:
+        - Public
+        - Internal
+        - Confidential
+        - Restricted
+        - Regulated
+        - Not sure
+    validations:
+      required: true
+  - type: textarea
+    id: tagging
+    attributes:
+      label: Tagging or taxonomy impact
+      description: List any owner, system, environment, data-classification, retention, compliance-scope, risk, or exception tags this should add or change.
   - type: textarea
     id: acceptance
     attributes:

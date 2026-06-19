@@ -10,6 +10,5 @@ terraform {
 # - no public exposure unless justified
 # - encryption enabled
 # - logging enabled
-# - tags/labels applied
+# - tags/labels applied from var.tags per docs/governance/tagging-taxonomy.md
 # - policy-as-code scan clean or exception approved
-

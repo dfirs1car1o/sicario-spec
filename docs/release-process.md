@@ -1,6 +1,7 @@
 # Release Process
 
-SicarioSpec releases are GitHub releases backed by signed-off local validation.
+SicarioSpec releases are GitHub releases backed by signed-off local validation,
+tag-driven packaging, and GitHub artifact attestations for built distributions.
 
 ## Versioning
 
@@ -9,6 +10,11 @@ SicarioSpec releases are GitHub releases backed by signed-off local validation.
 - Preset, extension, and starter control-map versions should match the release
   unless they intentionally carry their own schema version.
 - Release tags use `vMAJOR.MINOR.PATCH`, for example `v0.1.0`.
+- Release tags are immutable once published. Do not move or delete a published
+  tag; ship a new patch release instead.
+- Release assets are classified as `public` only after validation confirms they
+  contain no secrets, private evidence, customer data, tenant identifiers, or
+  unpublished vulnerability details.
 
 During the `0.x` line, breaking changes may ship in minor versions. Patch
 versions should be bug fixes, documentation fixes, or non-breaking hardening.
@@ -33,6 +39,9 @@ Confirm:
 
 - `CHANGELOG.md` has an entry for the release.
 - `README.md` install and badge links are accurate.
+- `docs/governance/data-classification.md` and
+  `docs/governance/tagging-taxonomy.md` are current.
+- Release notes and assets follow classification and tagging discipline.
 - Git working tree is clean.
 - GitHub Actions are green for the release commit.
 - No generated output, local build output, secrets, or private evidence files
@@ -44,12 +53,19 @@ Confirm:
 version="$(cat VERSION)"
 git tag -a "v$version" -m "SicarioSpec v$version"
 git push origin main "v$version"
-gh release create "v$version" \
-  --title "SicarioSpec v$version" \
-  --notes-file RELEASE_NOTES.md
 ```
 
-Release notes must include:
+The release workflow runs on the pushed tag. It verifies the tag against
+`VERSION`, `pyproject.toml`, and `sicario_cli/version.py`, builds the sdist and
+wheel, smoke-tests the wheel, uploads release assets, and emits artifact
+attestations.
+
+If the GitHub release does not already exist, the workflow creates it with
+generated release notes. To curate release notes before packaging, create a
+draft or published release for the tag first, then push the tag or run the
+workflow manually for that tag.
+
+Curated release notes should include:
 
 - What's included.
 - Install command.

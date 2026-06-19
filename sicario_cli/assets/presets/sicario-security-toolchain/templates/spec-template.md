@@ -18,8 +18,21 @@
 ## Data Classification
 
 - Data types processed:
-- Sensitivity level:
-- Regulated data involved:
+- Highest classification: Public / Internal / Confidential / Restricted / Regulated
+- Classification owner:
+- Regulated data involved: none / PII / PHI / PCI / SOX / export-controlled / customer confidential / other
+- Data retention and deletion expectations:
+- Data residency or sovereignty constraints:
+- Scanner output, SBOM, finding, and evidence sensitivity:
+- Redaction or masking requirements:
+
+## Tagging Discipline
+
+- Required metadata tags: owner, system, environment, data-classification, retention, compliance-scope
+- Toolchain tags: scanner, scan-type, artifact-type, evidence-path, control-id
+- Finding tags: severity, risk-id, exception-id, remediation-owner, due-date
+- Accepted values source: `docs/governance/tagging-taxonomy.md`
+- Enforcement location: plan review / policy-as-code / CI / `sicario verify`
 
 ## Trust Boundaries
 
@@ -58,6 +71,8 @@
 
 - Threat model update:
 - Abuse-case update:
+- Data classification record:
+- Tagging taxonomy updates:
 - Toolchain results:
 - Gate summary:
 - Reviewer approval:

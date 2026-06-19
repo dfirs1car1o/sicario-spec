@@ -41,6 +41,8 @@ class ReleaseMetadataTests(unittest.TestCase):
             "SUPPORT.md",
             "CHANGELOG.md",
             "LICENSE",
+            "docs/governance/data-classification.md",
+            "docs/governance/tagging-taxonomy.md",
             ".github/PULL_REQUEST_TEMPLATE.md",
             ".github/ISSUE_TEMPLATE/bug_report.yml",
             ".github/ISSUE_TEMPLATE/feature_request.yml",
@@ -49,6 +51,7 @@ class ReleaseMetadataTests(unittest.TestCase):
             ".github/workflows/test.yml",
             ".github/workflows/codeql.yml",
             ".github/workflows/scorecard.yml",
+            ".github/workflows/release.yml",
             ".github/dependabot.yml",
             ".github/release.yml",
             "docs/release-process.md",
@@ -63,9 +66,18 @@ class ReleaseMetadataTests(unittest.TestCase):
         readme = (ROOT / "README.md").read_text(encoding="utf-8")
         self.assertIn("actions/workflows/test.yml/badge.svg", readme)
         self.assertIn("actions/workflows/codeql.yml/badge.svg", readme)
+        self.assertIn("actions/workflows/release.yml/badge.svg", readme)
         self.assertIn("api.scorecard.dev/projects/github.com/dfirs1car1o/sicario-spec/badge", readme)
         self.assertIn("img.shields.io/github/v/release/dfirs1car1o/sicario-spec", readme)
         self.assertIn("OpenSSF Best Practices status is not claimed yet", readme)
+
+    def test_release_workflow_builds_and_attests_distributions(self) -> None:
+        workflow = (ROOT / ".github" / "workflows" / "release.yml").read_text(encoding="utf-8")
+        self.assertIn("actions/upload-artifact@v7", workflow)
+        self.assertIn("actions/attest-build-provenance@v4", workflow)
+        self.assertIn("attestations: write", workflow)
+        self.assertIn("id-token: write", workflow)
+        self.assertIn("gh release upload", workflow)
 
     def test_scorecard_workflow_can_publish_badge_results(self) -> None:
         workflow = (ROOT / ".github" / "workflows" / "scorecard.yml").read_text(encoding="utf-8")
