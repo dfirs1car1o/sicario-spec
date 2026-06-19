@@ -78,9 +78,9 @@ class ReleaseMetadataTests(unittest.TestCase):
         self.assertIn("actions/attest-build-provenance@v4", workflow)
         self.assertIn("attestations: write", workflow)
         self.assertIn("id-token: write", workflow)
-        self.assertIn("gh release upload", workflow)
-        self.assertIn("Release asset already exists on immutable release; skipping", workflow)
+        self.assertIn("Release $RELEASE_TAG already exists; immutable release assets will not be modified.", workflow)
         self.assertNotIn("--clobber", workflow)
+        self.assertNotIn("gh release upload", workflow)
 
     def test_machine_user_policy_documents_audited_fallback(self) -> None:
         policy = (ROOT / "docs" / "machine-user-pr-flow.md").read_text(encoding="utf-8")
