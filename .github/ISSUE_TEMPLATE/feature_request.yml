@@ -1,0 +1,55 @@
+name: Feature request
+description: Propose a new capability, preset, guardrail, control map, or workflow.
+title: "feature: "
+labels:
+  - enhancement
+  - needs-triage
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem statement
+      description: What risk, workflow gap, or user need should this solve?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: Describe the expected behavior and how it should fit into SicarioSpec.
+    validations:
+      required: true
+  - type: dropdown
+    id: profile
+    attributes:
+      label: Best fit
+      options:
+        - public-core
+        - appsec
+        - ai-system
+        - agent-fleet
+        - cloud-iac
+        - security-toolchain
+        - supply-chain
+        - compliance
+        - enterprise-strict
+        - new profile
+        - not sure
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: What should be true when this is done?
+      placeholder: |
+        - `sicario init ...` creates ...
+        - `sicario verify` fails when ...
+        - Docs explain ...
+    validations:
+      required: true
+  - type: textarea
+    id: references
+    attributes:
+      label: References
+      description: Link to standards, docs, prior art, or examples.

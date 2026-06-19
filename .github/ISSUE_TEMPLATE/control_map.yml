@@ -1,0 +1,36 @@
+name: Control map or governance request
+description: Request a new framework mapping, evidence requirement, or governance gate.
+title: "control-map: "
+labels:
+  - control-map
+  - governance
+  - needs-triage
+body:
+  - type: textarea
+    id: framework
+    attributes:
+      label: Framework or control source
+      description: Name the framework, version, source URL, and licensing constraints if known.
+    validations:
+      required: true
+  - type: textarea
+    id: mapping
+    attributes:
+      label: Mapping need
+      description: What SicarioSpec artifacts, gates, or evidence should map to this framework?
+    validations:
+      required: true
+  - type: textarea
+    id: authority
+    attributes:
+      label: Source authority
+      description: Identify official sources. Do not paste proprietary control text unless licensing allows it.
+    validations:
+      required: true
+  - type: textarea
+    id: risk
+    attributes:
+      label: Risk of incorrect mapping
+      description: What could go wrong if this mapping is wrong or overstated?
+    validations:
+      required: true

@@ -1,0 +1,69 @@
+name: Bug report
+description: Report a reproducible problem in the CLI, presets, templates, or generated output.
+title: "bug: "
+labels:
+  - bug
+  - needs-triage
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting a bug. Please include enough detail for maintainers to reproduce the issue without private data or secrets.
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: What went wrong?
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to reproduce
+      description: Include commands, profile names, and relevant file paths.
+      placeholder: |
+        1. Run `sicario init ...`
+        2. Run `sicario verify`
+        3. Observe ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: SicarioSpec version
+      placeholder: "0.1.0 or git commit SHA"
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Affected area
+      options:
+        - CLI
+        - Presets
+        - Extensions
+        - Control maps
+        - GitHub workflows
+        - Packaging/install
+        - Documentation
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs or output
+      description: Redact secrets, tokens, customer names, private URLs, and tenant identifiers.
+      render: shell

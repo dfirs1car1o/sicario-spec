@@ -1,8 +1,12 @@
 include README.md
+include VERSION
+include CHANGELOG.md
 include LICENSE
 include SECURITY.md
 include CONTRIBUTING.md
+include CODE_OF_CONDUCT.md
+include SUPPORT.md
 recursive-include sicario_cli/assets *
 recursive-include control_maps *.json *.md
-recursive-include docs *.md *.mmd
+recursive-include docs *.md *.mmd *.svg
 recursive-include examples *

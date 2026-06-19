@@ -21,6 +21,8 @@ from importlib.resources import files as package_files
 from pathlib import Path
 from typing import Iterable, List, Optional, Sequence
 
+from sicario_cli.version import __version__
+
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
@@ -1007,6 +1009,7 @@ def assess_command(args: argparse.Namespace) -> int:
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="sicario", description="Kill risk before it ships.")
+    parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
     sub = parser.add_subparsers(dest="command", required=True)
 
     init = sub.add_parser("init", help="Initialize SicarioSpec in a project")

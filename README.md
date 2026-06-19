@@ -1,6 +1,19 @@
-# SicarioSpec
+<p align="center">
+  <img src="docs/assets/sicario-spec-mark.svg" alt="SicarioSpec mark" width="96" height="96">
+</p>
 
-**Kill risk before it ships.**
+<h1 align="center">SicarioSpec</h1>
+
+<p align="center"><strong>Kill risk before it ships.</strong></p>
+
+<p align="center">
+  <a href="https://github.com/dfirs1car1o/sicario-spec/actions/workflows/test.yml"><img alt="CI" src="https://github.com/dfirs1car1o/sicario-spec/actions/workflows/test.yml/badge.svg"></a>
+  <a href="https://github.com/dfirs1car1o/sicario-spec/actions/workflows/codeql.yml"><img alt="CodeQL" src="https://github.com/dfirs1car1o/sicario-spec/actions/workflows/codeql.yml/badge.svg"></a>
+  <a href="https://scorecard.dev/viewer/?uri=github.com/dfirs1car1o/sicario-spec"><img alt="OpenSSF Scorecard" src="https://api.scorecard.dev/projects/github.com/dfirs1car1o/sicario-spec/badge"></a>
+  <a href="https://github.com/dfirs1car1o/sicario-spec/releases"><img alt="GitHub release" src="https://img.shields.io/github/v/release/dfirs1car1o/sicario-spec?sort=semver"></a>
+  <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-green.svg"></a>
+  <a href="pyproject.toml"><img alt="Python 3.9+" src="https://img.shields.io/badge/python-3.9%2B-blue.svg"></a>
+</p>
 
 SicarioSpec is a secure-by-default governance bundle for GitHub Spec Kit. It
 adds AppSec, AI security, agent-fleet orchestration, cloud/IaC security,
@@ -48,10 +61,16 @@ From a local checkout:
 python3 -m pip install -e .
 ```
 
-From GitHub after publishing:
+From GitHub:
 
 ```bash
 python3 -m pip install "git+https://github.com/dfirs1car1o/sicario-spec.git"
+```
+
+Install a specific release:
+
+```bash
+python3 -m pip install "git+https://github.com/dfirs1car1o/sicario-spec.git@v0.1.0"
 ```
 
 ## Quickstart
@@ -171,6 +190,23 @@ The verifier currently checks for:
 - active risks/exceptions with missing owner, expiration, approval/rationale,
   compensating control, or evidence
 
+## Public Project Health
+
+SicarioSpec ships public-repo hygiene for legitimate open source maintenance:
+
+- MIT license
+- code of conduct
+- security policy and private vulnerability reporting path
+- structured issue forms for bugs, features, security hardening, and control maps
+- pull request template with security/governance checklist
+- Dependabot configuration
+- CodeQL workflow
+- OpenSSF Scorecard workflow and badge
+- changelog and release process
+
+OpenSSF Best Practices status is not claimed yet. It should only be displayed
+after the external self-assessment is actually completed.
+
 ## Development
 
 Run the local checks:
@@ -178,6 +214,7 @@ Run the local checks:
 ```bash
 python3 -m unittest discover -s tests
 python3 -m sicario_cli.cli verify .
+sicario --version
 ```
 
 Build/install smoke test:
@@ -196,3 +233,14 @@ python3 -m venv "$tmpdir/venv"
 SicarioSpec does not guarantee secure code, certify compliance, or replace human
 security review. It makes risk visible early, turns it into work, and blocks
 common unsafe paths before merge.
+
+## Community
+
+- Contributing: [CONTRIBUTING.md](CONTRIBUTING.md)
+- Security: [SECURITY.md](SECURITY.md)
+- Support: [SUPPORT.md](SUPPORT.md)
+- Code of conduct: [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)
+- Changelog: [CHANGELOG.md](CHANGELOG.md)
+- Release process: [docs/release-process.md](docs/release-process.md)
+- Repository settings: [docs/repository-settings.md](docs/repository-settings.md)
+- OpenSSF posture: [docs/openssf.md](docs/openssf.md)

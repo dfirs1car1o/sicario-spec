@@ -16,5 +16,16 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-      - run: python -m unittest discover -s tests
-
+      - name: Unit tests
+        run: python -m unittest discover -s tests
+      - name: Self verify
+        run: python -m sicario_cli.cli verify .
+      - name: Build and install smoke test
+        run: |
+          tmpdir="$(mktemp -d)"
+          python -m pip wheel . -w "$tmpdir/wheelhouse"
+          python -m venv "$tmpdir/venv"
+          "$tmpdir/venv/bin/pip" install "$tmpdir"/wheelhouse/sicario_spec-*.whl
+          "$tmpdir/venv/bin/sicario" --version
+          "$tmpdir/venv/bin/sicario" init "$tmpdir/project" --profile appsec,cloud-iac,security-toolchain,compliance
+          "$tmpdir/venv/bin/sicario" verify "$tmpdir/project"

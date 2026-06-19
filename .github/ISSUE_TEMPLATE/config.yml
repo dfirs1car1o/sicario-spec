@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security vulnerability
+    url: https://github.com/dfirs1car1o/sicario-spec/security/advisories/new
+    about: Report vulnerabilities privately. Do not open a public issue for security-sensitive reports.
+  - name: Questions and usage help
+    url: https://github.com/dfirs1car1o/sicario-spec/discussions
+    about: Use discussions for questions, adoption help, and early design conversations.

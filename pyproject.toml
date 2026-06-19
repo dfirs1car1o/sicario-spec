@@ -9,9 +9,31 @@ description = "Secure-by-default governance bundle for GitHub Spec Kit."
 readme = "README.md"
 requires-python = ">=3.9"
 license = { text = "MIT" }
-authors = [{ name = "SicarioSpec Contributors" }]
+authors = [{ name = "SicarioSpec Contributors", email = "dfirs1car1o@users.noreply.github.com" }]
 keywords = ["spec-kit", "appsec", "devsecops", "ai-security", "governance"]
 dependencies = []
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Environment :: Console",
+  "Intended Audience :: Developers",
+  "Intended Audience :: Information Technology",
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Topic :: Security",
+  "Topic :: Software Development :: Quality Assurance",
+]
+
+[project.urls]
+Homepage = "https://github.com/dfirs1car1o/sicario-spec"
+Repository = "https://github.com/dfirs1car1o/sicario-spec"
+Issues = "https://github.com/dfirs1car1o/sicario-spec/issues"
+Changelog = "https://github.com/dfirs1car1o/sicario-spec/blob/main/CHANGELOG.md"
 
 [project.scripts]
 sicario = "sicario_cli.cli:main"

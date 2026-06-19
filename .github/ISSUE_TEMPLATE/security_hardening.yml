@@ -1,0 +1,42 @@
+name: Security hardening
+description: Propose a security hardening change that is not a private vulnerability report.
+title: "security: "
+labels:
+  - security
+  - needs-triage
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this template only for public hardening work. Report exploitable vulnerabilities privately through the Security Advisory flow.
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: What should be hardened?
+    validations:
+      required: true
+  - type: dropdown
+    id: severity
+    attributes:
+      label: Security impact
+      options:
+        - Low
+        - Medium
+        - High
+        - Critical
+        - Not sure
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed guardrail
+      description: Describe the check, workflow, template, or documentation change.
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidence or references
+      description: Link to public references, scanner output, or standards.
