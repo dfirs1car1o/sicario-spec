@@ -57,6 +57,7 @@ class ReleaseMetadataTests(unittest.TestCase):
             "docs/release-process.md",
             "docs/openssf.md",
             "docs/repository-settings.md",
+            "docs/machine-user-pr-flow.md",
             "docs/assets/sicario-spec-mark.svg",
         ]
         for relative in expected:
@@ -78,6 +79,15 @@ class ReleaseMetadataTests(unittest.TestCase):
         self.assertIn("attestations: write", workflow)
         self.assertIn("id-token: write", workflow)
         self.assertIn("gh release upload", workflow)
+        self.assertIn("Release asset already exists on immutable release; skipping", workflow)
+        self.assertNotIn("--clobber", workflow)
+
+    def test_machine_user_policy_documents_audited_fallback(self) -> None:
+        policy = (ROOT / "docs" / "machine-user-pr-flow.md").read_text(encoding="utf-8")
+        self.assertIn("by default", policy)
+        self.assertIn("Fallback Path", policy)
+        self.assertIn("machine-user flow was unavailable", policy)
+        self.assertIn("branch protection is restored", policy)
 
     def test_scorecard_workflow_can_publish_badge_results(self) -> None:
         workflow = (ROOT / ".github" / "workflows" / "scorecard.yml").read_text(encoding="utf-8")

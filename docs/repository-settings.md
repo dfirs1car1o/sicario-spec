@@ -31,6 +31,12 @@ Protect `main` after the initial release:
 - Require status checks for `test`, `codeql`, and `OpenSSF Scorecard`.
 - Block force pushes and deletion.
 - Require linear history when compatible with the maintainer workflow.
+- Use the machine-user PR flow by default for AI-authored maintainer changes:
+  `svc-claude-dev` authors branches and pull requests; a non-author maintainer
+  account approves and merges.
+- Allow a documented maintainer fallback when a machine-user identity is not
+  available. The fallback may use admin bypass or a temporary review-count
+  exception only after required checks pass, with the reason recorded in the PR.
 
 Maintainers may use an admin bypass only for urgent release repair or security
 response. Record the reason in the release or security advisory.
