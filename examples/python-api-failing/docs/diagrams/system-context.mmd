@@ -1,0 +1,7 @@
+flowchart LR
+    Client[Authenticated Client] --> API[Invoice Export API]
+    API --> Authz[authorize_export]
+    Authz --> Service[Invoice Service]
+    Service --> Renderer[PDF Renderer]
+    Renderer --> Resp[(PDF Response)]
+    API --> Logs[(Audit Logs - no payload bodies)]
