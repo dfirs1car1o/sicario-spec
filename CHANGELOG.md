@@ -6,6 +6,38 @@ The project follows semantic versioning once the public API stabilizes. During
 the `0.x` line, minor versions may introduce breaking changes when needed to
 improve the security model.
 
+## [0.2.0] - 2026-06-21
+
+Spec Kit wiring, honest positioning, expanded control maps, executable hooks, and
+a SaaS-hardened profile.
+
+### Added
+
+- `sicario init` now applies the selected governance to the **live Spec Kit
+  paths** so `/speckit-*` commands actually pick it up: templates land in
+  `.specify/templates/{spec,plan,tasks}-template.md` and the constitution in
+  `.specify/memory/constitution.md`. Opt out with `--no-apply-to-speckit`.
+- `sicario hooks` command: executes the deterministic Spec Kit hooks
+  (`sicario.verify`/`assess`/`evidence`) from `.specify/extensions.yml` and
+  honestly reports the agent-guidance hooks instead of pretending to run them.
+- New control maps: NIST SSDF (SP 800-218) practice-group map and NIST AI RMF
+  (AI 100-1) function-level map, alongside the existing CSA CCM v4.1 and SOX 404
+  maps.
+- New `sicario-saas` preset and `--profile saas`: read-only-SaaS, tenant/data
+  boundary, and mission-supremacy invariants from the saas-assurance origin.
+
+### Changed
+
+- README and docs-site positioning: dropped any implication of being the first or
+  only Spec Kit security-governance preset; lead with deterministic, code-owned
+  verdicts (AI is explanation-only) plus a mandatory governance contract, a
+  halting gate, and control maps; added a precise definition of "deterministic";
+  cite and differentiate `hindermath/spec-kit-preset-security-governance`.
+- Reconciled control-map docs to what is actually shipped (SSDF/AI RMF now mapped;
+  SLSA/OWASP ASVS/SAMM/LLM labeled advisory until a map exists).
+- Extension docs now clearly distinguish deterministic hooks from agent-guidance
+  hooks.
+
 ## [0.1.2] - 2026-06-19
 
 Release for agent-native environments, the public documentation site, and

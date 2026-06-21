@@ -26,6 +26,47 @@ before merge, deploy, or release.
 
 Specs are where risk becomes work. SicarioSpec makes that work explicit.
 
+## What "Deterministic" Means Here
+
+"Deterministic" is overloaded in the AI-governance space, so we define it
+precisely: **non-AI code owns the verdict.** The pass/fail decision for a change
+is produced by `sicario verify` — a stdlib-only Python gate that reads repository
+files and applies fixed rules. An LLM never sets pass/fail status. AI is
+**explanation-only**: it can draft a spec, summarize a threat model, or suggest
+remediations, but it is structurally barred from the decision path. That bar is
+enforced by design — the gate has no model call, no network, and no AI import —
+not by prompt instruction.
+
+## How SicarioSpec Is Different
+
+SicarioSpec is a security-governance preset for [GitHub Spec Kit](https://github.com/github/spec-kit).
+It is **not** the first or only such preset, and we do not claim to be. A
+notable peer is
+[`hindermath/spec-kit-preset-security-governance`](https://github.com/hindermath/spec-kit-preset-security-governance),
+a published Spec Kit security-governance preset. That preset is excellent at what
+it does — by its own description it is **append-and-advise**, not a deterministic
+gate: secure-SDLC templates (NIST SSDF, OWASP ASVS, CWE Top 25, SBOM/VEX, SLSA),
+language-specific secure-coding profiles, and regulatory applicability screening
+(NIS2, CRA, EU AI Act, DORA) that enrich the spec/plan with guidance an agent and
+reviewer should consider.
+
+SicarioSpec operates at a different layer. Its defensible, distinguishing claim:
+
+- **Deterministic, code-owned verdicts.** The verdict comes from `sicario verify`
+  (no AI in the decision path); see "What Deterministic Means Here" above.
+- **A mandatory governance contract.** Specs, plans, and tasks must contain
+  required governance sections (data classification, tagging, trust boundaries,
+  abuse cases, evidence, AI/fleet guardrails). Missing sections are a hard fail,
+  not advice.
+- **A halting gate.** `sicario verify` exits non-zero and blocks merge/release on
+  violation; it is wired into CI (`sicario-verify.yml`) and the Spec Kit hooks.
+- **OSCAL/NIST/SOX/CSA control maps.** Starter evidence maps for CSA CCM v4.1,
+  SOX 404 / ICFR ITGC, NIST SSDF (SP 800-218), and NIST AI RMF (AI 100-1).
+
+In short: hindermath's preset advises; SicarioSpec **enforces**. The two are
+complementary — you can adopt hindermath's secure-SDLC guidance and still gate it
+behind SicarioSpec's deterministic verify contract.
+
 ## Why It Exists
 
 AI agents can write code faster than most teams can explain the risk behind the
@@ -52,7 +93,8 @@ SicarioSpec provides:
   generic agent environments.
 - **Guard extension commands** for review, threat modeling, controls, evidence,
   verification, and finding remediation.
-- **Control maps** for CSA CCM v4.1 and SOX 404 / ICFR ITGC evidence readiness.
+- **Control maps** for CSA CCM v4.1, SOX 404 / ICFR ITGC, NIST SSDF (SP 800-218),
+  and NIST AI RMF (AI 100-1) evidence readiness.
 - **Policy-as-code starters** for Checkov, OPA/Conftest, Azure Policy, and
   Kubernetes admission policy.
 - **Security toolchain starters** for secrets, SAST, SCA, SBOM, container/IaC
@@ -91,7 +133,7 @@ python3 -m pip install "git+https://github.com/dfirs1car1o/sicario-spec.git"
 Install a specific release:
 
 ```bash
-python3 -m pip install "git+https://github.com/dfirs1car1o/sicario-spec.git@v0.1.2"
+python3 -m pip install "git+https://github.com/dfirs1car1o/sicario-spec.git@v0.2.0"
 ```
 
 ## Quickstart
@@ -127,6 +169,7 @@ sicario init my-audit-ready-build --profile appsec,cloud-iac,security-toolchain,
 | `security-toolchain` | Secret scanning, SAST, SCA, SBOM, container/IaC scans, policy-as-code, and scan evidence. |
 | `supply-chain` | SBOM, SCA, provenance, pinned dependencies, pinned actions/images, and release integrity. |
 | `compliance` | Control applicability, CCM/SOX maps, evidence index, exceptions, and accepted risk. |
+| `saas` | SaaS-tenant work (Salesforce/Workday/ServiceNow/M365): read-only-SaaS, tenant/data-boundary, and mission-supremacy invariants from the saas-assurance origin. |
 | `enterprise-strict` | High-assurance review, approval, release controls, CODEOWNERS, and exception discipline. |
 
 Profiles are composable:
@@ -189,7 +232,11 @@ Provider-specific lenses may add detail, but they do not remove the baseline.
 
 `sicario init` creates:
 
-- `.specify/presets/*`
+- `.specify/templates/{spec,plan,tasks}-template.md` (the live Spec Kit template
+  paths, so `/speckit-*` commands pick up the governance; disable with
+  `--no-apply-to-speckit`)
+- `.specify/memory/constitution.md` (the live Spec Kit constitution path)
+- `.specify/presets/*` (staged reference copies of all selected presets)
 - `.specify/extensions/sicario-guard`
 - `.specify/extensions.yml`
 - `SICARIO.md`
@@ -222,14 +269,19 @@ Provider-specific lenses may add detail, but they do not remove the baseline.
 
 ## Control Maps
 
-SicarioSpec includes starter maps for:
+SicarioSpec ships starter maps that link its evidence to framework outcomes at a
+coarse level (domain, practice group, or function):
 
-- CSA Cloud Controls Matrix v4.1 domain-level traceability
-- SOX 404 / ICFR ITGC evidence readiness
+- CSA Cloud Controls Matrix v4.1 — domain-level traceability
+- SOX 404 / ICFR ITGC — control-area evidence readiness
+- NIST SSDF (SP 800-218) — PO/PS/PW/RV practice-group evidence
+- NIST AI RMF (AI 100-1) — Govern/Map/Measure/Manage function evidence
 
-These maps are traceability aids. They are not certification claims and do not
-replace the official framework artifacts, auditor judgment, or legal/accounting
-scoping.
+These maps are traceability aids. They are not control-by-control crosswalks,
+not certification claims, and do not replace the official framework artifacts,
+auditor judgment, or legal/accounting scoping. Frameworks referenced in templates
+but not yet shipped as a map (SLSA, OWASP ASVS/SAMM/LLM) are advisory until a map
+exists.
 
 ## Verification
 
@@ -253,6 +305,24 @@ The verifier currently checks for:
   or approval guardrails
 - active risks/exceptions with missing owner, expiration, approval/rationale,
   compensating control, or evidence
+
+`sicario verify` is the only authority on pass/fail — no AI involvement.
+
+## Spec Kit Hooks
+
+`sicario init` registers Spec Kit hooks (`after_specify`, `after_plan`,
+`after_tasks`) in `.specify/extensions.yml`. Run them with:
+
+```bash
+sicario hooks                  # all events
+sicario hooks --event after_tasks
+```
+
+`sicario hooks` **executes** the deterministic hooks (`sicario.verify`,
+`sicario.assess`, `sicario.evidence`) and **reports** the agent-guidance hooks
+(`sicario.threatmodel`, `sicario.review`, `sicario.controls`,
+`sicario.apply-findings`) with a pointer to their command doc — it does not
+pretend to run AI-authoring steps. See [docs/extensions.md](docs/extensions.md).
 
 ## Public Project Health
 
