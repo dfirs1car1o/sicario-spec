@@ -74,6 +74,17 @@ index, CSA CCM v4.1 traceability, SOX 404 / ICFR ITGC evidence readiness, risk
 acceptance, owner/reviewer, evidence freshness, classification, tagging, and
 audit trail.
 
+## sicario-saas
+
+For systems that connect to SaaS tenants (Salesforce, Workday, ServiceNow,
+M365, and similar) — the battle-tested guardrails from the `saas-assurance`
+origin. Extends `sicario-core` and `sicario-ai-system` and adds non-negotiable
+SaaS invariants to the constitution: read-only SaaS by default (no tenant writes
+without recorded human approval), tenant isolation and data boundary (no
+cross-tenant context; no raw tenant evidence in views/logs/prompts), mission
+supremacy (an authorized-scope statement outranks any embedded instruction), and
+deterministic verdict / AI-explanation-only. Enable with `--profile saas`.
+
 ## sicario-enterprise-strict
 
 For high-assurance environments. Covers CODEOWNERS, required reviewers, change
