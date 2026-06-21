@@ -1,0 +1,67 @@
+{
+  "id": "ai-rmf-sicario",
+  "name": "NIST AI RMF to SicarioSpec Evidence Map",
+  "version": "0.4.0",
+  "framework": {
+    "name": "NIST Artificial Intelligence Risk Management Framework",
+    "abbreviation": "NIST AI RMF",
+    "framework_version": "1.0",
+    "publication": "NIST AI 100-1",
+    "official_sources": [
+      "https://doi.org/10.6028/NIST.AI.100-1",
+      "https://airc.nist.gov/"
+    ]
+  },
+  "scope_note": "Function-level starter mapping only. The AI RMF is voluntary and outcome-oriented across the Govern, Map, Measure, and Manage functions. Use the official NIST AI 100-1 publication and the AI RMF Playbook for authoritative category, subcategory, and action language. SicarioSpec evidence supports AI governance work; it is not an AI RMF conformance claim.",
+  "function_mappings": [
+    {
+      "function": "Govern",
+      "intent": "Cultivate a culture of AI risk management: policies, accountability, roles, and human oversight across the AI lifecycle.",
+      "example_categories": ["GOVERN 1", "GOVERN 2", "GOVERN 3", "GOVERN 4"],
+      "sicario_evidence": [
+        ".specify/memory/constitution.md",
+        "docs/compliance/control-applicability.md",
+        "docs/risk/risk-register.md",
+        "docs/risk/accepted-risk-log.md"
+      ],
+      "sicario_presets": ["sicario-ai-system", "sicario-compliance", "sicario-enterprise-strict"]
+    },
+    {
+      "function": "Map",
+      "intent": "Establish context and identify risks: intended use, data, dependencies, trust boundaries, and impacts of the AI system.",
+      "example_categories": ["MAP 1", "MAP 2", "MAP 3", "MAP 4", "MAP 5"],
+      "sicario_evidence": [
+        "specs/**/spec.md#data-classification",
+        "specs/**/spec.md#trust-boundaries",
+        "docs/security/threat-model.md",
+        "docs/security/abuse-cases.md",
+        "docs/architecture/system-context.md"
+      ],
+      "sicario_presets": ["sicario-ai-system", "sicario-core"]
+    },
+    {
+      "function": "Measure",
+      "intent": "Analyze, assess, and track AI risks using evals, red-team tests, and metrics, including for prompt injection and tool boundaries.",
+      "example_categories": ["MEASURE 1", "MEASURE 2", "MEASURE 3", "MEASURE 4"],
+      "sicario_evidence": [
+        "specs/**/spec.md#ai-evaluation--red-team",
+        "specs/**/tasks.md",
+        "tests",
+        "generated/sicario/gate-summary.json"
+      ],
+      "sicario_presets": ["sicario-ai-system", "sicario-security-toolchain"]
+    },
+    {
+      "function": "Manage",
+      "intent": "Prioritize and act on risks: response, recovery, kill switches, human approval gates, and ongoing monitoring.",
+      "example_categories": ["MANAGE 1", "MANAGE 2", "MANAGE 3", "MANAGE 4"],
+      "sicario_evidence": [
+        "specs/**/plan.md#human-approval",
+        "specs/**/plan.md#rollback",
+        "docs/risk/security-exceptions.md",
+        "generated/sicario/spec-run-evidence.json"
+      ],
+      "sicario_presets": ["sicario-ai-system", "sicario-agent-fleet"]
+    }
+  ]
+}

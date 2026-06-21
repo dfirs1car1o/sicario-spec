@@ -6,16 +6,16 @@ import styles from './index.module.css';
 
 const proofPoints = [
   {
-    title: 'Spec-first governance',
-    body: 'Data classification, tagging discipline, threat modeling, control mapping, risk ownership, and docs impact become required delivery work.',
+    title: 'Deterministic, code-owned verdicts',
+    body: 'Pass/fail comes from sicario verify — a stdlib-only gate with no model call and no AI import. The LLM is explanation-only, structurally barred from the decision path.',
   },
   {
-    title: 'Agent-native guardrails',
-    body: 'Claude Code, Codex/GPT, GitHub Copilot, and generic agents get repo-native instructions, skills, and repeatable review flows.',
+    title: 'A mandatory governance contract',
+    body: 'Specs, plans, and tasks must contain required governance sections. Missing classification, trust boundaries, abuse cases, or AI/fleet guardrails is a hard fail, not advice.',
   },
   {
-    title: 'Evidence before approval',
-    body: 'Verification, control maps, risk registers, exceptions, and release checks create a traceable path before human approval.',
+    title: 'A halting gate plus control maps',
+    body: 'sicario verify blocks merge/release on violation and is wired into CI. Starter evidence maps cover 10 frameworks: CSA CCM v4.1, SOX 404 / ICFR, NIST SSDF, NIST AI RMF, ISO/IEC 27001:2022, NIST SP 800-53 Rev 5, EU AI Act, GDPR (+ CPRA), PCI DSS v4.0, and the HIPAA Security Rule.',
   },
 ];
 
@@ -76,6 +76,27 @@ export default function Home() {
                 </article>
               ))}
             </div>
+          </div>
+        </section>
+
+        <section className={styles.section}>
+          <div className="container">
+            <div className={styles.sectionHeader}>
+              <p className={styles.kicker}>How it differs</p>
+              <Heading as="h2">Enforces, not just advises.</Heading>
+            </div>
+            <p style={{ maxWidth: '52rem' }}>
+              SicarioSpec is not the first or only security-governance preset for Spec Kit. A
+              notable peer,{' '}
+              <Link to="https://github.com/hindermath/spec-kit-preset-security-governance">
+                hindermath/spec-kit-preset-security-governance
+              </Link>
+              , is append-and-advise: secure-SDLC templates and regulatory screening that enrich the
+              spec. SicarioSpec operates at a different layer — a mandatory governance contract whose
+              pass/fail verdict is owned by deterministic, non-AI code (the AI is explanation-only),
+              backed by a halting verify gate and OSCAL/NIST/SOX/CSA control maps. The two are
+              complementary: advise, then gate.
+            </p>
           </div>
         </section>
 

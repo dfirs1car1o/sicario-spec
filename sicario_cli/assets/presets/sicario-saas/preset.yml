@@ -1,0 +1,16 @@
+id: sicario-saas
+name: SicarioSpec SaaS
+version: 0.4.0
+description: SaaS-hardened profile - read-only-SaaS, tenant/data-boundary, and mission-supremacy invariants from the saas-assurance origin.
+license: MIT
+tags: [saas, sspm, multi-tenant, read-only, data-boundary, mission-supremacy]
+requires:
+  spec-kit: ">=0.9.0"
+extends: [sicario-core, sicario-ai-system]
+focus:
+  - read-only-saas
+  - tenant-isolation
+  - data-boundary
+  - mission-supremacy
+  - oauth-and-integration-risk
+  - no-raw-tenant-evidence
