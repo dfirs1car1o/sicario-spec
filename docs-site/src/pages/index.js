@@ -86,16 +86,14 @@ export default function Home() {
               <Heading as="h2">Enforces, not just advises.</Heading>
             </div>
             <p style={{ maxWidth: '52rem' }}>
-              SicarioSpec is not the first or only security-governance preset for Spec Kit. A
-              notable peer,{' '}
-              <Link to="https://github.com/hindermath/spec-kit-preset-security-governance">
-                hindermath/spec-kit-preset-security-governance
-              </Link>
-              , is append-and-advise: secure-SDLC templates and regulatory screening that enrich the
-              spec. SicarioSpec operates at a different layer — a mandatory governance contract whose
-              pass/fail verdict is owned by deterministic, non-AI code (the AI is explanation-only),
-              backed by a halting verify gate and OSCAL/NIST/SOX/CSA control maps. The two are
-              complementary: advise, then gate.
+              SicarioSpec is not the first or only security-governance preset for Spec Kit. Most
+              presets in the ecosystem follow an advisory-append pattern: they enrich the spec and
+              plan with secure-SDLC guidance and regulatory notes for an agent and reviewer to
+              consider. SicarioSpec operates at a different layer — a mandatory governance contract
+              whose pass/fail verdict is owned by deterministic, stdlib-only code with no LLM in the
+              decision path, backed by a <strong>halting</strong> verify gate (non-zero exit blocks
+              the merge) and selectable control maps across 10 frameworks. The two are
+              complementary: keep the advice you like, then gate the result.
             </p>
           </div>
         </section>

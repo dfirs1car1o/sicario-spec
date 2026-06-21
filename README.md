@@ -47,34 +47,45 @@ not by prompt instruction.
 ## How SicarioSpec Is Different
 
 SicarioSpec is a security-governance preset for [GitHub Spec Kit](https://github.com/github/spec-kit).
-It is **not** the first or only such preset, and we do not claim to be. A
-notable peer is
-[`hindermath/spec-kit-preset-security-governance`](https://github.com/hindermath/spec-kit-preset-security-governance),
-a published Spec Kit security-governance preset. That preset is excellent at what
-it does — by its own description it is **append-and-advise**, not a deterministic
-gate: secure-SDLC templates (NIST SSDF, OWASP ASVS, CWE Top 25, SBOM/VEX, SLSA),
-language-specific secure-coding profiles, and regulatory applicability screening
-(NIS2, CRA, EU AI Act, DORA) that enrich the spec/plan with guidance an agent and
-reviewer should consider.
+It is **not** the first or only such preset, and we do not claim to be. Most
+security-governance presets in the ecosystem follow an **advisory append**
+pattern: they enrich the spec and plan with secure-SDLC templates, secure-coding
+guidance, and regulatory applicability notes for an agent and a human reviewer to
+consider. That guidance is genuinely useful, and SicarioSpec is complementary to
+it — you can keep any advisory preset and still gate the result behind
+SicarioSpec.
 
-SicarioSpec operates at a different layer. Its defensible, distinguishing claim:
+SicarioSpec operates at a different layer. Its defensible, distinguishing claim
+is that the verdict is **enforced, not advised** — and the enforcement is
+structural:
 
-- **Deterministic, code-owned verdicts.** The verdict comes from `sicario verify`
-  (no AI in the decision path); see "What Deterministic Means Here" above.
+- **A halting gate.** `sicario verify` is a gate, not a comment. On any violation
+  it **exits non-zero** and emits a specific finding code, so a CI check or merge
+  gate actually **blocks the merge/release** instead of appending advice that can
+  be ignored. It is wired into CI (`sicario-verify.yml`) and the Spec Kit hooks.
+  (See it pass *and* fail from a clean clone: `examples/python-api/` exits 0,
+  `examples/python-api-failing/` exits 1.)
+- **A code-owned verdict with no LLM in the decision path.** Pass/fail is produced
+  by `sicario verify` — a stdlib-only Python gate with no model call, no network,
+  and no AI import. An LLM is **structurally barred** from the verdict (the gate
+  cannot reach a model), not merely instructed to stay out. See "What
+  Deterministic Means Here" above.
 - **A mandatory governance contract.** Specs, plans, and tasks must contain
   required governance sections (data classification, tagging, trust boundaries,
-  abuse cases, evidence, AI/fleet guardrails). Missing sections are a hard fail,
-  not advice.
-- **A halting gate.** `sicario verify` exits non-zero and blocks merge/release on
-  violation; it is wired into CI (`sicario-verify.yml`) and the Spec Kit hooks.
-- **Compliance control maps (10 frameworks).** Starter evidence maps for CSA CCM
-  v4.1, SOX 404 / ICFR ITGC, NIST SSDF (SP 800-218), NIST AI RMF (AI 100-1),
-  ISO/IEC 27001:2022, NIST SP 800-53 Rev 5, EU AI Act, GDPR (+ CPRA), PCI DSS
-  v4.0, and the HIPAA Security Rule.
+  abuse cases, evidence, AI/fleet guardrails). A missing section is a hard fail,
+  not a suggestion.
+- **Compliance control maps you can scope.** Starter evidence maps for 10
+  frameworks (CSA CCM v4.1, SOX 404 / ICFR ITGC, NIST SSDF, NIST AI RMF, ISO/IEC
+  27001:2022, NIST SP 800-53 Rev 5, EU AI Act, GDPR (+ CPRA), PCI DSS v4.0, HIPAA
+  Security Rule). A project selects the subset that applies (`--frameworks`), and
+  the gate then enforces presence for exactly those. These maps are coarse
+  traceability aids, not certification claims, and SicarioSpec does not yet ship
+  maps for every framework other presets cover (e.g. OWASP ASVS, NIS2, CRA, DORA,
+  SLSA supply-chain) — those remain advisory here until a map exists.
 
-In short: hindermath's preset advises; SicarioSpec **enforces**. The two are
-complementary — you can adopt hindermath's secure-SDLC guidance and still gate it
-behind SicarioSpec's deterministic verify contract.
+In short: advisory presets recommend; SicarioSpec **enforces with a halting,
+code-owned gate**. The two are complementary — adopt the advice you like, then
+gate it behind SicarioSpec's deterministic verify contract.
 
 ## Why It Exists
 
@@ -349,6 +360,24 @@ auditor judgment, or legal/accounting/regulatory scoping (the EU AI Act, GDPR/CP
 PCI DSS, and HIPAA maps are guidance, not legal advice or a conformity/compliance
 assessment). Frameworks referenced in templates but not yet shipped as a map
 (SLSA, OWASP ASVS/SAMM/LLM) are advisory until a map exists.
+
+**Pick the frameworks that apply.** You rarely owe evidence for all 10. The
+framework selector records the subset your project enforces, so `sicario verify`
+requires a control map for exactly those (and only those):
+
+```bash
+# Enforce only ISO 27001 + HIPAA:
+sicario init my-project --profile compliance --frameworks iso27001,hipaa
+# Enforce every shipped framework:
+sicario init my-project --profile enterprise-strict --frameworks all
+```
+
+This writes `.sicario/frameworks.txt` (one key per line). A missing selected map
+fails the gate as `SICARIO-MISSING-FRAMEWORK-MAP`; unselected frameworks are not
+required. Omit `--frameworks` to default to the profile's framework set; delete
+the file to fall back to the prior coarse control-map check. Selector keys and
+per-profile defaults: [docs/control-maps.md](docs/control-maps.md) and
+[docs/profiles.md](docs/profiles.md).
 
 ## Verification
 
