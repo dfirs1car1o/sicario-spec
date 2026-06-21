@@ -26,6 +26,13 @@ before merge, deploy, or release.
 
 Specs are where risk becomes work. SicarioSpec makes that work explicit.
 
+> **New here? Read [USAGE.md](USAGE.md).** It is the copy-pasteable quickstart
+> and explains the one thing people miss: SicarioSpec does **not** give you a
+> "threat-model command." Security and threat modeling are *enforced as
+> mandatory spec/plan sections* and checked by `sicario verify` — a
+> fill-in-the-contract-then-gate model, not a tool you invoke. See a passing
+> end-state in [`examples/python-api/`](examples/python-api/).
+
 ## What "Deterministic" Means Here
 
 "Deterministic" is overloaded in the AI-governance space, so we define it
@@ -147,6 +154,10 @@ sicario verify
 That single command gives the target repo a Spec Kit governance baseline,
 security/compliance docs, risk registers, Docusaurus docs scaffold, GitHub
 Actions gates, and agent instructions for Claude Code, Codex/GPT, and Copilot.
+
+For the full step-by-step flow (install → init → write specs → verify → hooks),
+the finding-code reference, and a "where does X live?" table, see
+**[USAGE.md](USAGE.md)**.
 
 Useful profile combinations:
 
@@ -416,6 +427,8 @@ common unsafe paths before merge.
 
 ## Community
 
+- Usage quickstart: [USAGE.md](USAGE.md)
+- Worked example: [examples/python-api](examples/python-api/)
 - Contributing: [CONTRIBUTING.md](CONTRIBUTING.md)
 - Security: [SECURITY.md](SECURITY.md)
 - Support: [SUPPORT.md](SUPPORT.md)

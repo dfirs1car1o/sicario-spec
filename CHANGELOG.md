@@ -32,6 +32,17 @@ existing constitution, Spec Kit templates, or agent-instruction files.
   is reported as `created` / `merged-overlaid` / `preserved` / `overwritten`,
   with a summary line.
 - `--dry-run` now previews the full per-file adoption report and writes nothing.
+- **`USAGE.md` quickstart.** A copy-pasteable usage guide (install → init →
+  write specs → `sicario verify` → `sicario hooks`) that makes the mental model
+  explicit: SicarioSpec has no "threat-model command" — security/threat modeling
+  is enforced as mandatory spec/plan sections checked by `sicario verify`. Linked
+  prominently from the README; includes the full finding-code reference and a
+  "where does X live?" table.
+- **Fully-worked example.** `examples/python-api/` is now a complete governed
+  feature (a read-only invoice-export API) with every required section filled in
+  and the repo-level governance docs present, so `sicario verify
+  examples/python-api` returns `status: pass`. Its `README.md` shows how to
+  reproduce the passing gate.
 
 ### Changed
 
