@@ -15,7 +15,7 @@ const proofPoints = [
   },
   {
     title: 'A halting gate plus control maps',
-    body: 'sicario verify blocks merge/release on violation and is wired into CI. Starter evidence maps cover CSA CCM v4.1, SOX 404 / ICFR, NIST SSDF, and NIST AI RMF.',
+    body: 'sicario verify blocks merge/release on violation and is wired into CI. Starter evidence maps cover 10 frameworks: CSA CCM v4.1, SOX 404 / ICFR, NIST SSDF, NIST AI RMF, ISO/IEC 27001:2022, NIST SP 800-53 Rev 5, EU AI Act, GDPR (+ CPRA), PCI DSS v4.0, and the HIPAA Security Rule.',
   },
 ];
 

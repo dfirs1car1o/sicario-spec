@@ -1,6 +1,6 @@
 id: sicario-ai-system
 name: SicarioSpec AI System
-version: 0.3.0
+version: 0.4.0
 description: AI, agent, RAG, MCP, LLM, and tool-use security profile.
 license: MIT
 tags: [ai-security, llm, agentic-ai, owasp-llm, nist-ai-rmf]

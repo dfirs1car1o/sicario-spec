@@ -6,6 +6,33 @@ The project follows semantic versioning once the public API stabilizes. During
 the `0.x` line, minor versions may introduce breaking changes when needed to
 improve the security model.
 
+## [0.4.0] - 2026-06-21
+
+### Added
+
+- **Six new compliance control maps** (10 frameworks total), making the
+  `compliance` and `enterprise-strict` profiles credible for regulated
+  enterprises. All are starter / domain-level crosswalks, not certification or
+  conformity claims:
+  - `iso-27001-2022-sicario.json` — ISO/IEC 27001:2022 Annex A, theme +
+    control-group level (4 themes, 93 controls).
+  - `nist-800-53-r5-sicario.json` — NIST SP 800-53 Rev 5, all 20 control families.
+  - `eu-ai-act-sicario.json` — EU AI Act risk tiers + high-risk obligations
+    (Articles 9-15).
+  - `gdpr-cpra-sicario.json` — GDPR Article 5 principles and duties (DPIA,
+    data-subject rights, breach notification) with CPRA/CCPA parallels.
+  - `pci-dss-v4.0-sicario.json` — PCI DSS v4.0, all 12 requirements.
+  - `hipaa-security-rule-sicario.json` — HIPAA Security Rule Administrative,
+    Physical, and Technical safeguards.
+
+### Changed
+
+- `control_maps/README.md`, `docs/control-maps.md`, the docs-site landing page,
+  the `/sicario.controls` command, and README "frameworks covered" claims now
+  list all 10 frameworks with honest starter / non-certification framing.
+- Version synced to `0.4.0` across `VERSION`, `version.py`, `pyproject.toml`,
+  preset and extension manifests, and all control maps.
+
 ## [0.3.0] - 2026-06-21
 
 Brownfield-safe adoption: `sicario init`/apply no longer silently clobbers an

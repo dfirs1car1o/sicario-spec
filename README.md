@@ -67,8 +67,10 @@ SicarioSpec operates at a different layer. Its defensible, distinguishing claim:
   not advice.
 - **A halting gate.** `sicario verify` exits non-zero and blocks merge/release on
   violation; it is wired into CI (`sicario-verify.yml`) and the Spec Kit hooks.
-- **OSCAL/NIST/SOX/CSA control maps.** Starter evidence maps for CSA CCM v4.1,
-  SOX 404 / ICFR ITGC, NIST SSDF (SP 800-218), and NIST AI RMF (AI 100-1).
+- **Compliance control maps (10 frameworks).** Starter evidence maps for CSA CCM
+  v4.1, SOX 404 / ICFR ITGC, NIST SSDF (SP 800-218), NIST AI RMF (AI 100-1),
+  ISO/IEC 27001:2022, NIST SP 800-53 Rev 5, EU AI Act, GDPR (+ CPRA), PCI DSS
+  v4.0, and the HIPAA Security Rule.
 
 In short: hindermath's preset advises; SicarioSpec **enforces**. The two are
 complementary — you can adopt hindermath's secure-SDLC guidance and still gate it
@@ -100,8 +102,10 @@ SicarioSpec provides:
   generic agent environments.
 - **Guard extension commands** for review, threat modeling, controls, evidence,
   verification, and finding remediation.
-- **Control maps** for CSA CCM v4.1, SOX 404 / ICFR ITGC, NIST SSDF (SP 800-218),
-  and NIST AI RMF (AI 100-1) evidence readiness.
+- **Control maps** for 10 frameworks — CSA CCM v4.1, SOX 404 / ICFR ITGC, NIST
+  SSDF (SP 800-218), NIST AI RMF (AI 100-1), ISO/IEC 27001:2022, NIST SP 800-53
+  Rev 5, EU AI Act, GDPR (+ CPRA), PCI DSS v4.0, and HIPAA Security Rule —
+  evidence readiness.
 - **Policy-as-code starters** for Checkov, OPA/Conftest, Azure Policy, and
   Kubernetes admission policy.
 - **Security toolchain starters** for secrets, SAST, SCA, SBOM, container/IaC
@@ -328,16 +332,23 @@ sicario init . --profile appsec --integration claude --force
 SicarioSpec ships starter maps that link its evidence to framework outcomes at a
 coarse level (domain, practice group, or function):
 
-- CSA Cloud Controls Matrix v4.1 — domain-level traceability
+- CSA Cloud Controls Matrix v4.1 — domain-level traceability (17 domains)
 - SOX 404 / ICFR ITGC — control-area evidence readiness
 - NIST SSDF (SP 800-218) — PO/PS/PW/RV practice-group evidence
 - NIST AI RMF (AI 100-1) — Govern/Map/Measure/Manage function evidence
+- ISO/IEC 27001:2022 — Annex A theme + control-group evidence (4 themes, 93 controls)
+- NIST SP 800-53 Rev 5 — control-family evidence (20 families)
+- EU AI Act (Reg. 2024/1689) — risk-tier + high-risk obligation (Art. 9-15) evidence
+- GDPR (+ CPRA parallels) — Article 5 principles, DPIA, rights, and breach duties
+- PCI DSS v4.0 — 12-requirement cardholder-data-environment evidence
+- HIPAA Security Rule — Administrative/Physical/Technical ePHI safeguards
 
 These maps are traceability aids. They are not control-by-control crosswalks,
 not certification claims, and do not replace the official framework artifacts,
-auditor judgment, or legal/accounting scoping. Frameworks referenced in templates
-but not yet shipped as a map (SLSA, OWASP ASVS/SAMM/LLM) are advisory until a map
-exists.
+auditor judgment, or legal/accounting/regulatory scoping (the EU AI Act, GDPR/CPRA,
+PCI DSS, and HIPAA maps are guidance, not legal advice or a conformity/compliance
+assessment). Frameworks referenced in templates but not yet shipped as a map
+(SLSA, OWASP ASVS/SAMM/LLM) are advisory until a map exists.
 
 ## Verification
 

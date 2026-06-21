@@ -1,7 +1,7 @@
 {
   "id": "ssdf-800-218-sicario",
   "name": "NIST SSDF (SP 800-218) to SicarioSpec Evidence Map",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "framework": {
     "name": "NIST Secure Software Development Framework",
     "abbreviation": "NIST SSDF",

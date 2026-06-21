@@ -1,6 +1,6 @@
 id: sicario-core
 name: SicarioSpec Core
-version: 0.2.0
+version: 0.4.0
 description: Baseline secure-by-default Spec Kit governance profile.
 license: MIT
 tags:

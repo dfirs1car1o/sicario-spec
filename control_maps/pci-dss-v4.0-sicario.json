@@ -1,0 +1,90 @@
+{
+  "id": "pci-dss-v4.0-sicario",
+  "name": "PCI DSS v4.0 Requirements to SicarioSpec Evidence Map",
+  "version": "0.4.0",
+  "framework": {
+    "name": "Payment Card Industry Data Security Standard v4.0",
+    "abbreviation": "PCI DSS",
+    "framework_version": "4.0",
+    "requirement_count": 12,
+    "official_sources": [
+      "https://www.pcisecuritystandards.org/document_library/",
+      "https://docs-prv.pcisecuritystandards.org/PCI%20DSS/Standard/PCI-DSS-v4_0.pdf"
+    ]
+  },
+  "scope_note": "Requirement-level starter mapping only. PCI DSS v4.0 has 12 principal requirements with hundreds of sub-requirements and testing procedures; compliance is validated by an SAQ or a QSA-led assessment (ROC). This map links SicarioSpec evidence to the 12 top-level requirements for systems in the cardholder data environment (CDE). It is not a PCI assessment, SAQ, or Attestation of Compliance.",
+  "requirement_mappings": [
+    {
+      "requirement": 1,
+      "title": "Install and maintain network security controls",
+      "sicario_evidence": ["specs/**/plan.md#data-flow-and-trust-boundaries", "infra", "policy/policy-as-code"],
+      "sicario_presets": ["sicario-cloud-iac", "sicario-appsec"]
+    },
+    {
+      "requirement": 2,
+      "title": "Apply secure configurations to all system components",
+      "sicario_evidence": ["specs/**/plan.md", "policy/policy-as-code", "docs/docs-impact.md"],
+      "sicario_presets": ["sicario-cloud-iac", "sicario-core"]
+    },
+    {
+      "requirement": 3,
+      "title": "Protect stored account data",
+      "sicario_evidence": ["specs/**/spec.md#data-classification", "specs/**/spec.md#secrets--credential-handling", "docs/governance/data-classification.md"],
+      "sicario_presets": ["sicario-core", "sicario-appsec"]
+    },
+    {
+      "requirement": 4,
+      "title": "Protect cardholder data with strong cryptography during transmission over open, public networks",
+      "sicario_evidence": ["specs/**/spec.md#secrets--credential-handling", "specs/**/plan.md#data-flow-and-trust-boundaries", "infra"],
+      "sicario_presets": ["sicario-appsec", "sicario-cloud-iac"]
+    },
+    {
+      "requirement": 5,
+      "title": "Protect all systems and networks from malicious software",
+      "sicario_evidence": ["security/toolchain", "specs/**/plan.md#well-architected-review"],
+      "sicario_presets": ["sicario-security-toolchain", "sicario-cloud-iac"]
+    },
+    {
+      "requirement": 6,
+      "title": "Develop and maintain secure systems and software",
+      "sicario_evidence": ["specs/**/spec.md", "specs/**/plan.md#architecture--security-decision-record", "docs/security/threat-model.md", "tests", "security/toolchain"],
+      "sicario_presets": ["sicario-appsec", "sicario-security-toolchain"]
+    },
+    {
+      "requirement": 7,
+      "title": "Restrict access to system components and cardholder data by business need to know",
+      "sicario_evidence": ["specs/**/plan.md#authn--authz-design", "docs/security/threat-model.md", "tests"],
+      "sicario_presets": ["sicario-appsec", "sicario-enterprise-strict"]
+    },
+    {
+      "requirement": 8,
+      "title": "Identify users and authenticate access to system components",
+      "sicario_evidence": ["specs/**/plan.md#authn--authz-design", "specs/**/spec.md#secrets--credential-handling", "tests"],
+      "sicario_presets": ["sicario-appsec", "sicario-cloud-iac"]
+    },
+    {
+      "requirement": 9,
+      "title": "Restrict physical access to cardholder data",
+      "sicario_evidence": ["docs/compliance/control-applicability.md", "docs/risk/accepted-risk-log.md"],
+      "sicario_presets": ["sicario-compliance"]
+    },
+    {
+      "requirement": 10,
+      "title": "Log and monitor all access to system components and cardholder data",
+      "sicario_evidence": ["specs/**/spec.md#audit--logging-requirements", "specs/**/plan.md#well-architected-review", "generated/sicario/spec-run-evidence.json"],
+      "sicario_presets": ["sicario-core", "sicario-agent-fleet"]
+    },
+    {
+      "requirement": 11,
+      "title": "Test security of systems and networks regularly",
+      "sicario_evidence": ["security/toolchain", "tests", "docs/security/threat-model.md", "generated/sicario/gate-summary.json"],
+      "sicario_presets": ["sicario-security-toolchain", "sicario-appsec"]
+    },
+    {
+      "requirement": 12,
+      "title": "Support information security with organizational policies and programs",
+      "sicario_evidence": [".specify/memory/constitution.md", "docs/compliance/control-applicability.md", "docs/risk/risk-register.md", "docs/risk/security-exceptions.md"],
+      "sicario_presets": ["sicario-compliance", "sicario-enterprise-strict"]
+    }
+  ]
+}

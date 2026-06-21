@@ -1,6 +1,6 @@
 id: sicario-guard
 name: SicarioSpec Guard
-version: 0.2.0
+version: 0.4.0
 description: Commands and hooks for secure-by-default Spec Kit verification.
 license: MIT
 requirements:

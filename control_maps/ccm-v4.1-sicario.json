@@ -1,7 +1,7 @@
 {
   "id": "ccm-v4.1-sicario",
   "name": "CSA Cloud Controls Matrix v4.1 to SicarioSpec Evidence Map",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "framework": {
     "name": "Cloud Security Alliance Cloud Controls Matrix",
     "abbreviation": "CSA CCM",
