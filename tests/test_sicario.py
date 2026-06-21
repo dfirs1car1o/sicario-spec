@@ -7,9 +7,14 @@ from pathlib import Path
 
 from sicario_cli.cli import (
     CONTROL_MAPS_ROOT,
+    FRAMEWORK_IDS,
+    FRAMEWORKS_CONFIG,
     PRESETS_ROOT,
     REQUIRED_TEMPLATES,
     SICARIO_OVERLAY_BEGIN,
+    _default_frameworks_for_profiles,
+    _parse_frameworks,
+    _read_selected_frameworks,
     build_parser,
     detect_existing_governance,
     main,
@@ -447,6 +452,132 @@ class SicarioCliBehaviorTests(unittest.TestCase):
             findings = verify_project(target, write=False)
             codes = {finding.code for finding in findings}
             self.assertIn("SICARIO-PLAN-SECTION", codes)
+
+
+class FrameworkSelectorTests(unittest.TestCase):
+    """#18 — projects enforce only the frameworks they chose."""
+
+    def test_parse_frameworks_validates_and_dedupes(self) -> None:
+        self.assertEqual(["iso27001", "hipaa"], _parse_frameworks("iso27001, hipaa, ISO27001"))
+
+    def test_parse_frameworks_all_expands_to_every_framework(self) -> None:
+        self.assertEqual(list(FRAMEWORK_IDS), _parse_frameworks("all"))
+
+    def test_parse_frameworks_rejects_unknown(self) -> None:
+        with self.assertRaises(SystemExit):
+            _parse_frameworks("iso27001,not-a-framework")
+
+    def test_default_frameworks_follow_profile_set(self) -> None:
+        # public-core carries no compliance obligation -> no default frameworks.
+        self.assertEqual([], _default_frameworks_for_profiles(["public-core"]))
+        # compliance carries a concrete default set.
+        self.assertEqual(
+            ["ccm", "sox", "iso27001", "nist-800-53"],
+            _default_frameworks_for_profiles(["compliance"]),
+        )
+        # enterprise-strict enforces all shipped frameworks.
+        self.assertEqual(
+            list(FRAMEWORK_IDS), _default_frameworks_for_profiles(["enterprise-strict"])
+        )
+
+    def test_init_explicit_frameworks_writes_config(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            target = Path(tmp) / "project"
+            self.assertEqual(
+                0,
+                main(
+                    [
+                        "init",
+                        str(target),
+                        "--profile",
+                        "compliance",
+                        "--frameworks",
+                        "iso27001,hipaa",
+                    ]
+                ),
+            )
+            config = target / FRAMEWORKS_CONFIG
+            self.assertTrue(config.exists())
+            self.assertEqual(["iso27001", "hipaa"], _read_selected_frameworks(target))
+
+    def test_init_default_frameworks_match_profile(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            target = Path(tmp) / "project"
+            self.assertEqual(0, main(["init", str(target), "--profile", "compliance"]))
+            self.assertEqual(
+                ["ccm", "sox", "iso27001", "nist-800-53"], _read_selected_frameworks(target)
+            )
+
+    def test_public_core_writes_no_framework_config_and_verifies(self) -> None:
+        # Default behavior is unchanged: bare public-core writes no selector and
+        # verify keeps the legacy coarse control-map check (which passes since
+        # init copies the control-map pack).
+        with tempfile.TemporaryDirectory() as tmp:
+            target = Path(tmp) / "project"
+            self.assertEqual(0, main(["init", str(target), "--profile", "public-core"]))
+            self.assertFalse((target / FRAMEWORKS_CONFIG).exists())
+            self.assertIsNone(_read_selected_frameworks(target))
+            self.assertEqual([], verify_project(target, write=False))
+
+    def test_verify_honors_selected_subset(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            target = Path(tmp) / "project"
+            self.assertEqual(
+                0,
+                main(["init", str(target), "--profile", "compliance", "--frameworks", "iso27001"]),
+            )
+            # All maps were copied, so the selected subset verifies clean.
+            self.assertEqual([], verify_project(target, write=False))
+            # Remove the selected framework's map -> a precise finding fires.
+            (target / "docs" / "compliance" / "control-maps" / FRAMEWORK_IDS["iso27001"]).unlink()
+            findings = verify_project(target, write=False)
+            codes = {finding.code for finding in findings}
+            self.assertIn("SICARIO-MISSING-FRAMEWORK-MAP", codes)
+
+    def test_verify_does_not_require_unselected_frameworks(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            target = Path(tmp) / "project"
+            self.assertEqual(
+                0,
+                main(["init", str(target), "--profile", "compliance", "--frameworks", "iso27001"]),
+            )
+            # Removing a NON-selected framework's map must not fail the gate.
+            (target / "docs" / "compliance" / "control-maps" / FRAMEWORK_IDS["hipaa"]).unlink()
+            findings = verify_project(target, write=False)
+            codes = {finding.code for finding in findings}
+            self.assertNotIn("SICARIO-MISSING-FRAMEWORK-MAP", codes)
+            self.assertNotIn("SICARIO-MISSING-CONTROL-MAPS", codes)
+
+
+class WorkedExampleGateProofTests(unittest.TestCase):
+    """#2 — the worked example proves the halting gate passes AND fails."""
+
+    REPO_ROOT = Path(__file__).resolve().parents[1]
+
+    def test_python_api_example_passes(self) -> None:
+        example = self.REPO_ROOT / "examples" / "python-api"
+        self.assertEqual([], verify_project(example, write=False))
+
+    def test_python_api_failing_example_halts_with_expected_code(self) -> None:
+        example = self.REPO_ROOT / "examples" / "python-api-failing"
+        findings = verify_project(example, write=False)
+        codes = {finding.code for finding in findings}
+        # The only seeded gap is the missing threat model.
+        self.assertEqual({"SICARIO-MISSING-THREAT-MODEL"}, codes)
+
+    def test_failing_example_verify_command_returns_nonzero(self) -> None:
+        # verify_command is the actual CLI entrypoint; it must exit non-zero so a
+        # CI/merge gate halts.
+        import argparse
+        import io
+        from contextlib import redirect_stdout
+
+        from sicario_cli.cli import verify_command
+
+        example = self.REPO_ROOT / "examples" / "python-api-failing"
+        with redirect_stdout(io.StringIO()):
+            code = verify_command(argparse.Namespace(path=str(example)))
+        self.assertEqual(1, code)
 
 
 class BrownfieldSafeAdoptionTests(unittest.TestCase):

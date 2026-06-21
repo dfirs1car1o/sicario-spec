@@ -83,6 +83,117 @@ PROFILE_PRESETS = {
     ],
 }
 
+# --- Framework selector (#18) -------------------------------------------------
+#
+# SicarioSpec ships 10 control-map frameworks. By default a project does not
+# have to enforce all of them — that would punish a team that only owes evidence
+# for, say, ISO 27001 and HIPAA. The framework selector lets a project declare
+# which subset applies. The declaration lives in a plain-text project config file
+# (`.sicario/frameworks.txt`, one framework key per line). `sicario verify` reads
+# it and, when present, fails if any SELECTED framework's control map is absent
+# (SICARIO-MISSING-FRAMEWORK-MAP) — so a team enforces exactly the frameworks it
+# chose, not all 10 and not none.
+#
+# Backward-compatible by construction: with NO config file, verify behaves
+# exactly as before (the single coarse SICARIO-MISSING-CONTROL-MAPS check).
+
+# Short, stable selector key -> shipped control-map filename.
+FRAMEWORK_IDS = {
+    "ccm": "ccm-v4.1-sicario.json",
+    "sox": "sox-404-itgc-sicario.json",
+    "ssdf": "ssdf-800-218-sicario.json",
+    "ai-rmf": "ai-rmf-sicario.json",
+    "iso27001": "iso-27001-2022-sicario.json",
+    "nist-800-53": "nist-800-53-r5-sicario.json",
+    "eu-ai-act": "eu-ai-act-sicario.json",
+    "gdpr": "gdpr-cpra-sicario.json",
+    "pci-dss": "pci-dss-v4.0-sicario.json",
+    "hipaa": "hipaa-security-rule-sicario.json",
+}
+
+# The project config file that records the selected subset (one key per line).
+FRAMEWORKS_CONFIG = Path(".sicario") / "frameworks.txt"
+
+# Default framework subset per profile. The default = the profile's natural set
+# (`public-core` carries no compliance obligation; compliance-shaped profiles
+# carry the maps they imply). `enterprise-strict` enforces all 10.
+PROFILE_FRAMEWORKS = {
+    "compliance": ["ccm", "sox", "iso27001", "nist-800-53"],
+    "saas": ["ccm", "iso27001", "ai-rmf"],
+    "ai-system": ["ai-rmf", "eu-ai-act"],
+    "agent-fleet": ["ai-rmf", "eu-ai-act"],
+    "cloud-iac": ["ccm", "nist-800-53"],
+    "supply-chain": ["ssdf"],
+    "appsec": ["ssdf", "iso27001"],
+    "enterprise-strict": list(FRAMEWORK_IDS),
+}
+
+
+def _parse_frameworks(value: str) -> List[str]:
+    """Parse a comma-separated --frameworks value into validated selector keys.
+
+    ``all`` expands to every shipped framework. Unknown keys are a hard error so
+    a typo can never silently disable a framework the user meant to enforce.
+    """
+    names = [part.strip().lower() for part in value.split(",") if part.strip()]
+    selected: List[str] = []
+    for name in names:
+        if name == "all":
+            for key in FRAMEWORK_IDS:
+                if key not in selected:
+                    selected.append(key)
+            continue
+        if name not in FRAMEWORK_IDS:
+            known = ", ".join(sorted(FRAMEWORK_IDS))
+            raise SystemExit(f"Unknown framework(s): {name}. Known frameworks: {known}")
+        if name not in selected:
+            selected.append(name)
+    return selected
+
+
+def _default_frameworks_for_profiles(profile_names: Sequence[str]) -> List[str]:
+    """Compute the default framework subset from the selected profile name(s)."""
+    selected: List[str] = []
+    for name in profile_names:
+        for key in PROFILE_FRAMEWORKS.get(name, []):
+            if key not in selected:
+                selected.append(key)
+    return selected
+
+
+def _frameworks_config_content(frameworks: Sequence[str]) -> str:
+    header = (
+        "# SicarioSpec framework selector (#18).\n"
+        "# One framework key per line. `sicario verify` requires a control map\n"
+        "# for each key listed here (SICARIO-MISSING-FRAMEWORK-MAP if absent).\n"
+        "# Remove this file to fall back to the default coarse control-map check.\n"
+        f"# Known keys: {', '.join(sorted(FRAMEWORK_IDS))}\n"
+    )
+    body = "\n".join(frameworks)
+    return header + (body + "\n" if body else "")
+
+
+def _read_selected_frameworks(root: Path) -> Optional[List[str]]:
+    """Read the project's selected frameworks, or None when no config exists.
+
+    None (no config file) means "no explicit selection" — verify keeps its
+    legacy coarse control-map behavior. An empty/comment-only file returns an
+    empty list, meaning "explicitly no per-framework enforcement".
+    """
+    config = root / FRAMEWORKS_CONFIG
+    if not config.exists():
+        return None
+    selected: List[str] = []
+    for raw in config.read_text(encoding="utf-8").splitlines():
+        line = raw.strip()
+        if not line or line.startswith("#"):
+            continue
+        key = line.lower()
+        if key in FRAMEWORK_IDS and key not in selected:
+            selected.append(key)
+    return selected
+
+
 TEXT_SUFFIXES = {
     ".env",
     ".ini",
@@ -136,7 +247,8 @@ def _now() -> str:
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat()
 
 
-def _parse_profiles(value: str) -> List[str]:
+def _parse_profile_names(value: str) -> List[str]:
+    """Validate and return the requested profile NAMES (not expanded presets)."""
     names = [part.strip() for part in value.split(",") if part.strip()]
     if not names:
         return ["public-core"]
@@ -144,6 +256,11 @@ def _parse_profiles(value: str) -> List[str]:
     if unknown:
         known = ", ".join(sorted(PROFILE_PRESETS))
         raise SystemExit(f"Unknown profile(s): {', '.join(unknown)}. Known profiles: {known}")
+    return names
+
+
+def _parse_profiles(value: str) -> List[str]:
+    names = _parse_profile_names(value)
     presets: List[str] = []
     for name in names:
         for preset in PROFILE_PRESETS[name]:
@@ -727,6 +844,27 @@ def init_project(args: argparse.Namespace) -> int:
             actions=actions,
             reports=reports,
         )
+
+    # Framework selector (#18): record which frameworks this project enforces.
+    # Explicit --frameworks wins; otherwise default to the profile's set. When
+    # neither yields a selection (e.g. bare public-core), we write no config so
+    # verify keeps its legacy coarse control-map behavior.
+    if getattr(args, "frameworks", None):
+        selected_frameworks = _parse_frameworks(args.frameworks)
+    else:
+        selected_frameworks = _default_frameworks_for_profiles(_parse_profile_names(args.profile))
+    if selected_frameworks:
+        actions.append(f"frameworks {', '.join(selected_frameworks)}")
+        _write_text(
+            target / FRAMEWORKS_CONFIG,
+            _frameworks_config_content(selected_frameworks),
+            force=args.force,
+            dry_run=args.dry_run,
+            actions=actions,
+            reports=reports,
+        )
+    else:
+        actions.append("frameworks (none selected; default coarse control-map check)")
 
     _copy_tree(
         EXTENSIONS_ROOT / "sicario-guard",
@@ -1808,10 +1946,30 @@ def verify_project(path: Path, *, write: bool = True) -> List[Finding]:
                 )
             )
 
-    control_maps_present = (root / "docs" / "compliance" / "control-maps").exists() or (
-        root / "control_maps"
-    ).exists()
-    if not control_maps_present:
+    control_map_dirs = [
+        root / "docs" / "compliance" / "control-maps",
+        root / "control_maps",
+    ]
+    control_maps_present = any(directory.exists() for directory in control_map_dirs)
+
+    selected_frameworks = _read_selected_frameworks(root)
+    if selected_frameworks is not None:
+        # A framework selector is in effect (#18): enforce exactly the chosen
+        # subset. Each selected framework's control map must be present in one of
+        # the control-map directories.
+        for key in selected_frameworks:
+            filename = FRAMEWORK_IDS[key]
+            present = any((directory / filename).exists() for directory in control_map_dirs)
+            if not present:
+                findings.append(
+                    Finding(
+                        "medium",
+                        "SICARIO-MISSING-FRAMEWORK-MAP",
+                        f"Selected framework '{key}' has no control map ({filename})",
+                        f"docs/compliance/control-maps/{filename}",
+                    )
+                )
+    elif not control_maps_present:
         findings.append(
             Finding(
                 "medium",
@@ -2183,6 +2341,14 @@ def build_parser() -> argparse.ArgumentParser:
         "--integration", default="claude", choices=["claude", "codex", "copilot", "all", "generic"]
     )
     init.add_argument("--profile", default="public-core", help="Comma-separated profile list")
+    init.add_argument(
+        "--frameworks",
+        default=None,
+        help="Comma-separated control-map frameworks this project enforces "
+        f"(known: {', '.join(sorted(FRAMEWORK_IDS))}; or 'all'). Writes "
+        ".sicario/frameworks.txt, which `sicario verify` honors so you enforce "
+        "only the frameworks you chose. Default: the profile's framework set.",
+    )
     speckit_group = init.add_mutually_exclusive_group()
     speckit_group.add_argument(
         "--apply-to-speckit",
