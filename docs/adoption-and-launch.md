@@ -93,6 +93,36 @@ risk visible early, turn it into work, and require deterministic evidence
 before human approval.
 ```
 
+## Brownfield-Safe Adoption
+
+Most teams adopting SicarioSpec already have a constitution, Spec Kit templates,
+or agent-instruction files. A tool that silently overwrites a user's existing
+`constitution.md`, `CLAUDE.md`, or `mission.md` is a non-starter — so
+**brownfield-safe adoption is the default** (no flag required).
+
+`sicario init`/apply detects an existing setup before writing
+(`.specify/memory/constitution.md`, `.specify/templates/*`, `CLAUDE.md` /
+`AGENTS.md`, and `mission.md`/project-supremacy files), then per file:
+
+- **Constitution** (exists): appends a clearly-marked **additive** SicarioSpec
+  overlay that explicitly **defers** to the project's own principles and any
+  `mission.md`. The existing constitution is never replaced.
+- **Spec/plan/tasks template** (exists): appends the SicarioSpec
+  governance-impact gate block **idempotently** (no double-append on re-run)
+  rather than overwriting the file.
+- **`CLAUDE.md` / `AGENTS.md`** (exists): never overwritten; appends a delimited,
+  idempotent SicarioSpec section.
+- New files are created.
+
+Always: every modified file is backed up first to `*.sicario-bak.<UTC>`, and a
+per-file report (`created` / `merged-overlaid` / `preserved` / `overwritten`)
+prints at the end of the run.
+
+Flags:
+
+- `--dry-run` previews the per-file report and writes nothing.
+- `--force` is the explicit full-overwrite opt-in (still backs up first).
+
 ## Contribution Hooks
 
 Good first external contribution areas:

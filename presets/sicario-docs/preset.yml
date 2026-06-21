@@ -1,6 +1,6 @@
 id: sicario-docs
 name: SicarioSpec Docs And Diagrams
-version: 0.2.0
+version: 0.3.0
 description: Documentation, diagram, docs-impact, and docs-site governance profile.
 license: MIT
 tags: [documentation, diagrams, docusaurus, docs-as-code, evidence]

@@ -1,6 +1,6 @@
 id: sicario-agent-fleet
 name: SicarioSpec Agent Fleet
-version: 0.2.0
+version: 0.3.0
 description: Governance for multi-agent, worker, queue, workflow, SOAR, and orchestration systems.
 license: MIT
 tags: [agentic-ai, orchestration, langgraph, temporal, celery, ray, soar, workers]

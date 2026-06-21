@@ -6,6 +6,41 @@ The project follows semantic versioning once the public API stabilizes. During
 the `0.x` line, minor versions may introduce breaking changes when needed to
 improve the security model.
 
+## [0.3.0] - 2026-06-21
+
+Brownfield-safe adoption: `sicario init`/apply no longer silently clobbers an
+existing constitution, Spec Kit templates, or agent-instruction files.
+
+### Added
+
+- **Brownfield-safe adoption is now the default.** `sicario init` detects an
+  existing setup (`.specify/memory/constitution.md`, `.specify/templates/*`,
+  `CLAUDE.md`/`AGENTS.md`, and `mission.md`/project-supremacy files) before
+  writing, and merges/overlays instead of skipping or clobbering:
+  - **Constitution:** appends a clearly-marked ADDITIVE SicarioSpec overlay that
+    explicitly DEFERS to the project's own principles and any `mission.md`
+    (mirrors saas-assurance's brownfield overlay that yields to `mission.md`).
+    The existing constitution is never replaced.
+  - **Templates:** appends the SicarioSpec governance-impact gate block to an
+    existing `spec/plan/tasks` template — idempotently (no double-append on
+    re-run) — rather than overwriting the whole file.
+  - **Instructions (`CLAUDE.md`/`AGENTS.md`):** never overwritten; a delimited,
+    idempotent SicarioSpec section is appended.
+- Every modified file is **backed up first** to a timestamped
+  `*.sicario-bak.<UTC>` file.
+- A clear per-file **adoption report** prints at the end of every run: each file
+  is reported as `created` / `merged-overlaid` / `preserved` / `overwritten`,
+  with a summary line.
+- `--dry-run` now previews the full per-file adoption report and writes nothing.
+
+### Changed
+
+- `--force` remains the explicit FULL-OVERWRITE opt-in, but now takes a
+  timestamped backup before overwriting any pre-existing file.
+- A non-empty target directory is no longer an error: brownfield-safe adoption
+  is the default, so `--force` is not required to initialize into an existing
+  repository.
+
 ## [0.2.0] - 2026-06-21
 
 Spec Kit wiring, honest positioning, expanded control maps, executable hooks, and

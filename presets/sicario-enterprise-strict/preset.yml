@@ -1,6 +1,6 @@
 id: sicario-enterprise-strict
 name: SicarioSpec Enterprise Strict
-version: 0.2.0
+version: 0.3.0
 description: High-assurance enterprise profile for approval, release, and exception governance.
 license: MIT
 tags: [enterprise, change-control, codeowners, release-governance]

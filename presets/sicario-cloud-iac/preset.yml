@@ -1,6 +1,6 @@
 id: sicario-cloud-iac
 name: SicarioSpec Cloud IaC
-version: 0.2.0
+version: 0.3.0
 description: Multi-cloud infrastructure-as-code profile for Terraform/OpenTofu, Azure Verified Modules, Azure Bicep, AWS, GCP, Kubernetes, containers, and policy-as-code.
 license: MIT
 tags: [cloud, iac, terraform, opentofu, azure, avm, azure-verified-modules, bicep, aws, gcp, kubernetes, containers, policy-as-code]

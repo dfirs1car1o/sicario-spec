@@ -228,9 +228,54 @@ The well-architected baseline covers operational excellence, security,
 reliability, performance efficiency, cost optimization, and sustainability.
 Provider-specific lenses may add detail, but they do not remove the baseline.
 
+## Brownfield-Safe Adoption (Default)
+
+SicarioSpec is built to adopt into a repository that **already has** a
+constitution, Spec Kit templates, or agent-instruction files. It will **never
+silently clobber** your existing governance. This is the default — no flag
+required.
+
+Before writing, `sicario init`/apply detects an existing setup:
+`.specify/memory/constitution.md`, `.specify/templates/*`, `CLAUDE.md` /
+`AGENTS.md`, and `mission.md` (or other project-supremacy instruction files).
+
+Then, per file:
+
+| File | Default behavior |
+|---|---|
+| **Constitution** (exists) | Appends a clearly-marked **additive** SicarioSpec overlay that explicitly **defers** to your existing principles and any `mission.md`. Your constitution is never replaced. |
+| **Spec/plan/tasks template** (exists) | Appends the SicarioSpec governance-impact gate block — **idempotently** (no double-append on re-run) — instead of overwriting the file. |
+| **`CLAUDE.md` / `AGENTS.md`** (exists) | Never overwritten; appends a delimited, idempotent SicarioSpec section. |
+| Any file (new) | Created. |
+
+Always:
+
+- Every modified file is **backed up first** to `*.sicario-bak.<UTC-timestamp>`.
+- A per-file **adoption report** prints at the end: `created` /
+  `merged-overlaid` / `preserved` / `overwritten`, plus a summary line.
+
+Flags:
+
+- `--dry-run` — preview the full per-file report and write **nothing**.
+- `--force` — explicit **full overwrite** opt-in (still takes a timestamped
+  backup before replacing any file). Use only when you intend to discard the
+  existing file in favor of the SicarioSpec template.
+
+```bash
+# Safe to run against an existing repo; overlays, never clobbers:
+sicario init . --profile appsec --integration claude
+
+# See exactly what would happen first:
+sicario init . --profile appsec --integration claude --dry-run
+
+# Intentionally replace existing files with the SicarioSpec templates:
+sicario init . --profile appsec --integration claude --force
+```
+
 ## Generated Target-Repo Artifacts
 
-`sicario init` creates:
+`sicario init` creates (new) or **merges/overlays** (existing — see
+[Brownfield-Safe Adoption](#brownfield-safe-adoption-default)):
 
 - `.specify/templates/{spec,plan,tasks}-template.md` (the live Spec Kit template
   paths, so `/speckit-*` commands pick up the governance; disable with

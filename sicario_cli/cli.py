@@ -152,32 +152,338 @@ def _parse_profiles(value: str) -> List[str]:
     return presets
 
 
-def _copy_tree(src: Path, dst: Path, *, force: bool, dry_run: bool, actions: List[str]) -> None:
+# --- Brownfield-safe adoption -------------------------------------------------
+#
+# Adopting SicarioSpec into a repository that already has a constitution,
+# Spec Kit templates, or agent-instruction files (CLAUDE.md / AGENTS.md /
+# mission.md) is the trust gate for a community tool. The default behavior MUST
+# NOT silently clobber a user's existing governance.
+#
+# Defaults (no flag):
+#   - new file                -> created
+#   - existing file we can    -> merged/overlaid (additive, idempotent, backed up)
+#     additively extend
+#   - existing file we cannot -> preserved (left untouched, reported)
+#     safely merge
+#
+# `--force` restores the legacy full-overwrite behavior (still backs up first).
+# `--dry-run` previews every decision and writes nothing.
+
+# Per-file outcome codes used in the final report.
+OUTCOME_CREATED = "created"
+OUTCOME_MERGED = "merged-overlaid"
+OUTCOME_PRESERVED = "preserved"
+OUTCOME_OVERWRITTEN = "overwritten"
+OUTCOME_SKIPPED = "skipped"
+
+# A clearly-marked, idempotent overlay marker. If this marker is already present
+# in a file, the overlay has been applied and we must not append it again.
+SICARIO_OVERLAY_BEGIN = "<!-- BEGIN SICARIO-SPEC OVERLAY (additive; do not edit by hand) -->"
+SICARIO_OVERLAY_END = "<!-- END SICARIO-SPEC OVERLAY -->"
+
+
+@dataclass
+class FileReport:
+    """One per-file outcome line for the end-of-run report."""
+
+    path: str
+    outcome: str
+    detail: str = ""
+
+
+def _record(reports: List[FileReport], path: Path, outcome: str, detail: str = "") -> None:
+    reports.append(FileReport(path=str(path), outcome=outcome, detail=detail))
+
+
+def _backup_path(path: Path) -> Path:
+    """Return a timestamped, non-clobbering backup path next to ``path``."""
+    stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    candidate = path.with_name(f"{path.name}.sicario-bak.{stamp}")
+    counter = 1
+    while candidate.exists():
+        candidate = path.with_name(f"{path.name}.sicario-bak.{stamp}.{counter}")
+        counter += 1
+    return candidate
+
+
+def _backup_file(path: Path, *, dry_run: bool) -> Optional[Path]:
+    """Back up an existing file before modifying or overwriting it."""
+    if not path.exists() or dry_run:
+        return None
+    backup = _backup_path(path)
+    shutil.copy2(path, backup)
+    return backup
+
+
+def _copy_tree(
+    src: Path,
+    dst: Path,
+    *,
+    force: bool,
+    dry_run: bool,
+    actions: List[str],
+    reports: Optional[List[FileReport]] = None,
+) -> None:
     if not src.exists():
         raise SystemExit(f"Source does not exist: {src}")
     if dst.exists() and not force:
         actions.append(f"skip existing {dst}")
+        if reports is not None:
+            _record(
+                reports,
+                dst,
+                OUTCOME_PRESERVED,
+                "directory exists; left untouched (use --force to replace)",
+            )
         return
-    actions.append(f"copy {src} -> {dst}")
+    backup = None
+    if dst.exists():
+        backup = _backup_path(dst)
+        if not dry_run:
+            shutil.move(str(dst), str(backup))
+    actions.append(f"copy {src} -> {dst}" + (f" (backup {backup.name})" if backup else ""))
+    if reports is not None:
+        _record(
+            reports,
+            dst,
+            OUTCOME_OVERWRITTEN if backup else OUTCOME_CREATED,
+            f"backup {backup.name}" if backup else "",
+        )
     if dry_run:
         return
-    if dst.exists():
-        shutil.rmtree(dst)
     shutil.copytree(src, dst)
 
 
-def _write_text(path: Path, content: str, *, force: bool, dry_run: bool, actions: List[str]) -> None:
-    if path.exists() and not force:
-        actions.append(f"skip existing {path}")
+def _write_text(
+    path: Path,
+    content: str,
+    *,
+    force: bool,
+    dry_run: bool,
+    actions: List[str],
+    reports: Optional[List[FileReport]] = None,
+) -> None:
+    """Write a generated file.
+
+    Brownfield-safe default: a pre-existing file is PRESERVED (never silently
+    clobbered) unless ``--force`` is set. ``--force`` overwrites, but first takes
+    a timestamped backup. New files are always created.
+    """
+    if not path.exists():
+        actions.append(f"write {path}")
+        if reports is not None:
+            _record(reports, path, OUTCOME_CREATED)
+        if dry_run:
+            return
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(content, encoding="utf-8")
         return
-    actions.append(f"write {path}")
+
+    if not force:
+        actions.append(f"preserve existing {path}")
+        if reports is not None:
+            _record(
+                reports,
+                path,
+                OUTCOME_PRESERVED,
+                "exists; left untouched (use --force to overwrite)",
+            )
+        return
+
+    # --force: full overwrite, but never without a backup.
+    backup = _backup_file(path, dry_run=dry_run)
+    detail = f"backup {backup.name}" if backup else ""
+    actions.append(f"overwrite {path}" + (f" (backup {backup.name})" if backup else ""))
+    if reports is not None:
+        _record(reports, path, OUTCOME_OVERWRITTEN, detail)
     if dry_run:
         return
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(content, encoding="utf-8")
 
 
+def _overlay_text(
+    path: Path,
+    overlay: str,
+    *,
+    force: bool,
+    dry_run: bool,
+    actions: List[str],
+    reports: List[FileReport],
+    full_content: Optional[str] = None,
+) -> None:
+    """Non-destructively overlay SicarioSpec content onto an existing file.
+
+    - If the file does not exist: create it with ``full_content`` (a complete
+      standalone document) when provided, else with the overlay block.
+    - If the file exists and already contains the overlay marker: idempotent —
+      do nothing (re-run safe).
+    - If the file exists without the marker: back it up and APPEND the overlay
+      block, delimited by clear begin/end markers. The user's content is kept
+      verbatim above the overlay.
+    - With ``--force``: overwrite with ``full_content`` (after backup), matching
+      legacy clobber behavior for callers that explicitly ask for it.
+    """
+    if not path.exists():
+        body = full_content if full_content is not None else overlay
+        actions.append(f"write {path}")
+        _record(reports, path, OUTCOME_CREATED)
+        if not dry_run:
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(body, encoding="utf-8")
+        return
+
+    if force and full_content is not None:
+        backup = _backup_file(path, dry_run=dry_run)
+        actions.append(f"overwrite {path}" + (f" (backup {backup.name})" if backup else ""))
+        _record(reports, path, OUTCOME_OVERWRITTEN, f"backup {backup.name}" if backup else "")
+        if not dry_run:
+            path.write_text(full_content, encoding="utf-8")
+        return
+
+    existing = path.read_text(encoding="utf-8")
+    if SICARIO_OVERLAY_BEGIN in existing:
+        actions.append(f"overlay already present in {path}")
+        _record(reports, path, OUTCOME_PRESERVED, "overlay already present (idempotent)")
+        return
+
+    backup = _backup_file(path, dry_run=dry_run)
+    actions.append(f"overlay {path}" + (f" (backup {backup.name})" if backup else ""))
+    _record(
+        reports,
+        path,
+        OUTCOME_MERGED,
+        f"appended overlay; backup {backup.name}" if backup else "appended overlay",
+    )
+    if dry_run:
+        return
+    separator = "" if existing.endswith("\n") else "\n"
+    path.write_text(existing + separator + "\n" + overlay, encoding="utf-8")
+
+
 SPECKIT_TEMPLATE_FILES = ["spec-template.md", "plan-template.md", "tasks-template.md"]
+
+# Project-supremacy / agent-instruction files we look for when deciding whether
+# the constitution overlay must defer to an existing higher authority.
+PROJECT_INSTRUCTION_FILES = [
+    "mission.md",
+    "MISSION.md",
+    "CLAUDE.md",
+    "AGENTS.md",
+    "GEMINI.md",
+    ".cursorrules",
+]
+
+
+def detect_existing_governance(target: Path) -> "dict[str, List[str]]":
+    """Detect a pre-existing governance/instruction setup before writing.
+
+    Returns a dict of category -> list of relative paths found, so adoption can
+    choose merge/overlay over clobber and so the report can explain decisions.
+    """
+    found: "dict[str, List[str]]" = {
+        "constitution": [],
+        "templates": [],
+        "instructions": [],
+        "mission": [],
+    }
+    constitution = target / ".specify" / "memory" / "constitution.md"
+    if constitution.exists():
+        found["constitution"].append(str(constitution.relative_to(target)))
+    templates_dir = target / ".specify" / "templates"
+    if templates_dir.exists():
+        for template in SPECKIT_TEMPLATE_FILES + [
+            "checklist-template.md",
+            "constitution-template.md",
+        ]:
+            candidate = templates_dir / template
+            if candidate.exists():
+                found["templates"].append(str(candidate.relative_to(target)))
+    for name in PROJECT_INSTRUCTION_FILES:
+        candidate = target / name
+        if candidate.exists():
+            key = "mission" if name.lower() == "mission.md" else "instructions"
+            found[key].append(str(candidate.relative_to(target)))
+    return found
+
+
+def _constitution_overlay(presets: Sequence[str], deferrals: Sequence[str]) -> str:
+    """Build the additive constitution overlay that DEFERS to existing authority.
+
+    Mirrors saas-assurance's pattern of adding governance as a brownfield overlay
+    (e.g. "Principle VIII as an overlay that yields to mission.md") rather than
+    replacing the host project's constitution.
+    """
+    if deferrals:
+        defer_line = (
+            "This overlay is SUBORDINATE to the existing principles above and to "
+            + ", ".join(f"`{d}`" for d in deferrals)
+            + ". Where any conflict exists, the project's own principles and "
+            "`mission.md` (or equivalent project-supremacy clause) WIN."
+        )
+    else:
+        defer_line = (
+            "This overlay is SUBORDINATE to the existing principles above. Where "
+            "any conflict exists, the project's own principles WIN."
+        )
+    return f"""{SICARIO_OVERLAY_BEGIN}
+
+## SicarioSpec Governance Overlay (Additive)
+
+This section was appended by `sicario init`/`apply` as an ADDITIVE governance
+overlay. Your existing constitution above is unchanged and remains authoritative.
+
+{defer_line}
+
+### Overlay Principle — Deterministic Authority Yields To Project Scope
+
+Subject to the deferral clause above, SicarioSpec adds these guardrails:
+
+- Anything that must be true (release status, compliance truth, approval status,
+  security-gate status) is decided by code, tests, schemas, validators, or CI —
+  not by an LLM. LLMs may draft, summarize, enrich, and review.
+- External input, generated content, model output, file paths, and network data
+  are untrusted until validated or sanitized.
+- Secrets never enter version control, logs, stdout, generated artifacts, or LLM
+  context.
+- High-impact, irreversible, externally visible, or production-impacting changes
+  require explicit human approval.
+- Run `sicario verify` before handoff, pull request, release, or deployment.
+
+Selected SicarioSpec presets: {", ".join(f"`{p}`" for p in presets)}.
+
+The full SicarioSpec principles are staged for reference under
+`.specify/presets/*/templates/constitution-template.md`; this overlay does not
+import or override them onto your project — it points to them.
+
+{SICARIO_OVERLAY_END}
+"""
+
+
+def _template_overlay(template_name: str) -> str:
+    """Build the idempotent governance-impact gate block appended to templates."""
+    return f"""{SICARIO_OVERLAY_BEGIN}
+
+## SicarioSpec Governance Impact (Additive Gate)
+
+`sicario init`/`apply` appended this block to your existing `{template_name}`.
+Your template content above is unchanged. Complete this gate for every feature;
+`sicario verify` enforces the deterministic parts.
+
+- **Data Classification**: highest level, owner, retention, residency, sharing,
+  redaction.
+- **Tagging Discipline**: owner, system, environment, data-classification,
+  retention.
+- **Trust Boundaries & Security Requirements**: untrusted inputs validated;
+  authz explicit.
+- **Abuse Cases**: misuse, privilege escalation, prompt/document injection.
+- **AI/Agent guardrails** (if applicable): prompt injection, tool boundary,
+  eval, memory, human approval.
+- **Evidence**: tests, threat-model update, docs impact, `sicario verify`
+  output.
+
+{SICARIO_OVERLAY_END}
+"""
 
 
 def _resolve_speckit_template_sources(presets: Sequence[str]) -> dict:
@@ -214,31 +520,43 @@ def _apply_to_speckit(
     force: bool,
     dry_run: bool,
     actions: List[str],
+    reports: List[FileReport],
+    deferrals: Sequence[str],
 ) -> None:
     """Write governance into the live Spec Kit paths so /speckit-* commands use it.
 
     GitHub Spec Kit reads templates from `.specify/templates/<name>-template.md`
     and the constitution from `.specify/memory/constitution.md`. Copying presets
     into `.specify/presets/` alone does not reach those commands; this step does.
+
+    Brownfield-safe: an existing template gets the SicarioSpec governance-impact
+    block APPENDED (idempotently); an existing constitution gets the SicarioSpec
+    overlay APPENDED as an additive section that defers to the project's own
+    principles and `mission.md`. Only `--force` performs a full overwrite, and
+    even then a timestamped backup is taken first.
     """
     template_sources = _resolve_speckit_template_sources(presets)
     for template, src in sorted(template_sources.items()):
-        _write_text(
+        _overlay_text(
             target / ".specify" / "templates" / template,
-            src.read_text(encoding="utf-8"),
+            _template_overlay(template),
             force=force,
             dry_run=dry_run,
             actions=actions,
+            reports=reports,
+            full_content=src.read_text(encoding="utf-8"),
         )
 
     constitution = _resolve_speckit_constitution(presets)
     if constitution is not None:
-        _write_text(
+        _overlay_text(
             target / ".specify" / "memory" / "constitution.md",
-            constitution.read_text(encoding="utf-8"),
+            _constitution_overlay(presets, deferrals),
             force=force,
             dry_run=dry_run,
             actions=actions,
+            reports=reports,
+            full_content=constitution.read_text(encoding="utf-8"),
         )
     actions.append(
         "applied SicarioSpec governance to live Spec Kit paths "
@@ -265,15 +583,40 @@ def _validate_specify_available() -> str:
 def init_project(args: argparse.Namespace) -> int:
     target = Path(args.project).expanduser().resolve()
     actions: List[str] = []
+    reports: List[FileReport] = []
     selected_presets = _parse_profiles(args.profile)
 
-    if target.exists() and any(target.iterdir()) and not args.force:
-        raise SystemExit(f"Target exists and is not empty: {target}. Use --force to write into it.")
+    # Brownfield-safe adoption is the DEFAULT: a non-empty target is fine. We
+    # detect any existing governance and merge/overlay/preserve instead of
+    # clobbering. `--force` is the explicit full-overwrite opt-in.
+    existing = (
+        detect_existing_governance(target)
+        if target.exists()
+        else {
+            "constitution": [],
+            "templates": [],
+            "instructions": [],
+            "mission": [],
+        }
+    )
+    # The constitution overlay must defer to any mission.md / project-supremacy
+    # instruction file we found.
+    deferrals = existing["mission"] + existing["instructions"]
 
     actions.append(f"target {target}")
-    actions.append(f"specify { _validate_specify_available() }")
+    actions.append(f"specify {_validate_specify_available()}")
     actions.append(f"integration {args.integration}")
     actions.append(f"presets {', '.join(selected_presets)}")
+    detected = [f"{k}={v}" for k, v in existing.items() if v]
+    if detected:
+        actions.append("detected existing governance: " + "; ".join(detected))
+        actions.append(
+            "mode: brownfield-safe (merge/overlay/preserve)"
+            if not args.force
+            else "mode: FORCE full-overwrite (backups taken)"
+        )
+    else:
+        actions.append("mode: greenfield (no existing governance detected)")
 
     if not args.dry_run:
         target.mkdir(parents=True, exist_ok=True)
@@ -285,6 +628,7 @@ def init_project(args: argparse.Namespace) -> int:
             force=args.force,
             dry_run=args.dry_run,
             actions=actions,
+            reports=reports,
         )
 
     if getattr(args, "apply_to_speckit", True):
@@ -294,6 +638,8 @@ def init_project(args: argparse.Namespace) -> int:
             force=args.force,
             dry_run=args.dry_run,
             actions=actions,
+            reports=reports,
+            deferrals=deferrals,
         )
 
     if "sicario-cloud-iac" in selected_presets:
@@ -303,6 +649,7 @@ def init_project(args: argparse.Namespace) -> int:
             force=args.force,
             dry_run=args.dry_run,
             actions=actions,
+            reports=reports,
         )
         _copy_tree(
             PRESETS_ROOT / "sicario-cloud-iac" / "templates" / "azure-bicep",
@@ -310,6 +657,7 @@ def init_project(args: argparse.Namespace) -> int:
             force=args.force,
             dry_run=args.dry_run,
             actions=actions,
+            reports=reports,
         )
         _copy_tree(
             PRESETS_ROOT / "sicario-cloud-iac" / "templates" / "azure-avm-bicep",
@@ -317,6 +665,7 @@ def init_project(args: argparse.Namespace) -> int:
             force=args.force,
             dry_run=args.dry_run,
             actions=actions,
+            reports=reports,
         )
         _copy_tree(
             PRESETS_ROOT / "sicario-cloud-iac" / "templates" / "azure-avm-terraform",
@@ -324,6 +673,7 @@ def init_project(args: argparse.Namespace) -> int:
             force=args.force,
             dry_run=args.dry_run,
             actions=actions,
+            reports=reports,
         )
         _copy_tree(
             PRESETS_ROOT / "sicario-cloud-iac" / "templates" / "aws-cloudformation",
@@ -331,6 +681,7 @@ def init_project(args: argparse.Namespace) -> int:
             force=args.force,
             dry_run=args.dry_run,
             actions=actions,
+            reports=reports,
         )
         _copy_tree(
             PRESETS_ROOT / "sicario-cloud-iac" / "templates" / "gcp",
@@ -338,6 +689,7 @@ def init_project(args: argparse.Namespace) -> int:
             force=args.force,
             dry_run=args.dry_run,
             actions=actions,
+            reports=reports,
         )
         _copy_tree(
             PRESETS_ROOT / "sicario-cloud-iac" / "templates" / "kubernetes",
@@ -345,6 +697,7 @@ def init_project(args: argparse.Namespace) -> int:
             force=args.force,
             dry_run=args.dry_run,
             actions=actions,
+            reports=reports,
         )
         _copy_tree(
             PRESETS_ROOT / "sicario-cloud-iac" / "templates" / "policy-as-code",
@@ -352,6 +705,7 @@ def init_project(args: argparse.Namespace) -> int:
             force=args.force,
             dry_run=args.dry_run,
             actions=actions,
+            reports=reports,
         )
 
     if "sicario-security-toolchain" in selected_presets:
@@ -361,6 +715,7 @@ def init_project(args: argparse.Namespace) -> int:
             force=args.force,
             dry_run=args.dry_run,
             actions=actions,
+            reports=reports,
         )
 
     if CONTROL_MAPS_ROOT.exists():
@@ -370,6 +725,7 @@ def init_project(args: argparse.Namespace) -> int:
             force=args.force,
             dry_run=args.dry_run,
             actions=actions,
+            reports=reports,
         )
 
     _copy_tree(
@@ -378,6 +734,7 @@ def init_project(args: argparse.Namespace) -> int:
         force=args.force,
         dry_run=args.dry_run,
         actions=actions,
+        reports=reports,
     )
 
     _write_text(
@@ -386,6 +743,7 @@ def init_project(args: argparse.Namespace) -> int:
         force=args.force,
         dry_run=args.dry_run,
         actions=actions,
+        reports=reports,
     )
 
     _write_text(
@@ -394,6 +752,7 @@ def init_project(args: argparse.Namespace) -> int:
         force=args.force,
         dry_run=args.dry_run,
         actions=actions,
+        reports=reports,
     )
 
     _write_text(
@@ -402,6 +761,7 @@ def init_project(args: argparse.Namespace) -> int:
         force=args.force,
         dry_run=args.dry_run,
         actions=actions,
+        reports=reports,
     )
     _write_text(
         target / "docs" / "security" / "abuse-cases.md",
@@ -409,6 +769,7 @@ def init_project(args: argparse.Namespace) -> int:
         force=args.force,
         dry_run=args.dry_run,
         actions=actions,
+        reports=reports,
     )
     _write_text(
         target / "docs" / "governance" / "data-classification.md",
@@ -416,6 +777,7 @@ def init_project(args: argparse.Namespace) -> int:
         force=args.force,
         dry_run=args.dry_run,
         actions=actions,
+        reports=reports,
     )
     _write_text(
         target / "docs" / "governance" / "tagging-taxonomy.md",
@@ -423,6 +785,7 @@ def init_project(args: argparse.Namespace) -> int:
         force=args.force,
         dry_run=args.dry_run,
         actions=actions,
+        reports=reports,
     )
     _write_text(
         target / "docs" / "compliance" / "control-applicability.md",
@@ -430,6 +793,7 @@ def init_project(args: argparse.Namespace) -> int:
         force=args.force,
         dry_run=args.dry_run,
         actions=actions,
+        reports=reports,
     )
     _write_text(
         target / "docs" / "compliance" / "evidence-index.md",
@@ -437,6 +801,7 @@ def init_project(args: argparse.Namespace) -> int:
         force=args.force,
         dry_run=args.dry_run,
         actions=actions,
+        reports=reports,
     )
     _write_text(
         target / "docs" / "architecture" / "system-context.md",
@@ -444,6 +809,7 @@ def init_project(args: argparse.Namespace) -> int:
         force=args.force,
         dry_run=args.dry_run,
         actions=actions,
+        reports=reports,
     )
     _write_text(
         target / "docs" / "diagrams" / "system-context.mmd",
@@ -451,6 +817,7 @@ def init_project(args: argparse.Namespace) -> int:
         force=args.force,
         dry_run=args.dry_run,
         actions=actions,
+        reports=reports,
     )
     _write_text(
         target / "docs" / "docs-impact.md",
@@ -458,6 +825,7 @@ def init_project(args: argparse.Namespace) -> int:
         force=args.force,
         dry_run=args.dry_run,
         actions=actions,
+        reports=reports,
     )
     _write_text(
         target / "docs" / "risk" / "risk-register.md",
@@ -465,6 +833,7 @@ def init_project(args: argparse.Namespace) -> int:
         force=args.force,
         dry_run=args.dry_run,
         actions=actions,
+        reports=reports,
     )
     _write_text(
         target / "docs" / "risk" / "security-exceptions.md",
@@ -472,6 +841,7 @@ def init_project(args: argparse.Namespace) -> int:
         force=args.force,
         dry_run=args.dry_run,
         actions=actions,
+        reports=reports,
     )
     _write_text(
         target / "docs" / "risk" / "accepted-risk-log.md",
@@ -479,6 +849,7 @@ def init_project(args: argparse.Namespace) -> int:
         force=args.force,
         dry_run=args.dry_run,
         actions=actions,
+        reports=reports,
     )
     _write_text(
         target / "docs-site" / "package.json",
@@ -486,6 +857,7 @@ def init_project(args: argparse.Namespace) -> int:
         force=args.force,
         dry_run=args.dry_run,
         actions=actions,
+        reports=reports,
     )
     _write_text(
         target / "docs-site" / "docusaurus.config.js",
@@ -493,6 +865,7 @@ def init_project(args: argparse.Namespace) -> int:
         force=args.force,
         dry_run=args.dry_run,
         actions=actions,
+        reports=reports,
     )
     _write_text(
         target / "docs-site" / "sidebars.js",
@@ -500,6 +873,7 @@ def init_project(args: argparse.Namespace) -> int:
         force=args.force,
         dry_run=args.dry_run,
         actions=actions,
+        reports=reports,
     )
     _write_text(
         target / "docs-site" / "docs" / "intro.md",
@@ -507,6 +881,7 @@ def init_project(args: argparse.Namespace) -> int:
         force=args.force,
         dry_run=args.dry_run,
         actions=actions,
+        reports=reports,
     )
     _write_text(
         target / "docs-site" / "src" / "css" / "custom.css",
@@ -514,6 +889,7 @@ def init_project(args: argparse.Namespace) -> int:
         force=args.force,
         dry_run=args.dry_run,
         actions=actions,
+        reports=reports,
     )
 
     _write_agent_integrations(
@@ -522,6 +898,7 @@ def init_project(args: argparse.Namespace) -> int:
         force=args.force,
         dry_run=args.dry_run,
         actions=actions,
+        reports=reports,
     )
 
     for workflow_name in ["sicario-verify.yml", "docs-site.yml"]:
@@ -534,6 +911,7 @@ def init_project(args: argparse.Namespace) -> int:
             force=args.force,
             dry_run=args.dry_run,
             actions=actions,
+            reports=reports,
         )
 
     if "sicario-security-toolchain" in selected_presets:
@@ -545,15 +923,40 @@ def init_project(args: argparse.Namespace) -> int:
                 force=args.force,
                 dry_run=args.dry_run,
                 actions=actions,
+                reports=reports,
             )
 
     print("\n".join(actions))
+    _print_report(reports, dry_run=args.dry_run, force=args.force)
     if args.dry_run:
         print("dry-run complete; no files written")
     else:
         print(f"SicarioSpec initialized at {target}")
         print("Next: cd into the project and run `sicario verify`.")
     return 0
+
+
+def _print_report(reports: Sequence[FileReport], *, dry_run: bool, force: bool) -> None:
+    """Print a clear per-file REPORT: created / merged-overlaid / preserved / overwritten."""
+    if not reports:
+        return
+    header = "SicarioSpec adoption report"
+    if dry_run:
+        header += " (dry-run preview — nothing written)"
+    elif force:
+        header += " (--force full-overwrite; backups taken)"
+    else:
+        header += " (brownfield-safe: merge/overlay/preserve)"
+    print("")
+    print(header)
+    print("-" * len(header))
+    counts: "dict[str, int]" = {}
+    for report in reports:
+        counts[report.outcome] = counts.get(report.outcome, 0) + 1
+        suffix = f" — {report.detail}" if report.detail else ""
+        print(f"  [{report.outcome}] {report.path}{suffix}")
+    summary = ", ".join(f"{value} {key}" for key, value in sorted(counts.items()))
+    print(f"  summary: {summary}")
 
 
 def _extensions_yml() -> str:
@@ -590,7 +993,7 @@ SicarioSpec is installed for this project.
 
 Installed presets:
 
-{chr(10).join(f'- `{preset}`' for preset in presets)}
+{chr(10).join(f"- `{preset}`" for preset in presets)}
 
 Run:
 
@@ -918,6 +1321,52 @@ Use SicarioSpec guardrails for all non-trivial changes.
 """
 
 
+def _claude_overlay() -> str:
+    """Delimited, idempotent SicarioSpec section appended to an existing CLAUDE.md."""
+    return f"""{SICARIO_OVERLAY_BEGIN}
+
+## SicarioSpec Guardrails (Additive)
+
+`sicario init`/`apply` appended this section to your existing `CLAUDE.md`. Your
+instructions above are unchanged and take precedence. Apply these guardrails for
+non-trivial changes, subject to your project's own rules and any `mission.md`:
+
+- Start with the spec; keep AI out of authoritative pass/fail decisions.
+- Add threat model, abuse cases, and well-architected review for meaningful
+  features; add negative/security tests when risk applies.
+- Run `sicario verify` before handoff.
+- Keep data classification, tagging, and security exceptions current and owned.
+- Do not place secrets in files, logs, artifacts, or LLM context.
+
+{SICARIO_OVERLAY_END}
+"""
+
+
+def _agent_overlay() -> str:
+    """Delimited, idempotent SicarioSpec section appended to an existing AGENTS.md."""
+    return f"""{SICARIO_OVERLAY_BEGIN}
+
+## SicarioSpec Guardrails (Additive)
+
+`sicario init`/`apply` appended this section to your existing `AGENTS.md`. Your
+instructions above are unchanged and take precedence. These apply to Codex,
+Copilot coding agent, and other agents that read `AGENTS.md`, subject to your
+project's own rules and any `mission.md`:
+
+- Start with the spec for meaningful behavior changes; run `sicario verify`
+  before handoff, pull request, release, or deployment.
+- Keep AI out of authoritative security, compliance, legal, financial, or
+  production-impacting decisions.
+- Update threat model, abuse cases, data classification, and tagging when
+  affected; add negative/security tests when risk applies.
+- Keep security exceptions owned, approved, time-bound, and evidenced.
+- Do not place secrets in files, logs, artifacts, prompts, generated output, or
+  model context.
+
+{SICARIO_OVERLAY_END}
+"""
+
+
 def _agent_instructions() -> str:
     return """# Agent Project Instructions
 
@@ -1146,15 +1595,35 @@ Report blockers and exact verification commands.
 """
 
 
-def _write_agent_integrations(target: Path, integration: str, *, force: bool, dry_run: bool, actions: List[str]) -> None:
+def _write_agent_integrations(
+    target: Path,
+    integration: str,
+    *,
+    force: bool,
+    dry_run: bool,
+    actions: List[str],
+    reports: List[FileReport],
+) -> None:
+    # CLAUDE.md / AGENTS.md are agent-instruction files. They are NEVER
+    # overwritten by default: if one exists we APPEND a clearly-delimited
+    # SicarioSpec section (idempotently). `--force` overwrites after backup.
     if integration in {"claude", "all"}:
-        _write_text(target / "CLAUDE.md", _claude_instructions(), force=force, dry_run=dry_run, actions=actions)
+        _overlay_text(
+            target / "CLAUDE.md",
+            _claude_overlay(),
+            force=force,
+            dry_run=dry_run,
+            actions=actions,
+            reports=reports,
+            full_content=_claude_instructions(),
+        )
         _write_text(
             target / ".claude" / "skills" / "sicario-verify" / "SKILL.md",
             _skill_sicario_verify(),
             force=force,
             dry_run=dry_run,
             actions=actions,
+            reports=reports,
         )
         _write_text(
             target / ".claude" / "skills" / "sicario-governance-review" / "SKILL.md",
@@ -1162,6 +1631,7 @@ def _write_agent_integrations(target: Path, integration: str, *, force: bool, dr
             force=force,
             dry_run=dry_run,
             actions=actions,
+            reports=reports,
         )
         _write_text(
             target / ".claude" / "skills" / "sicario-release-readiness" / "SKILL.md",
@@ -1169,6 +1639,7 @@ def _write_agent_integrations(target: Path, integration: str, *, force: bool, dr
             force=force,
             dry_run=dry_run,
             actions=actions,
+            reports=reports,
         )
         _write_text(
             target / ".claude" / "agents" / "sicario-security-reviewer.md",
@@ -1176,6 +1647,7 @@ def _write_agent_integrations(target: Path, integration: str, *, force: bool, dr
             force=force,
             dry_run=dry_run,
             actions=actions,
+            reports=reports,
         )
         _write_text(
             target / ".claude" / "agents" / "sicario-release-manager.md",
@@ -1183,10 +1655,19 @@ def _write_agent_integrations(target: Path, integration: str, *, force: bool, dr
             force=force,
             dry_run=dry_run,
             actions=actions,
+            reports=reports,
         )
 
     if integration in {"codex", "copilot", "all"}:
-        _write_text(target / "AGENTS.md", _agent_instructions(), force=force, dry_run=dry_run, actions=actions)
+        _overlay_text(
+            target / "AGENTS.md",
+            _agent_overlay(),
+            force=force,
+            dry_run=dry_run,
+            actions=actions,
+            reports=reports,
+            full_content=_agent_instructions(),
+        )
 
     if integration in {"codex", "all"}:
         _write_text(
@@ -1195,6 +1676,7 @@ def _write_agent_integrations(target: Path, integration: str, *, force: bool, dr
             force=force,
             dry_run=dry_run,
             actions=actions,
+            reports=reports,
         )
         _write_text(
             target / ".agents" / "skills" / "sicario-governance-review" / "SKILL.md",
@@ -1202,6 +1684,7 @@ def _write_agent_integrations(target: Path, integration: str, *, force: bool, dr
             force=force,
             dry_run=dry_run,
             actions=actions,
+            reports=reports,
         )
         _write_text(
             target / ".agents" / "skills" / "sicario-release-readiness" / "SKILL.md",
@@ -1209,6 +1692,7 @@ def _write_agent_integrations(target: Path, integration: str, *, force: bool, dr
             force=force,
             dry_run=dry_run,
             actions=actions,
+            reports=reports,
         )
 
     if integration in {"copilot", "all"}:
@@ -1218,6 +1702,7 @@ def _write_agent_integrations(target: Path, integration: str, *, force: bool, dr
             force=force,
             dry_run=dry_run,
             actions=actions,
+            reports=reports,
         )
         _write_text(
             target / ".github" / "instructions" / "sicario-governance.instructions.md",
@@ -1225,6 +1710,7 @@ def _write_agent_integrations(target: Path, integration: str, *, force: bool, dr
             force=force,
             dry_run=dry_run,
             actions=actions,
+            reports=reports,
         )
         _write_text(
             target / ".github" / "workflows" / "copilot-setup-steps.yml",
@@ -1232,6 +1718,7 @@ def _write_agent_integrations(target: Path, integration: str, *, force: bool, dr
             force=force,
             dry_run=dry_run,
             actions=actions,
+            reports=reports,
         )
 
 
@@ -1361,7 +1848,9 @@ def verify_project(path: Path, *, write: bool = True) -> List[Finding]:
         for pattern in SECRET_PATTERNS:
             if pattern.search(text):
                 findings.append(
-                    Finding("critical", "SICARIO-HARDCODED-SECRET", "Potential hardcoded secret", rel)
+                    Finding(
+                        "critical", "SICARIO-HARDCODED-SECRET", "Potential hardcoded secret", rel
+                    )
                 )
                 break
 
@@ -1382,7 +1871,9 @@ def verify_project(path: Path, *, write: bool = True) -> List[Finding]:
                     Finding("high", "SICARIO-SPEC-SECTION", f"spec.md missing {heading}", rel)
                 )
         findings.extend(_validate_spec_classification_and_tags(root, spec, text))
-        if AI_KEYWORDS.search(text) and not _contains_any(text, ["prompt injection", "tool boundary"]):
+        if AI_KEYWORDS.search(text) and not _contains_any(
+            text, ["prompt injection", "tool boundary"]
+        ):
             findings.append(
                 Finding(
                     "high",
@@ -1528,7 +2019,9 @@ def _write_evidence(root: Path, findings: Sequence[Finding]) -> None:
         "finding_count": len(findings),
         "findings": [finding.as_dict() for finding in findings],
     }
-    (out_dir / "gate-summary.json").write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")
+    (out_dir / "gate-summary.json").write_text(
+        json.dumps(summary, indent=2) + "\n", encoding="utf-8"
+    )
     evidence = {
         "generated_at_utc": _now(),
         "tool": "sicario verify",
@@ -1546,7 +2039,9 @@ def _write_evidence(root: Path, findings: Sequence[Finding]) -> None:
             "generated/sicario/gate-summary.json",
         ],
     }
-    (out_dir / "spec-run-evidence.json").write_text(json.dumps(evidence, indent=2) + "\n", encoding="utf-8")
+    (out_dir / "spec-run-evidence.json").write_text(
+        json.dumps(evidence, indent=2) + "\n", encoding="utf-8"
+    )
 
 
 def verify_command(args: argparse.Namespace) -> int:
@@ -1570,7 +2065,9 @@ def assess_command(args: argparse.Namespace) -> int:
         lines.append(f"Status: FAIL ({len(findings)} finding(s))")
         lines.append("")
         for finding in findings:
-            lines.append(f"- **{finding.severity.upper()} {finding.code}** `{finding.path}` - {finding.message}")
+            lines.append(
+                f"- **{finding.severity.upper()} {finding.code}** `{finding.path}` - {finding.message}"
+            )
     else:
         lines.append("Status: PASS")
     report.write_text("\n".join(lines) + "\n", encoding="utf-8")
@@ -1682,7 +2179,9 @@ def build_parser() -> argparse.ArgumentParser:
 
     init = sub.add_parser("init", help="Initialize SicarioSpec in a project")
     init.add_argument("project", help="Target project directory")
-    init.add_argument("--integration", default="claude", choices=["claude", "codex", "copilot", "all", "generic"])
+    init.add_argument(
+        "--integration", default="claude", choices=["claude", "codex", "copilot", "all", "generic"]
+    )
     init.add_argument("--profile", default="public-core", help="Comma-separated profile list")
     speckit_group = init.add_mutually_exclusive_group()
     speckit_group.add_argument(
@@ -1699,8 +2198,18 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_false",
         help="Only stage presets under .specify/presets/ without overwriting live Spec Kit templates/constitution.",
     )
-    init.add_argument("--dry-run", action="store_true")
-    init.add_argument("--force", action="store_true")
+    init.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Preview the per-file adoption report (created/merged-overlaid/preserved) and write nothing.",
+    )
+    init.add_argument(
+        "--force",
+        action="store_true",
+        help="Full-overwrite opt-in: replace existing files with SicarioSpec templates "
+        "(a timestamped *.sicario-bak backup is taken first). Default is brownfield-safe "
+        "merge/overlay/preserve.",
+    )
     init.set_defaults(func=init_project)
 
     verify = sub.add_parser("verify", help="Run deterministic SicarioSpec gates")
