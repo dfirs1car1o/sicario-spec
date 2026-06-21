@@ -27,14 +27,55 @@ Frameworks named in templates and docs but **not yet shipped as a control map**
 OWASP LLM/Agentic AI risks. Contributions adding these maps are welcome — see the
 control-map issue form.
 
+## Selecting which frameworks apply (`--frameworks`)
+
+You almost never owe evidence for all 10 frameworks. The **framework selector**
+lets a project declare the subset it enforces, so `sicario verify` requires a
+control map for exactly those frameworks — not all 10, and not none.
+
+```bash
+# Enforce only ISO 27001 and HIPAA for this project:
+sicario init my-project --profile compliance --frameworks iso27001,hipaa
+
+# Enforce every shipped framework:
+sicario init my-project --profile enterprise-strict --frameworks all
+```
+
+This writes a plain-text project config, `.sicario/frameworks.txt` (one
+framework key per line). `sicario verify` reads it and emits
+`SICARIO-MISSING-FRAMEWORK-MAP` for any **selected** framework whose control map
+is absent. Unselected frameworks are not required.
+
+| Selector key | Framework | Control map |
+|---|---|---|
+| `ccm` | CSA CCM v4.1 | `ccm-v4.1-sicario.json` |
+| `sox` | SOX 404 / ICFR ITGC | `sox-404-itgc-sicario.json` |
+| `ssdf` | NIST SSDF (SP 800-218) | `ssdf-800-218-sicario.json` |
+| `ai-rmf` | NIST AI RMF (AI 100-1) | `ai-rmf-sicario.json` |
+| `iso27001` | ISO/IEC 27001:2022 | `iso-27001-2022-sicario.json` |
+| `nist-800-53` | NIST SP 800-53 Rev 5 | `nist-800-53-r5-sicario.json` |
+| `eu-ai-act` | EU AI Act (Reg. 2024/1689) | `eu-ai-act-sicario.json` |
+| `gdpr` | GDPR (+ CPRA parallels) | `gdpr-cpra-sicario.json` |
+| `pci-dss` | PCI DSS v4.0 | `pci-dss-v4.0-sicario.json` |
+| `hipaa` | HIPAA Security Rule | `hipaa-security-rule-sicario.json` |
+
+**Defaults.** If you omit `--frameworks`, the selection defaults to the
+profile's natural framework set (e.g. `compliance` -> `ccm`, `sox`, `iso27001`,
+`nist-800-53`; `ai-system` -> `ai-rmf`, `eu-ai-act`; `enterprise-strict` -> all
+10). A bare `public-core` carries no compliance obligation, so it writes no
+selector and `verify` keeps its prior coarse control-map check (the single
+`SICARIO-MISSING-CONTROL-MAPS`). Delete `.sicario/frameworks.txt` to return to
+that default behavior at any time.
+
 ## How To Use
 
-1. Select applicable domains in `docs/compliance/control-applicability.md`.
-2. Link each applicable domain to concrete evidence in
+1. Choose the frameworks you enforce with `--frameworks` (see above).
+2. Select applicable domains in `docs/compliance/control-applicability.md`.
+3. Link each applicable domain to concrete evidence in
    `docs/compliance/evidence-index.md`.
-3. Record exceptions in `docs/risk/security-exceptions.md`.
-4. Record accepted residual risk in `docs/risk/accepted-risk-log.md`.
-5. Run `sicario verify` before handoff.
+4. Record exceptions in `docs/risk/security-exceptions.md`.
+5. Record accepted residual risk in `docs/risk/accepted-risk-log.md`.
+6. Run `sicario verify` before handoff.
 
 ## Important Boundaries
 

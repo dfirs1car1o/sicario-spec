@@ -31,13 +31,25 @@ Primary audiences:
 
 Lead with concrete artifacts instead of broad claims:
 
-- one-command bootstrap for governed Spec Kit projects
+- a **halting** verify gate: `sicario verify` exits non-zero with a finding code
+  on any violation, so a CI/merge gate actually blocks (prove it from a clean
+  clone — `examples/python-api/` passes, `examples/python-api-failing/` fails)
+- a **code-owned verdict**: pass/fail comes from stdlib-only code with no model
+  call and no AI import — the LLM is structurally barred from the decision path
+- one-command bootstrap for governed Spec Kit projects, turnkey-wired into the
+  live Spec Kit paths (`--apply-to-speckit`) and **brownfield-safe** by default
 - agent-native instructions for Claude Code, Codex/GPT, and Copilot
 - data classification and tagging built into specs, plans, tasks, and docs
-- threat model, abuse cases, control maps, evidence index, and risk registers
+- threat model, abuse cases, evidence index, risk registers, and **selectable**
+  control maps across 10 frameworks (`--frameworks`)
 - GitHub Actions verification, CodeQL, Dependabot, OpenSSF Scorecard, and
   release packaging
 - MIT license, security policy, code of conduct, issue forms, and Pages docs
+
+When differentiating, contrast with advisory-append patterns **generally** —
+enforce versus advise — without naming specific projects, and do not claim a
+multi-framework-breadth win (other presets cover frameworks SicarioSpec does not
+yet map).
 
 ## Launch Checklist
 

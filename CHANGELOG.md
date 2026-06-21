@@ -6,6 +6,35 @@ The project follows semantic versioning once the public API stabilizes. During
 the `0.x` line, minor versions may introduce breaking changes when needed to
 improve the security model.
 
+## [Unreleased]
+
+### Added
+
+- **Framework selector (#18).** `sicario init --frameworks <keys>` records which
+  of the 10 control-map frameworks a project enforces in
+  `.sicario/frameworks.txt`. `sicario verify` honors the subset: each selected
+  framework's control map must be present (`SICARIO-MISSING-FRAMEWORK-MAP`),
+  while unselected frameworks are not required. Default selection follows the
+  profile's framework set; `enterprise-strict` enforces all 10. With no config
+  file, `verify` keeps its prior coarse control-map behavior unchanged.
+- **Failing worked example** (`examples/python-api-failing/`) — the same governed
+  feature as `examples/python-api/` with one required artifact removed, proving
+  `sicario verify` is a real halting gate (exit 1 + finding code) reproducible
+  from a clean clone.
+
+### Changed
+
+- **Positioning reframed to a neutral capability statement.** Removed the named
+  competitor call-out from the README, docs-site landing page, and supporting
+  docs. The differentiator now leads with the survey-validated moat: a *halting*
+  verify gate (non-zero exit blocks the merge, with finding codes) whose verdict
+  is owned by stdlib-only code with no LLM in the decision path — versus
+  advisory-append patterns generally. No multi-framework-breadth superiority is
+  claimed.
+- **docs-site swept** to reflect current capabilities: turnkey
+  `--apply-to-speckit` wiring, brownfield-safe adoption, the 10 frameworks and
+  the new selector, the USAGE flow, and the pass+fail worked example.
+
 ## [0.4.0] - 2026-06-21
 
 ### Added
@@ -105,7 +134,7 @@ a SaaS-hardened profile.
   only Spec Kit security-governance preset; lead with deterministic, code-owned
   verdicts (AI is explanation-only) plus a mandatory governance contract, a
   halting gate, and control maps; added a precise definition of "deterministic";
-  cite and differentiate `hindermath/spec-kit-preset-security-governance`.
+  differentiated from advisory-append security-governance presets generally.
 - Reconciled control-map docs to what is actually shipped (SSDF/AI RMF now mapped;
   SLSA/OWASP ASVS/SAMM/LLM labeled advisory until a map exists).
 - Extension docs now clearly distinguish deterministic hooks from agent-guidance

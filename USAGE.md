@@ -67,6 +67,24 @@ Pick the profile that matches the work (composable — comma-separate them):
 sicario init my-service --profile appsec,cloud-iac,compliance
 ```
 
+### Pick which compliance frameworks you enforce
+
+SicarioSpec ships control maps for 10 frameworks, but you rarely owe evidence for
+all of them. Declare the subset that applies with `--frameworks`:
+
+```bash
+# Enforce only ISO 27001 + HIPAA for this project:
+sicario init my-service --profile compliance --frameworks iso27001,hipaa
+```
+
+That writes `.sicario/frameworks.txt`. `sicario verify` then requires a control
+map for each selected framework (`SICARIO-MISSING-FRAMEWORK-MAP` if one is
+missing) and does **not** require the rest. Omit `--frameworks` to default to the
+profile's set; delete the file to fall back to the coarse control-map check.
+Keys (`ccm`, `sox`, `ssdf`, `ai-rmf`, `iso27001`, `nist-800-53`, `eu-ai-act`,
+`gdpr`, `pci-dss`, `hipaa`, or `all`) and per-profile defaults are in the
+[control-maps docs](https://dfirs1car1o.github.io/sicario-spec/docs/control-maps).
+
 ### Existing Spec Kit repo (brownfield)
 
 ```bash
@@ -154,7 +172,8 @@ Repo-level governance docs:
 | `SICARIO-MISSING-TAGGING-TAXONOMY` | high | `docs/governance/tagging-taxonomy.md` is missing. |
 | `SICARIO-MISSING-DOCS-IMPACT` | medium | `docs/docs-impact.md` is missing. |
 | `SICARIO-MISSING-DIAGRAMS` | medium | `docs/diagrams/` directory is missing. |
-| `SICARIO-MISSING-CONTROL-MAPS` | medium | No `docs/compliance/control-maps` (or `control_maps`) pack. |
+| `SICARIO-MISSING-CONTROL-MAPS` | medium | No `docs/compliance/control-maps` (or `control_maps`) pack — only when **no** framework selector is configured. |
+| `SICARIO-MISSING-FRAMEWORK-MAP` | medium | A framework selected in `.sicario/frameworks.txt` has no control map present. |
 | `SICARIO-MISSING-RISK-REGISTER` | medium | A `docs/risk/*` register file is missing. |
 
 Secrets:
@@ -242,3 +261,17 @@ Open its [`spec.md`](examples/python-api/specs/001-example/spec.md),
 [`plan.md`](examples/python-api/specs/001-example/plan.md), and
 [`tasks.md`](examples/python-api/specs/001-example/tasks.md) to see exactly what
 "complete" looks like for the gate.
+
+### Prove the gate actually halts (pass *and* fail)
+
+[`examples/python-api-failing/`](examples/python-api-failing/) is the same feature
+with one required artifact removed. Run both from a clean clone:
+
+```bash
+sicario verify examples/python-api          # -> sicario verify passed              (exit 0)
+sicario verify examples/python-api-failing  # -> HIGH SICARIO-MISSING-THREAT-MODEL … (exit 1)
+```
+
+Same gate, opposite verdict, decided by stdlib-only code with no AI in the
+decision path. A gate that can only pass is not a gate — this is the proof it
+halts.
