@@ -280,12 +280,65 @@ class SicarioCliBehaviorTests(unittest.TestCase):
             codes = {finding.code for finding in findings}
             self.assertIn("SICARIO-FLEET-GUARDRAIL-MISSING", codes)
 
+    def test_init_applies_governance_to_live_speckit_paths(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            target = Path(tmp) / "project"
+            self.assertEqual(0, main(["init", str(target), "--profile", "appsec"]))
+            # Spec Kit reads templates from .specify/templates/ and the
+            # constitution from .specify/memory/constitution.md.
+            for template in ("spec-template.md", "plan-template.md", "tasks-template.md"):
+                self.assertTrue(
+                    (target / ".specify" / "templates" / template).exists(),
+                    f".specify/templates/{template}",
+                )
+            constitution = target / ".specify" / "memory" / "constitution.md"
+            self.assertTrue(constitution.exists(), ".specify/memory/constitution.md")
+            self.assertIn("Constitution", constitution.read_text(encoding="utf-8"))
+            # The most specialized selected preset (sicario-appsec) supplies the
+            # live spec template, not bare core.
+            from sicario_cli.cli import PRESETS_ROOT
+
+            appsec_spec = (PRESETS_ROOT / "sicario-appsec" / "templates" / "spec-template.md").read_text(
+                encoding="utf-8"
+            )
+            self.assertEqual(
+                appsec_spec,
+                (target / ".specify" / "templates" / "spec-template.md").read_text(encoding="utf-8"),
+            )
+
+    def test_init_no_apply_to_speckit_skips_live_paths(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            target = Path(tmp) / "project"
+            self.assertEqual(
+                0, main(["init", str(target), "--profile", "appsec", "--no-apply-to-speckit"])
+            )
+            self.assertFalse((target / ".specify" / "templates" / "spec-template.md").exists())
+            self.assertFalse((target / ".specify" / "memory" / "constitution.md").exists())
+            # Presets are still staged for reference.
+            self.assertTrue((target / ".specify" / "presets" / "sicario-appsec").exists())
+
     def test_agent_fleet_profile_installs_preset(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             target = Path(tmp) / "fleet-project"
             self.assertEqual(0, main(["init", str(target), "--profile", "agent-fleet"]))
             self.assertTrue((target / ".specify" / "presets" / "sicario-agent-fleet").exists())
             self.assertTrue((target / ".specify" / "presets" / "sicario-ai-system").exists())
+            findings = verify_project(target, write=False)
+            self.assertEqual([], findings)
+
+    def test_saas_profile_installs_preset_and_invariants(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            target = Path(tmp) / "saas-project"
+            self.assertEqual(0, main(["init", str(target), "--profile", "saas"]))
+            self.assertTrue((target / ".specify" / "presets" / "sicario-saas").exists())
+            self.assertTrue((target / ".specify" / "presets" / "sicario-ai-system").exists())
+            # The live constitution carries the SaaS invariants.
+            constitution = (target / ".specify" / "memory" / "constitution.md").read_text(
+                encoding="utf-8"
+            )
+            self.assertIn("Read-Only SaaS By Default", constitution)
+            self.assertIn("Tenant Isolation And Data Boundary", constitution)
+            self.assertIn("Mission Supremacy", constitution)
             findings = verify_project(target, write=False)
             self.assertEqual([], findings)
 
@@ -311,6 +364,40 @@ class SicarioCliBehaviorTests(unittest.TestCase):
             self.assertTrue((target / ".github" / "workflows" / "security-toolchain.yml").exists())
             findings = verify_project(target, write=False)
             self.assertEqual([], findings)
+
+    def test_hooks_runner_executes_deterministic_and_reports_agent_hooks(self) -> None:
+        import io
+        from contextlib import redirect_stdout
+
+        with tempfile.TemporaryDirectory() as tmp:
+            target = Path(tmp) / "project"
+            self.assertEqual(0, main(["init", str(target), "--profile", "public-core"]))
+            buffer = io.StringIO()
+            with redirect_stdout(buffer):
+                code = main(["hooks", str(target)])
+            output = buffer.getvalue()
+            # A freshly initialized project passes the deterministic verify hook.
+            self.assertEqual(0, code)
+            # after_tasks -> sicario.verify is deterministic and actually runs.
+            self.assertIn("run sicario.verify (deterministic)", output)
+            # after_specify -> sicario.threatmodel is agent guidance, reported not executed.
+            self.assertIn("sicario.threatmodel (agent guidance)", output)
+            self.assertTrue((target / "generated" / "sicario" / "gate-summary.json").exists())
+
+    def test_hooks_runner_single_event_filter(self) -> None:
+        import io
+        from contextlib import redirect_stdout
+
+        with tempfile.TemporaryDirectory() as tmp:
+            target = Path(tmp) / "project"
+            self.assertEqual(0, main(["init", str(target), "--profile", "public-core"]))
+            buffer = io.StringIO()
+            with redirect_stdout(buffer):
+                code = main(["hooks", str(target), "--event", "after_tasks"])
+            output = buffer.getvalue()
+            self.assertEqual(0, code)
+            self.assertIn("[after_tasks]", output)
+            self.assertNotIn("[after_specify]", output)
 
     def test_plan_without_well_architected_review_fails(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

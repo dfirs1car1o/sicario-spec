@@ -13,7 +13,6 @@ import os
 import re
 import shutil
 import subprocess
-import sys
 import sysconfig
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -69,6 +68,7 @@ PROFILE_PRESETS = {
     "cloud-iac": ["sicario-core", "sicario-docs", "sicario-cloud-iac"],
     "supply-chain": ["sicario-core", "sicario-docs", "sicario-supply-chain"],
     "compliance": ["sicario-core", "sicario-docs", "sicario-compliance"],
+    "saas": ["sicario-core", "sicario-docs", "sicario-ai-system", "sicario-saas"],
     "security-toolchain": ["sicario-core", "sicario-docs", "sicario-security-toolchain"],
     "enterprise-strict": [
         "sicario-core",
@@ -177,6 +177,75 @@ def _write_text(path: Path, content: str, *, force: bool, dry_run: bool, actions
     path.write_text(content, encoding="utf-8")
 
 
+SPECKIT_TEMPLATE_FILES = ["spec-template.md", "plan-template.md", "tasks-template.md"]
+
+
+def _resolve_speckit_template_sources(presets: Sequence[str]) -> dict:
+    """Pick the live Spec Kit template for each file.
+
+    Presets are ordered least- to most-specialized (core first, the
+    profile-specific preset last). The last preset that ships a given template
+    wins, so the most specialized governance lands in `.specify/templates/`.
+    """
+    sources: dict = {}
+    for preset in presets:
+        templates_dir = PRESETS_ROOT / preset / "templates"
+        for template in SPECKIT_TEMPLATE_FILES:
+            candidate = templates_dir / template
+            if candidate.exists():
+                sources[template] = candidate
+    return sources
+
+
+def _resolve_speckit_constitution(presets: Sequence[str]) -> Optional[Path]:
+    """Pick the live constitution: the most specialized preset that ships one."""
+    chosen: Optional[Path] = None
+    for preset in presets:
+        candidate = PRESETS_ROOT / preset / "templates" / "constitution-template.md"
+        if candidate.exists():
+            chosen = candidate
+    return chosen
+
+
+def _apply_to_speckit(
+    target: Path,
+    presets: Sequence[str],
+    *,
+    force: bool,
+    dry_run: bool,
+    actions: List[str],
+) -> None:
+    """Write governance into the live Spec Kit paths so /speckit-* commands use it.
+
+    GitHub Spec Kit reads templates from `.specify/templates/<name>-template.md`
+    and the constitution from `.specify/memory/constitution.md`. Copying presets
+    into `.specify/presets/` alone does not reach those commands; this step does.
+    """
+    template_sources = _resolve_speckit_template_sources(presets)
+    for template, src in sorted(template_sources.items()):
+        _write_text(
+            target / ".specify" / "templates" / template,
+            src.read_text(encoding="utf-8"),
+            force=force,
+            dry_run=dry_run,
+            actions=actions,
+        )
+
+    constitution = _resolve_speckit_constitution(presets)
+    if constitution is not None:
+        _write_text(
+            target / ".specify" / "memory" / "constitution.md",
+            constitution.read_text(encoding="utf-8"),
+            force=force,
+            dry_run=dry_run,
+            actions=actions,
+        )
+    actions.append(
+        "applied SicarioSpec governance to live Spec Kit paths "
+        "(.specify/templates, .specify/memory/constitution.md)"
+    )
+
+
 def _validate_specify_available() -> str:
     specify = shutil.which("specify")
     if not specify:
@@ -213,6 +282,15 @@ def init_project(args: argparse.Namespace) -> int:
         _copy_tree(
             PRESETS_ROOT / preset,
             target / ".specify" / "presets" / preset,
+            force=args.force,
+            dry_run=args.dry_run,
+            actions=actions,
+        )
+
+    if getattr(args, "apply_to_speckit", True):
+        _apply_to_speckit(
+            target,
+            selected_presets,
             force=args.force,
             dry_run=args.dry_run,
             actions=actions,
@@ -1500,6 +1578,103 @@ def assess_command(args: argparse.Namespace) -> int:
     return 0 if not findings else 1
 
 
+# Hook command -> how SicarioSpec can act on it.
+# "deterministic" commands are backed by the CLI and run automatically.
+# "agent" commands are prompt guidance for a coding agent; the runner reports
+# them honestly instead of pretending to execute them.
+HOOK_COMMAND_KIND = {
+    "sicario.verify": "deterministic",
+    "sicario.assess": "deterministic",
+    "sicario.evidence": "deterministic",
+    "sicario.threatmodel": "agent",
+    "sicario.review": "agent",
+    "sicario.controls": "agent",
+    "sicario.apply-findings": "agent",
+    "sicario.init": "agent",
+}
+
+HOOK_EVENTS = ["after_specify", "after_plan", "after_tasks"]
+
+
+def _parse_hook_commands(extensions_yml: Path) -> "dict[str, List[str]]":
+    """Extract ordered hook commands per event from .specify/extensions.yml.
+
+    Uses a tiny, dependency-free line scanner (stdlib-only runtime constraint).
+    Recognizes both the flat list form and the structured `command:` form.
+    """
+    events: "dict[str, List[str]]" = {event: [] for event in HOOK_EVENTS}
+    if not extensions_yml.exists():
+        return events
+    current: Optional[str] = None
+    in_hooks = False
+    for raw in extensions_yml.read_text(encoding="utf-8").splitlines():
+        line = raw.rstrip()
+        stripped = line.strip()
+        if not stripped or stripped.startswith("#"):
+            continue
+        if stripped == "hooks:":
+            in_hooks = True
+            continue
+        if in_hooks and not line.startswith(" ") and stripped.endswith(":"):
+            # A new top-level key ends the hooks block.
+            in_hooks = False
+        if not in_hooks:
+            continue
+        bare = stripped.rstrip(":")
+        if bare in HOOK_EVENTS:
+            current = bare
+            continue
+        if current is None:
+            continue
+        for token in stripped.replace("- ", " ").replace("command:", " ").split():
+            if token in HOOK_COMMAND_KIND and token not in events[current]:
+                events[current].append(token)
+    return events
+
+
+def _run_deterministic_hook(command: str, root: Path) -> int:
+    if command == "sicario.verify":
+        findings = verify_project(root, write=True)
+        for finding in findings:
+            print(f"  {finding.severity.upper()} {finding.code} {finding.path}: {finding.message}")
+        return 1 if findings else 0
+    if command in {"sicario.assess", "sicario.evidence"}:
+        ns = argparse.Namespace(path=str(root))
+        return assess_command(ns)
+    return 0
+
+
+def hooks_command(args: argparse.Namespace) -> int:
+    root = Path(args.path).expanduser().resolve()
+    extensions_yml = root / ".specify" / "extensions.yml"
+    events = _parse_hook_commands(extensions_yml)
+    requested = [args.event] if args.event else HOOK_EVENTS
+    exit_code = 0
+    ran_any = False
+    for event in requested:
+        commands = events.get(event, [])
+        if not commands:
+            continue
+        print(f"[{event}]")
+        for command in commands:
+            kind = HOOK_COMMAND_KIND.get(command, "agent")
+            if kind == "deterministic":
+                ran_any = True
+                print(f"- run {command} (deterministic)")
+                result = _run_deterministic_hook(command, root)
+                if result != 0:
+                    exit_code = 1
+            else:
+                print(
+                    f"- {command} (agent guidance): see "
+                    f".specify/extensions/sicario-guard/commands/{command}.md "
+                    "— a coding agent performs this; the runner does not execute it"
+                )
+    if not ran_any and exit_code == 0:
+        print("No deterministic hooks ran. Agent-guidance hooks are reported above.")
+    return exit_code
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="sicario", description="Kill risk before it ships.")
     parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
@@ -1509,6 +1684,21 @@ def build_parser() -> argparse.ArgumentParser:
     init.add_argument("project", help="Target project directory")
     init.add_argument("--integration", default="claude", choices=["claude", "codex", "copilot", "all", "generic"])
     init.add_argument("--profile", default="public-core", help="Comma-separated profile list")
+    speckit_group = init.add_mutually_exclusive_group()
+    speckit_group.add_argument(
+        "--apply-to-speckit",
+        dest="apply_to_speckit",
+        action="store_true",
+        default=True,
+        help="Write the selected governance into the live Spec Kit paths "
+        "(.specify/templates/ and .specify/memory/constitution.md) so /speckit-* commands use it (default).",
+    )
+    speckit_group.add_argument(
+        "--no-apply-to-speckit",
+        dest="apply_to_speckit",
+        action="store_false",
+        help="Only stage presets under .specify/presets/ without overwriting live Spec Kit templates/constitution.",
+    )
     init.add_argument("--dry-run", action="store_true")
     init.add_argument("--force", action="store_true")
     init.set_defaults(func=init_project)
@@ -1520,6 +1710,18 @@ def build_parser() -> argparse.ArgumentParser:
     assess = sub.add_parser("assess", help="Write a repo posture assessment")
     assess.add_argument("path", nargs="?", default=".")
     assess.set_defaults(func=assess_command)
+
+    hooks = sub.add_parser(
+        "hooks",
+        help="Run deterministic Spec Kit hooks from .specify/extensions.yml; report agent-guidance hooks honestly",
+    )
+    hooks.add_argument("path", nargs="?", default=".")
+    hooks.add_argument(
+        "--event",
+        choices=HOOK_EVENTS,
+        help="Run a single hook event (default: all). One of after_specify, after_plan, after_tasks.",
+    )
+    hooks.set_defaults(func=hooks_command)
 
     return parser
 
