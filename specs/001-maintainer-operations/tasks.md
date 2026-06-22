@@ -41,7 +41,7 @@ description: "SicarioSpec secure task list for maintainer operations hardening"
 - [x] T022 Run `python3 -m unittest discover -s tests`.
 - [x] T023 Run `python3 -m sicario_cli.cli verify .`.
 - [x] T024 Inspect `git diff` for accidental secrets, unsafe permissions, or generated noise.
-- [ ] T025 Open machine-user pull request with Spec Kit evidence and verification output.
+- [x] T025 Open machine-user pull request with Spec Kit evidence and verification output.
 
 ## Dependencies
 
