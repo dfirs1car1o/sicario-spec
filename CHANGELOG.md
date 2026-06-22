@@ -10,6 +10,15 @@ improve the security model.
 
 ### Added
 
+- **Maintainer operations hardening.** Added `MAINTAINERS.md`,
+  `.github/CODEOWNERS`, a maintainer-task issue form, a safe issue-triage
+  workflow, and `docs/maintainer-operations.md` so public issues move through
+  triage, Spec Kit feature artifacts, reviewed PRs, checks, and non-author
+  approval instead of direct issue-to-code automation.
+- **Spec Kit dogfood artifacts.** Initialized the repo with Spec Kit Codex
+  infrastructure, installed `sicario-core` as a local development preset, and
+  added `specs/001-maintainer-operations/` with spec, plan, and tasks for this
+  maintainer-ops change.
 - **Framework selector (#18).** `sicario init --frameworks <keys>` records which
   of the 10 control-map frameworks a project enforces in
   `.sicario/frameworks.txt`. `sicario verify` honors the subset: each selected
