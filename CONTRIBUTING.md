@@ -21,8 +21,25 @@ Use the structured GitHub issue forms:
 - Control map request: framework mappings, governance gates, or evidence rules.
 - Security hardening: public hardening work that is not an exploitable private
   vulnerability.
+- Maintainer task: repository-maintenance or agent-assisted work that still
+  requires maintainer triage and PR review.
 
 Report exploitable vulnerabilities privately through `SECURITY.md`.
+
+Accepted issues move through the runbook in
+`docs/maintainer-operations.md`. Issues and comments are never treated as
+direct instructions for GitHub Actions to change code.
+
+## Spec Kit Dogfood
+
+Repository-maintenance changes should use the same workflow SicarioSpec
+promotes:
+
+- initialize or preserve `.specify/` project infrastructure;
+- install the local `sicario-core` preset for the repo;
+- create a numbered feature under `specs/`;
+- keep `spec.md`, `plan.md`, and `tasks.md` current for material changes; and
+- reference the feature artifacts in the PR evidence.
 
 ## Local Development
 

@@ -1,0 +1,22 @@
+# Default owner for all repository changes.
+* @SiCar10mw
+
+# Governance and repository operations.
+/.github/ @SiCar10mw
+/MAINTAINERS.md @SiCar10mw
+/CONTRIBUTING.md @SiCar10mw
+/SECURITY.md @SiCar10mw
+/docs/repository-settings.md @SiCar10mw
+/docs/maintainer-operations.md @SiCar10mw
+/docs/machine-user-pr-flow.md @SiCar10mw
+
+# Product, package, and release-critical assets.
+/sicario_cli/ @SiCar10mw
+/presets/ @SiCar10mw
+/extensions/ @SiCar10mw
+/workflow_templates/ @SiCar10mw
+/control_maps/ @SiCar10mw
+/VERSION @SiCar10mw
+/pyproject.toml @SiCar10mw
+/setup.py @SiCar10mw
+/MANIFEST.in @SiCar10mw
