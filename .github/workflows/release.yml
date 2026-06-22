@@ -32,10 +32,13 @@ jobs:
           python-version: "3.11"
 
       - name: Validate release version
+        env:
+          RELEASE_EVENT_NAME: ${{ github.event_name }}
+          RELEASE_INPUT_TAG: ${{ inputs.tag }}
         run: |
           tag="${GITHUB_REF_NAME}"
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            tag="${{ inputs.tag }}"
+          if [ "$RELEASE_EVENT_NAME" = "workflow_dispatch" ]; then
+            tag="$RELEASE_INPUT_TAG"
           fi
 
           case "$tag" in
