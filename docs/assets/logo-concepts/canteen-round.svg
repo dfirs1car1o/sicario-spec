@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256" role="img" aria-labelledby="title desc">
+  <title id="title">SicarioSpec round canteen concept</title>
+  <desc id="desc">A round canteen icon with restrained yellow and deep navy on a dark field.</desc>
+  <rect width="256" height="256" rx="44" fill="#05070c"/>
+  <rect x="20" y="20" width="216" height="216" rx="32" fill="none" stroke="#fcd116" stroke-width="7"/>
+  <path d="M107 64h42v24h-42z" fill="#fcd116"/>
+  <path d="M116 50h24c8 0 13 5 13 13v7h-50v-7c0-8 5-13 13-13Z" fill="#fcd116"/>
+  <path d="M66 151c0-47 26-77 62-77s62 30 62 77c0 46-25 72-62 72s-62-26-62-72Z" fill="#0b1f3a" stroke="#fcd116" stroke-width="9" stroke-linejoin="round"/>
+  <path d="M84 145c12-24 27-36 44-36s32 12 44 36" fill="none" stroke="#fcd116" stroke-width="7" stroke-linecap="round"/>
+  <path d="M93 173h70" stroke="#fcd116" stroke-width="7" stroke-linecap="round"/>
+  <path d="M111 195h34" stroke="#8aa3bd" stroke-width="7" stroke-linecap="round"/>
+</svg>

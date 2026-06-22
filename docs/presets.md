@@ -4,10 +4,16 @@ Presets define what every generated Spec Kit artifact must contain.
 
 ## sicario-core
 
-Always installed. Covers least privilege, deterministic authority, evidence
-integrity, trust-boundary sanitization, source-of-truth authority, quality gates,
+Baseline evidence-first security operations governance. Covers least privilege,
+deterministic authority, evidence integrity, the Security Evidence Chain,
+trust-boundary sanitization, source-of-truth authority, quality gates,
 architecture discipline, well-architected review, data classification, tagging
-discipline, honest documentation, human approval, and secret handling.
+discipline, operational signal/response paths, honest documentation, human
+approval, and secret handling.
+
+The differentiator is traceability: material risks and decisions should map to a
+control or requirement, test/gate, evidence path, owner, and approval or
+accepted-risk decision before release.
 
 ## sicario-docs
 

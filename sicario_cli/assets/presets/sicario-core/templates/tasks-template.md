@@ -22,36 +22,40 @@ description: "SicarioSpec secure task list template"
 - [ ] T009 Update tagging taxonomy in `docs/governance/tagging-taxonomy.md`
 - [ ] T010 Add secrets handling and redaction guardrails
 - [ ] T011 Add trust-boundary validation or sanitization
+- [ ] T012 Populate the Security Evidence Chain with risk, control, gate, evidence, owner, and approval entries
 
 ## Phase 3: Tests First
 
-- [ ] T012 Add functional tests for the primary story
-- [ ] T013 Add negative/security tests for misuse and abuse cases
-- [ ] T014 Add authorization or privilege-boundary tests
-- [ ] T015 Add regression tests for prior related issues
-- [ ] T016 Verify tests fail before implementation where practical
+- [ ] T013 Add functional tests for the primary story
+- [ ] T014 Add negative/security tests for misuse and abuse cases
+- [ ] T015 Add authorization or privilege-boundary tests
+- [ ] T016 Add regression tests for prior related issues
+- [ ] T017 Verify tests fail before implementation where practical
 
 ## Phase 4: Implementation
 
-- [ ] T017 Implement the smallest independently testable slice
-- [ ] T018 Add audit logging without sensitive data
-- [ ] T019 Preserve deterministic authority for authoritative outcomes
-- [ ] T020 Keep external systems read-only unless explicit approval is documented
+- [ ] T018 Implement the smallest independently testable slice
+- [ ] T019 Add audit logging without sensitive data
+- [ ] T020 Add operational signals, detection hooks, or runbook updates where required
+- [ ] T021 Preserve deterministic authority for authoritative outcomes
+- [ ] T022 Keep external systems read-only unless explicit approval is documented
 
 ## Phase 5: Evidence And Verification
 
-- [ ] T021 Run secret scan
-- [ ] T022 Run dependency/SCA scan
-- [ ] T023 Run SAST/static checks
-- [ ] T024 Run IaC/container scan if applicable
-- [ ] T025 Generate evidence artifacts
-- [ ] T026 Run `sicario verify`
-- [ ] T027 Record docs impact or no-docs-impact decision
-- [ ] T028 Obtain human review for high-risk changes
+- [ ] T023 Run secret scan
+- [ ] T024 Run dependency/SCA scan
+- [ ] T025 Run SAST/static checks
+- [ ] T026 Run IaC/container scan if applicable
+- [ ] T027 Generate evidence artifacts and update evidence paths in the Security Evidence Chain
+- [ ] T028 Run the configured project verification gate
+- [ ] T029 Run `sicario verify` if SicarioSpec CLI is installed for this project
+- [ ] T030 Record docs impact or no-docs-impact decision
+- [ ] T031 Obtain human review for high-risk changes
 
 ## Dependencies
 
 - Security foundation blocks implementation.
 - Classification and tagging decisions block data handling and infrastructure work.
+- Security Evidence Chain entries block final verification.
 - Negative/security tests must exist before final verification.
 - Human approval blocks high-impact write, release, and exception tasks.

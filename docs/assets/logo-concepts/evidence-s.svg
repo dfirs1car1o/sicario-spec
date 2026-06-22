@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256" role="img" aria-labelledby="title desc">
+  <title id="title">SicarioSpec evidence S concept</title>
+  <desc id="desc">An abstract S shaped cutting path surrounded by evidence-chain nodes.</desc>
+  <rect width="256" height="256" rx="40" fill="#080b12"/>
+  <path d="M177 66c-16-14-43-17-64-8-24 10-31 32-14 45 15 12 48 11 62 27 18 20 0 50-32 58-24 6-50-2-64-19" fill="none" stroke="#d6aa4c" stroke-width="22" stroke-linecap="round"/>
+  <path d="M178 66c-34 28-64 57-90 88" fill="none" stroke="#f8fafc" stroke-width="11" stroke-linecap="round"/>
+  <path d="M70 91c27 5 51 18 72 39 15 15 30 25 46 30" fill="none" stroke="#24d3c1" stroke-width="7" stroke-linecap="round"/>
+  <circle cx="70" cy="91" r="8" fill="#24d3c1"/>
+  <circle cx="142" cy="130" r="8" fill="#d6aa4c"/>
+  <circle cx="188" cy="160" r="8" fill="#24d3c1"/>
+  <path d="M75 205h106" stroke="#1f2937" stroke-width="8" stroke-linecap="round"/>
+</svg>
