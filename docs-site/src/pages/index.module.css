@@ -1,5 +1,5 @@
 .hero {
-  background: #111827;
+  background: #080b12;
   color: #f8fafc;
   overflow: hidden;
 }
@@ -8,12 +8,12 @@
   align-items: center;
   box-sizing: border-box;
   display: grid;
-  gap: 48px;
+  gap: 52px;
   grid-template-columns: minmax(0, 1.1fr) minmax(300px, 0.9fr);
   margin: 0 auto;
   max-width: 1180px;
-  min-height: 76vh;
-  padding: 72px 24px 64px;
+  min-height: 78vh;
+  padding: 84px 24px 72px;
   width: 100%;
 }
 
@@ -23,7 +23,7 @@
 }
 
 .kicker {
-  color: #0f766e;
+  color: #fcd116;
   font-size: 0.82rem;
   font-weight: 800;
   letter-spacing: 0;
@@ -32,7 +32,7 @@
 }
 
 .hero .kicker {
-  color: #7dd3fc;
+  color: #8aa3bd;
 }
 
 .heroTitle {
@@ -43,7 +43,7 @@
 }
 
 .heroSubtitle {
-  color: #d1d5db;
+  color: #cbd5e1;
   font-size: 1.25rem;
   line-height: 1.6;
   margin: 24px 0 0;
@@ -64,12 +64,12 @@
 
 .signalPanel {
   align-self: stretch;
-  background: #f8fafc;
-  border: 1px solid rgba(248, 250, 252, 0.12);
+  background: #101827;
+  border: 1px solid rgba(252, 209, 22, 0.38);
   border-radius: 8px;
   box-sizing: border-box;
-  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.28);
-  color: #111827;
+  box-shadow: 0 28px 70px rgba(0, 0, 0, 0.42);
+  color: #f8fafc;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -80,8 +80,8 @@
 }
 
 .mark {
-  height: 104px;
-  width: 104px;
+  height: 128px;
+  width: 128px;
 }
 
 .flow {
@@ -91,9 +91,9 @@
 
 .flow span {
   align-items: center;
-  background: #ffffff;
-  border: 1px solid #d1d5db;
-  border-left: 4px solid #e11d48;
+  background: rgba(8, 11, 18, 0.76);
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  border-left: 4px solid #fcd116;
   border-radius: 6px;
   display: flex;
   font-weight: 800;
@@ -102,7 +102,9 @@
 }
 
 .section {
-  padding: 72px 0;
+  background: #0d1320;
+  color: #f8fafc;
+  padding: 76px 0;
 }
 
 .sectionHeader {
@@ -112,6 +114,7 @@
 
 .sectionHeader h2,
 .split h2 {
+  color: #ffffff;
   font-size: clamp(2rem, 4vw, 3rem);
   margin: 0 0 12px;
 }
@@ -123,25 +126,27 @@
 }
 
 .card {
-  border: 1px solid #dbe3ea;
+  background: #111b2c;
+  border: 1px solid rgba(148, 163, 184, 0.22);
   border-radius: 8px;
   min-height: 210px;
   padding: 24px;
 }
 
 .card h3 {
+  color: #ffffff;
   font-size: 1.25rem;
 }
 
 .card p,
 .split p {
-  color: #475569;
+  color: #cbd5e1;
   font-size: 1.05rem;
   line-height: 1.7;
 }
 
 .band {
-  background: #f1f5f9;
+  background: #101827;
 }
 
 .split {
@@ -152,7 +157,8 @@
 }
 
 .command {
-  background: #111827;
+  background: #080b12;
+  border: 1px solid rgba(252, 209, 22, 0.32);
   border-radius: 8px;
   color: #f8fafc;
   margin: 0;
@@ -168,9 +174,10 @@
 }
 
 .pill {
-  border: 1px solid #cbd5e1;
+  background: #111b2c;
+  border: 1px solid rgba(148, 163, 184, 0.22);
   border-radius: 8px;
-  color: #111827;
+  color: #f8fafc;
   font-weight: 800;
   min-height: 58px;
   padding: 16px;
@@ -179,9 +186,64 @@
 }
 
 .pill:hover {
-  border-color: #0f766e;
-  color: #0f766e;
+  border-color: #8aa3bd;
+  color: #8aa3bd;
   text-decoration: none;
+}
+
+.pathGrid {
+  display: grid;
+  gap: 18px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.pathCard {
+  background: #111b2c;
+  border: 1px solid rgba(252, 209, 22, 0.28);
+  border-radius: 8px;
+  color: #f8fafc;
+  display: flex;
+  flex-direction: column;
+  min-height: 260px;
+  padding: 24px;
+  text-decoration: none;
+}
+
+.pathCard:hover {
+  border-color: #8aa3bd;
+  color: #f8fafc;
+  text-decoration: none;
+}
+
+.pathCard span {
+  color: #fcd116;
+  font-size: 0.78rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.pathCard h3 {
+  color: #ffffff;
+  font-size: 1.35rem;
+  margin: 14px 0 10px;
+}
+
+.pathCard p {
+  color: #cbd5e1;
+  line-height: 1.65;
+  margin: 0 0 18px;
+}
+
+.pathCard code {
+  background: #080b12;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  border-radius: 6px;
+  color: #8aa3bd;
+  display: block;
+  font-size: 0.86rem;
+  margin-top: auto;
+  overflow-wrap: anywhere;
+  padding: 12px;
 }
 
 @media (max-width: 996px) {
@@ -195,6 +257,7 @@
   }
 
   .grid,
+  .pathGrid,
   .pills {
     grid-template-columns: 1fr 1fr;
   }
@@ -224,6 +287,7 @@
   }
 
   .grid,
+  .pathGrid,
   .pills {
     grid-template-columns: 1fr;
   }

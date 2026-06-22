@@ -55,9 +55,15 @@ const config = {
         },
         items: [
           { to: '/', label: 'Overview', position: 'left' },
-          { to: '/docs/presets', label: 'Docs', position: 'left' },
+          { to: '/docs/getting-started', label: 'Start Here', position: 'left' },
+          { to: '/docs/presets', label: 'Presets', position: 'left' },
           { href: 'https://github.com/dfirs1car1o/sicario-spec', label: 'GitHub', position: 'right' },
         ],
+      },
+      colorMode: {
+        defaultMode: 'dark',
+        disableSwitch: false,
+        respectPrefersColorScheme: false,
       },
       footer: {
         style: 'dark',
@@ -65,8 +71,9 @@ const config = {
           {
             title: 'Docs',
             items: [
+              { label: 'Getting started', to: '/docs/getting-started' },
               { label: 'Presets', to: '/docs/presets' },
-              { label: 'Agent environments', to: '/docs/agent-environments' },
+              { label: 'Security model', to: '/docs/security-model' },
               { label: 'Release process', to: '/docs/release-process' },
             ],
           },

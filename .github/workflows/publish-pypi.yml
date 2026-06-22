@@ -1,13 +1,14 @@
-name: release
+name: publish-pypi
 
 on:
-  push:
-    tags:
-      - "v*.*.*"
   workflow_dispatch:
     inputs:
       tag:
-        description: "Release tag to package, for example v0.1.0"
+        description: "Release tag to publish, for example v0.1.2"
+        required: true
+        type: string
+      confirm:
+        description: "Type publish to confirm PyPI publication"
         required: true
         type: string
 
@@ -15,29 +16,30 @@ permissions:
   contents: read
 
 jobs:
-  package:
-    name: package
+  publish:
+    name: publish
+    if: inputs.confirm == 'publish'
     runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/project/sicario-spec/
     permissions:
-      attestations: write
-      contents: write
+      contents: read
       id-token: write
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
         with:
-          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref }}
+          ref: ${{ inputs.tag }}
 
       - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
         with:
           python-version: "3.11"
 
       - name: Validate release version
+        env:
+          RELEASE_TAG: ${{ inputs.tag }}
         run: |
-          tag="${GITHUB_REF_NAME}"
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            tag="${{ inputs.tag }}"
-          fi
-
+          tag="$RELEASE_TAG"
           case "$tag" in
             v[0-9]*.[0-9]*.[0-9]*) ;;
             *) echo "Release tag must look like vMAJOR.MINOR.PATCH: $tag" >&2; exit 1 ;;
@@ -57,29 +59,12 @@ jobs:
             exit 1
           fi
 
-          echo "RELEASE_TAG=$tag" >> "$GITHUB_ENV"
           echo "PACKAGE_VERSION=$version" >> "$GITHUB_ENV"
 
       - name: Build distributions
         run: |
           python -m pip install --require-hashes -r .github/requirements/release-build.txt
           python -m build
-
-      - name: Build Spec Kit preset archives
-        run: |
-          python - <<'PY'
-          from pathlib import Path
-          from zipfile import ZIP_DEFLATED, ZipFile
-
-          version = Path("VERSION").read_text(encoding="utf-8").strip()
-          preset_dir = Path("presets/sicario-core")
-          archive = Path("dist") / f"sicario-core-{version}.zip"
-
-          with ZipFile(archive, "w", ZIP_DEFLATED) as zf:
-              for path in sorted(preset_dir.rglob("*")):
-                  if path.is_file():
-                      zf.write(path, path.relative_to(preset_dir))
-          PY
 
       - name: Smoke test wheel
         run: |
@@ -90,26 +75,5 @@ jobs:
           "$tmpdir/venv/bin/sicario" init "$tmpdir/project" --profile appsec,cloud-iac,security-toolchain,compliance
           "$tmpdir/venv/bin/sicario" verify "$tmpdir/project"
 
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
-        with:
-          name: sicario-spec-${{ env.PACKAGE_VERSION }}-dist
-          path: dist/*
-          if-no-files-found: error
-
-      - uses: actions/attest-build-provenance@a2bbfa25375fe432b6a289bc6b6cd05ecd0c4c32 # v4
-        with:
-          subject-path: dist/*
-
-      - name: Publish GitHub release assets
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
-            echo "Release $RELEASE_TAG already exists; immutable release assets will not be modified."
-            gh release view "$RELEASE_TAG" --json assets --jq '.assets[].name'
-          else
-            gh release create "$RELEASE_TAG" dist/* \
-              --verify-tag \
-              --title "SicarioSpec $RELEASE_TAG" \
-              --generate-notes
-          fi
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@cef221092ed1bacb1cc03d23a2d87d1d172e277b # v1.14.0

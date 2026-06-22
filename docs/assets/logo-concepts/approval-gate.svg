@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256" role="img" aria-labelledby="title desc">
+  <title id="title">SicarioSpec approval gate concept</title>
+  <desc id="desc">An abstract approval gate split by a clean risk-cut path and evidence nodes.</desc>
+  <rect width="256" height="256" rx="40" fill="#080b12"/>
+  <path d="M77 54h50v148H77zM129 54h50v148h-50z" fill="#101827" stroke="#d6aa4c" stroke-width="10" stroke-linejoin="round"/>
+  <path d="M68 184c43-35 82-75 119-120" fill="none" stroke="#f8fafc" stroke-width="18" stroke-linecap="round"/>
+  <path d="M82 184c35-25 71-62 108-111" fill="none" stroke="#24d3c1" stroke-width="7" stroke-linecap="round"/>
+  <path d="M65 91c22 4 41 13 58 28 24 21 45 33 68 36" fill="none" stroke="#d6aa4c" stroke-width="7" stroke-linecap="round"/>
+  <circle cx="65" cy="91" r="8" fill="#24d3c1"/>
+  <circle cx="123" cy="119" r="8" fill="#d6aa4c"/>
+  <circle cx="191" cy="155" r="8" fill="#24d3c1"/>
+</svg>

@@ -43,6 +43,16 @@
 - Required controls:
 - Residual risks:
 
+## Security Evidence Chain
+
+Use this table as the delivery handoff between engineering, security, and
+operations. Every high-impact decision, accepted risk, or material control should
+have a chain entry.
+
+| Chain ID | Risk / Decision | Control / Requirement | Test / Gate | Evidence Path | Owner | Approval / Accepted Risk |
+|---|---|---|---|---|---|---|
+| SEC-001 | TBD | TBD | TBD | TBD | TBD | TBD |
+
 ## Architecture / Security Decision Record
 
 - Decision:
@@ -99,6 +109,14 @@ actor -> boundary -> component -> boundary -> data/evidence/output
 - Human approval gates:
 - Evals/red-team tests:
 
+## Operational Readiness
+
+- Required telemetry:
+- Detection or alert rule:
+- Triage and response owner:
+- Runbook or rollback link:
+- Evidence retention:
+
 ## Test Strategy
 
 - Unit tests:
@@ -114,7 +132,8 @@ actor -> boundary -> component -> boundary -> data/evidence/output
 - SAST:
 - Dependency/SCA:
 - IaC/container scan:
-- SicarioSpec verification:
+- Project verification gate:
+- Optional SicarioSpec verification if installed:
 
 ## Rollback
 
@@ -131,6 +150,7 @@ actor -> boundary -> component -> boundary -> data/evidence/output
 - Tagging taxonomy:
 - Control applicability:
 - Evidence index:
+- Security Evidence Chain:
 - Gate summary:
 - Reviewer approval:
 
@@ -148,6 +168,7 @@ actor -> boundary -> component -> boundary -> data/evidence/output
 | Least privilege | TBD | TBD |
 | Deterministic authority | TBD | TBD |
 | Evidence integrity | TBD | TBD |
+| Security Evidence Chain | TBD | TBD |
 | Trust-boundary sanitization | TBD | TBD |
 | Source-of-truth authority | TBD | TBD |
 | Quality gates | TBD | TBD |

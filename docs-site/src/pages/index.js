@@ -17,15 +17,43 @@ const proofPoints = [
     title: 'A halting gate plus control maps',
     body: 'sicario verify blocks merge/release on violation and is wired into CI. Starter evidence maps cover 10 frameworks: CSA CCM v4.1, SOX 404 / ICFR, NIST SSDF, NIST AI RMF, ISO/IEC 27001:2022, NIST SP 800-53 Rev 5, EU AI Act, GDPR (+ CPRA), PCI DSS v4.0, and the HIPAA Security Rule.',
   },
+  {
+    title: 'Security Evidence Chain',
+    body: 'Risks and decisions trace to controls, tests, gates, evidence paths, owners, reviewers, and approval or accepted-risk states.',
+  },
 ];
 
 const environments = ['Claude Code', 'Codex / GPT', 'GitHub Copilot', 'Generic agents'];
 
+const usePaths = [
+  {
+    label: 'Catalog path',
+    title: 'Use the preset',
+    body: 'Install sicario-core with Spec Kit when you want the smallest upstream-compatible governance layer.',
+    command: 'specify preset add --dev /path/to/sicario-core',
+    to: '/docs/getting-started#use-the-spec-kit-preset-only',
+  },
+  {
+    label: 'Full bundle',
+    title: 'Bootstrap a repo',
+    body: 'Use the SicarioSpec CLI when you want docs, risk registers, workflows, control maps, and verification.',
+    command: 'sicario init my-project --integration all --profile public-core',
+    to: '/docs/getting-started#use-the-full-sicariospec-cli',
+  },
+  {
+    label: 'Review loop',
+    title: 'Verify evidence',
+    body: 'Run deterministic checks so missing security evidence is visible before release approval.',
+    command: 'sicario verify',
+    to: '/docs/getting-started#daily-operating-loop',
+  },
+];
+
 export default function Home() {
   return (
     <Layout
-      title="Secure-by-default Spec Kit governance"
-      description="SicarioSpec turns GitHub Spec Kit into a security, governance, and evidence system for AI-era software delivery."
+      title="Evidence-first Spec Kit governance"
+      description="SicarioSpec turns GitHub Spec Kit into an evidence-first security operations governance system for AI-era software delivery."
     >
       <main>
         <section className={styles.hero}>
@@ -37,11 +65,12 @@ export default function Home() {
               </Heading>
               <p className={styles.heroSubtitle}>
                 Kill risk before it ships. Give AI agents and human reviewers one shared
-                workflow for classification, controls, evidence, exceptions, and release gates.
+                workflow for classification, trust boundaries, controls, gates, evidence
+                paths, owners, and release approval.
               </p>
               <div className={styles.heroActions}>
-                <Link className="button button--primary button--lg" to="/docs/presets">
-                  Read the docs
+                <Link className="button button--primary button--lg" to="/docs/getting-started">
+                  Start using it
                 </Link>
                 <Link className="button button--secondary button--lg" to="https://github.com/dfirs1car1o/sicario-spec">
                   View on GitHub
@@ -49,15 +78,35 @@ export default function Home() {
               </div>
             </div>
             <div className={styles.signalPanel} aria-label="SicarioSpec verification flow">
-              <img src="img/sicario-spec-mark.svg" alt="SicarioSpec shield and crosshair mark" className={styles.mark} />
+              <img src="img/sicario-spec-mark.svg" alt="SicarioSpec canteen mark" className={styles.mark} />
               <div className={styles.flow}>
-                <span>spec idea</span>
+                <span>feature intent</span>
                 <span>classification</span>
-                <span>threat model</span>
-                <span>control map</span>
-                <span>evidence</span>
-                <span>human gate</span>
+                <span>trust boundary</span>
+                <span>abuse case</span>
+                <span>control gate</span>
+                <span>evidence owner</span>
+                <span>approval state</span>
               </div>
+            </div>
+          </div>
+        </section>
+
+        <section className={styles.section}>
+          <div className="container">
+            <div className={styles.sectionHeader}>
+              <p className={styles.kicker}>How to use it</p>
+              <Heading as="h2">Pick the operating mode first.</Heading>
+            </div>
+            <div className={styles.pathGrid}>
+              {usePaths.map((item) => (
+                <Link className={styles.pathCard} to={item.to} key={item.title}>
+                  <span>{item.label}</span>
+                  <Heading as="h3">{item.title}</Heading>
+                  <p>{item.body}</p>
+                  <code>{item.command}</code>
+                </Link>
+              ))}
             </div>
           </div>
         </section>
@@ -106,7 +155,8 @@ export default function Home() {
                 <Heading as="h2">Bootstrap a governed target repo.</Heading>
                 <p>
                   SicarioSpec installs Spec Kit presets, governance docs, risk registers,
-                  evidence paths, workflows, docs-site scaffolding, and agent instructions.
+                  Security Evidence Chain templates, workflows, docs-site scaffolding, and
+                  agent instructions.
                 </p>
               </div>
               <pre className={styles.command}>

@@ -1,7 +1,8 @@
 # Release Process
 
 SicarioSpec releases are GitHub releases backed by signed-off local validation,
-tag-driven packaging, and GitHub artifact attestations for built distributions.
+tag-driven packaging, Spec Kit preset archives, and GitHub artifact attestations
+for built distributions.
 
 ## Versioning
 
@@ -38,7 +39,11 @@ python3 -m venv "$tmpdir/venv"
 Confirm:
 
 - `CHANGELOG.md` has an entry for the release.
+- `presets/sicario-core/CHANGELOG.md` has an entry for the release when the
+  catalog preset changes.
 - `README.md` install and badge links are accurate.
+- `presets/sicario-core/README.md` catalog install instructions point to the
+  release preset ZIP asset.
 - `docs/governance/data-classification.md` and
   `docs/governance/tagging-taxonomy.md` are current.
 - Release notes and assets follow classification and tagging discipline.
@@ -56,9 +61,10 @@ git push origin main "v$version"
 ```
 
 The release workflow runs on the pushed tag. It verifies the tag against
-`VERSION`, `pyproject.toml`, and `sicario_cli/version.py`, builds the sdist and
-wheel, smoke-tests the wheel, emits artifact attestations, and creates the
-GitHub release with assets when the release does not already exist.
+`VERSION`, `pyproject.toml`, and `sicario_cli/version.py`, builds the sdist,
+wheel, and `sicario-core-$version.zip` Spec Kit preset archive, smoke-tests the
+wheel, emits artifact attestations, and creates the GitHub release with assets
+when the release does not already exist.
 
 Existing GitHub releases are treated as immutable. A rerun for an existing tag
 will rebuild, smoke-test, upload the workflow artifact, and emit attestations,
@@ -84,3 +90,30 @@ Curated release notes should include:
 - Confirm OpenSSF Scorecard has a recent result after the workflow runs.
 - Keep the OpenSSF Best Practices badge status honest; do not display an
   achievement badge until the project has completed the external self-assessment.
+
+## PyPI Publishing
+
+PyPI publication is intentionally separated from the GitHub release workflow.
+The `publish-pypi` workflow is manual, uses PyPI Trusted Publishing through
+GitHub's OIDC token, and requires the `pypi` GitHub environment.
+
+Before the first publish:
+
+- Reserve or create the `sicario-spec` PyPI project.
+- Configure a PyPI Trusted Publisher for owner `dfirs1car1o`, repository
+  `sicario-spec`, workflow `.github/workflows/publish-pypi.yml`, environment
+  `pypi`.
+- Configure the `pypi` GitHub environment with required reviewers.
+- Confirm the GitHub release assets and attestations for the same tag already
+  exist.
+
+To publish:
+
+1. Open **Actions** -> **publish-pypi** -> **Run workflow**.
+2. Enter the release tag, for example `v0.1.2`.
+3. Enter `publish` in the confirmation field.
+4. Approve the `pypi` environment gate.
+5. Confirm the PyPI release page, package hashes, and install command.
+
+Do not use long-lived PyPI API tokens for this repository. If trusted publishing
+is unavailable, defer PyPI publication until it can be configured.

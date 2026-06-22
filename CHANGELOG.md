@@ -34,6 +34,9 @@ improve the security model.
 - **docs-site swept** to reflect current capabilities: turnkey
   `--apply-to-speckit` wiring, brownfield-safe adoption, the 10 frameworks and
   the new selector, the USAGE flow, and the pass+fail worked example.
+- **Spec Kit catalog readiness.** Reworked `sicario-core` around the Security
+  Evidence Chain: risk or decision to control, test/gate, evidence path, owner,
+  and approval or accepted-risk state.
 
 ## [0.4.0] - 2026-06-21
 

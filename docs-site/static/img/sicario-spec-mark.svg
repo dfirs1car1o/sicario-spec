@@ -1,11 +1,12 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="256" height="256" viewBox="0 0 256 256" role="img" aria-labelledby="title desc">
-  <title id="title">SicarioSpec mark</title>
-  <desc id="desc">A shield and crosshair mark representing risk controls before release.</desc>
-  <rect width="256" height="256" rx="42" fill="#0f172a"/>
-  <path d="M128 28l76 28v60c0 50-31 88-76 112-45-24-76-62-76-112V56l76-28z" fill="#f8fafc"/>
-  <path d="M128 45l59 22v49c0 40-23 70-59 91-36-21-59-51-59-91V67l59-22z" fill="#111827"/>
-  <circle cx="128" cy="125" r="48" fill="none" stroke="#e11d48" stroke-width="12"/>
-  <circle cx="128" cy="125" r="17" fill="#e11d48"/>
-  <path d="M128 64v35M128 151v35M67 125h35M154 125h35" stroke="#f8fafc" stroke-width="10" stroke-linecap="round"/>
-  <path d="M92 87l72 72M164 87l-72 72" stroke="#38bdf8" stroke-width="8" stroke-linecap="round"/>
+  <title id="title">SicarioSpec canteen mark</title>
+  <desc id="desc">A clean canteen icon with restrained yellow and deep navy on a dark field.</desc>
+  <rect width="256" height="256" rx="44" fill="#05070c"/>
+  <rect x="20" y="20" width="216" height="216" rx="32" fill="none" stroke="#fcd116" stroke-width="7"/>
+  <path d="M108 62h40v26h-40z" fill="#fcd116"/>
+  <path d="M116 48h24c8 0 13 5 13 13v8h-50v-8c0-8 5-13 13-13Z" fill="#fcd116"/>
+  <path d="M76 135c0-35 22-62 52-62s52 27 52 62v24c0 34-22 58-52 58s-52-24-52-58v-24Z" fill="#0b1f3a" stroke="#fcd116" stroke-width="9" stroke-linejoin="round"/>
+  <path d="M91 133c11-18 24-27 37-27s26 9 37 27" fill="none" stroke="#fcd116" stroke-width="7" stroke-linecap="round"/>
+  <path d="M96 166h64" stroke="#fcd116" stroke-width="7" stroke-linecap="round"/>
+  <path d="M113 190h30" stroke="#8aa3bd" stroke-width="7" stroke-linecap="round"/>
 </svg>

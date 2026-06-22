@@ -24,7 +24,7 @@ class ReleaseMetadataTests(unittest.TestCase):
 
         for preset in sorted((ROOT / "presets").glob("sicario-*/preset.yml")):
             text = preset.read_text(encoding="utf-8")
-            self.assertIn(f"version: {version}", text, preset)
+            self.assertRegex(text, rf'version:\s*"?{re.escape(version)}"?', str(preset))
 
         extension = ROOT / "extensions" / "sicario-guard" / "extension.yml"
         self.assertIn(f"version: {version}", extension.read_text(encoding="utf-8"))
@@ -52,6 +52,7 @@ class ReleaseMetadataTests(unittest.TestCase):
             ".github/workflows/codeql.yml",
             ".github/workflows/scorecard.yml",
             ".github/workflows/release.yml",
+            ".github/workflows/publish-pypi.yml",
             ".github/dependabot.yml",
             ".github/release.yml",
             "docs/release-process.md",
@@ -74,13 +75,80 @@ class ReleaseMetadataTests(unittest.TestCase):
 
     def test_release_workflow_builds_and_attests_distributions(self) -> None:
         workflow = (ROOT / ".github" / "workflows" / "release.yml").read_text(encoding="utf-8")
-        self.assertIn("actions/upload-artifact@v7", workflow)
-        self.assertIn("actions/attest-build-provenance@v4", workflow)
+        self.assertRegex(workflow, r"actions/upload-artifact@[0-9a-f]{40} # v7")
+        self.assertRegex(workflow, r"actions/attest-build-provenance@[0-9a-f]{40} # v4")
+        self.assertIn("--require-hashes -r .github/requirements/release-build.txt", workflow)
         self.assertIn("attestations: write", workflow)
         self.assertIn("id-token: write", workflow)
+        self.assertIn("Build Spec Kit preset archives", workflow)
+        self.assertIn('f"sicario-core-{version}.zip"', workflow)
         self.assertIn("Release $RELEASE_TAG already exists; immutable release assets will not be modified.", workflow)
         self.assertNotIn("--clobber", workflow)
         self.assertNotIn("gh release upload", workflow)
+
+    def test_pypi_publish_workflow_uses_trusted_publishing(self) -> None:
+        workflow = (ROOT / ".github" / "workflows" / "publish-pypi.yml").read_text(
+            encoding="utf-8"
+        )
+        self.assertIn("workflow_dispatch:", workflow)
+        self.assertIn("environment:", workflow)
+        self.assertIn("name: pypi", workflow)
+        self.assertIn("id-token: write", workflow)
+        self.assertIn("--require-hashes -r .github/requirements/release-build.txt", workflow)
+        self.assertRegex(workflow, r"pypa/gh-action-pypi-publish@[0-9a-f]{40} # v1\.14\.0")
+        self.assertNotRegex(workflow, r"(?m)^\s*pass" r"word:")
+        self.assertNotIn("api-token", workflow)
+
+    def test_sicario_core_uses_upstream_preset_schema(self) -> None:
+        preset_dir = ROOT / "presets" / "sicario-core"
+        manifest = (preset_dir / "preset.yml").read_text(encoding="utf-8")
+        version = (ROOT / "VERSION").read_text(encoding="utf-8").strip()
+
+        expected_fragments = [
+            'schema_version: "1.0"',
+            "preset:",
+            '  id: "sicario-core"',
+            '  name: "SicarioSpec Core"',
+            f'  version: "{version}"',
+            '  repository: "https://github.com/dfirs1car1o/sicario-spec"',
+            '  license: "MIT"',
+            '  description: "Baseline secure-by-default Spec Kit governance profile."',
+            "requires:",
+            '  speckit_version: ">=0.9.0"',
+            "provides:",
+            "  templates:",
+            "  - security-ops",
+            "  - evidence",
+        ]
+        for fragment in expected_fragments:
+            self.assertIn(fragment, manifest)
+
+        for filename in [
+            "spec-template.md",
+            "plan-template.md",
+            "tasks-template.md",
+            "checklist-template.md",
+            "constitution-template.md",
+        ]:
+            self.assertIn(f'      file: "templates/{filename}"', manifest)
+            self.assertTrue((preset_dir / "templates" / filename).exists(), filename)
+
+        for filename in ["README.md", "LICENSE", "CHANGELOG.md"]:
+            self.assertTrue((preset_dir / filename).exists(), filename)
+            self.assertTrue((ROOT / "sicario_cli" / "assets" / "presets" / "sicario-core" / filename).exists(), filename)
+
+        expected_template_terms = {
+            "README.md": ["Security Evidence Chain", "What Makes It Different", "operational proof"],
+            "templates/spec-template.md": ["## Security Evidence Chain", "## Operational Signal / Response Path"],
+            "templates/plan-template.md": ["## Security Evidence Chain", "## Operational Readiness"],
+            "templates/tasks-template.md": ["Populate the Security Evidence Chain", "configured project verification gate"],
+            "templates/checklist-template.md": ["Security Evidence Chain maps risks", "Project verification gate passed"],
+            "templates/constitution-template.md": ["### 4. Security Evidence Chain"],
+        }
+        for relative, terms in expected_template_terms.items():
+            text = (preset_dir / relative).read_text(encoding="utf-8")
+            for term in terms:
+                self.assertIn(term, text, f"{relative}: {term}")
 
     def test_machine_user_policy_documents_audited_fallback(self) -> None:
         policy = (ROOT / "docs" / "machine-user-pr-flow.md").read_text(encoding="utf-8")
@@ -91,7 +159,7 @@ class ReleaseMetadataTests(unittest.TestCase):
 
     def test_scorecard_workflow_can_publish_badge_results(self) -> None:
         workflow = (ROOT / ".github" / "workflows" / "scorecard.yml").read_text(encoding="utf-8")
-        self.assertIn("ossf/scorecard-action@v2.4.3", workflow)
+        self.assertRegex(workflow, r"ossf/scorecard-action@[0-9a-f]{40} # v2\.4\.3")
         self.assertIn("publish_results: true", workflow)
         self.assertIn("id-token: write", workflow)
         self.assertIn("security-events: write", workflow)

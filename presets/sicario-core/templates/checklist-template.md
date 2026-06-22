@@ -11,27 +11,31 @@
 - [ ] CHK003 Trust boundaries are documented.
 - [ ] CHK004 Abuse cases are documented.
 - [ ] CHK005 Security acceptance criteria are measurable.
-- [ ] CHK006 Evidence outputs are identified.
+- [ ] CHK006 Security Evidence Chain maps risks or decisions to controls, tests/gates, evidence, owners, and approval or accepted risk.
+- [ ] CHK007 Evidence outputs are identified.
 
 ## Plan
 
-- [ ] CHK007 Threat model is complete.
-- [ ] CHK008 Supply-chain impact is reviewed.
-- [ ] CHK009 AI/tool boundary is reviewed where applicable.
-- [ ] CHK010 Rollback is documented.
-- [ ] CHK011 Human approval points are explicit.
+- [ ] CHK008 Threat model is complete.
+- [ ] CHK009 Supply-chain impact is reviewed.
+- [ ] CHK010 AI/tool boundary is reviewed where applicable.
+- [ ] CHK011 Operational signal, detection, response, or rollback path is documented where applicable.
+- [ ] CHK012 Rollback is documented.
+- [ ] CHK013 Human approval points are explicit.
 
 ## Tasks
 
-- [ ] CHK012 Negative/security tests are present.
-- [ ] CHK013 Classification and tagging tasks are present.
-- [ ] CHK014 Docs impact task is present.
-- [ ] CHK015 Evidence generation task is present.
-- [ ] CHK016 SicarioSpec verification task is present.
+- [ ] CHK014 Negative/security tests are present.
+- [ ] CHK015 Classification and tagging tasks are present.
+- [ ] CHK016 Security Evidence Chain update task is present.
+- [ ] CHK017 Docs impact task is present.
+- [ ] CHK018 Evidence generation task is present.
+- [ ] CHK019 Project verification gate task is present.
 
 ## Verification
 
-- [ ] CHK017 Secret scan passed.
-- [ ] CHK018 Dependency/SCA scan passed.
-- [ ] CHK019 SAST/static checks passed.
-- [ ] CHK020 `sicario verify` passed.
+- [ ] CHK020 Secret scan passed.
+- [ ] CHK021 Dependency/SCA scan passed.
+- [ ] CHK022 SAST/static checks passed.
+- [ ] CHK023 Project verification gate passed.
+- [ ] CHK024 SicarioSpec verification passed if the SicarioSpec CLI is installed.
