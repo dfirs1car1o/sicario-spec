@@ -1,0 +1,52 @@
+name: issue-triage
+
+on:
+  issues:
+    types: [opened, reopened]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: issue-triage-${{ github.event.issue.number }}
+  cancel-in-progress: false
+
+jobs:
+  triage:
+    name: triage
+    if: ${{ !github.event.issue.pull_request }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - name: Apply safe triage defaults
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          ISSUE_ACTION: ${{ github.event.action }}
+          ISSUE_BODY: ${{ github.event.issue.body }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          body_file="$(mktemp)"
+          printf '%s' "${ISSUE_BODY:-}" > "$body_file"
+
+          gh issue edit "$ISSUE_NUMBER" --repo "$GH_REPO" --add-label "needs-triage"
+
+          sensitive_pattern='(AKIA[0-9A-Z]{16}|-----BEGIN (RSA |OPENSSH |EC |DSA |PRIVATE )?PRIVATE KEY-----|xox[baprs]-|gh[pousr]_[A-Za-z0-9_]{20,}|client[_-]?secret|api[_-]?key|password[[:space:]]*=|tenant[ _-]?id)'
+          if grep -Eiq "$sensitive_pattern" "$body_file"; then
+            gh issue edit "$ISSUE_NUMBER" --repo "$GH_REPO" --add-label "security"
+            if [ "$ISSUE_ACTION" = "opened" ]; then
+              comment=$'This issue may include sensitive implementation detail, credentials, tenant identifiers, or vulnerability information.\n\nPlease remove public sensitive data immediately if present. Exploitable vulnerabilities or restricted details should be reported through the private security advisory flow instead of a public issue.'
+              gh issue comment "$ISSUE_NUMBER" --repo "$GH_REPO" --body "$comment"
+            fi
+          fi
+
+          structured_pattern='^### (Summary|Problem statement|Framework or control source|Security impact|Desired outcome)'
+          if ! grep -Eq "$structured_pattern" "$body_file" && [ "$ISSUE_ACTION" = "opened" ]; then
+            comment=$'Thanks for opening this. Please make sure the issue follows one of the structured templates so maintainers can triage scope, safety, and acceptance criteria.\n\nRepository changes are not applied directly from issue text. Accepted work moves through a branch, pull request, required checks, and maintainer review.'
+            gh issue comment "$ISSUE_NUMBER" --repo "$GH_REPO" --body "$comment"
+          fi

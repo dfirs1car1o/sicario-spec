@@ -1,0 +1,47 @@
+schema_version: "1.0"
+
+preset:
+  id: "sicario-core"
+  name: "SicarioSpec Core"
+  version: "0.4.0"
+  description: "Baseline secure-by-default Spec Kit governance profile."
+  author: "SicarioSpec Contributors"
+  repository: "https://github.com/dfirs1car1o/sicario-spec"
+  license: "MIT"
+
+requires:
+  speckit_version: ">=0.9.0"
+
+provides:
+  templates:
+    - type: "template"
+      name: "spec-template"
+      file: "templates/spec-template.md"
+      description: "Feature specification template with data classification, trust boundaries, abuse cases, and a risk-to-evidence chain."
+      replaces: "spec-template"
+    - type: "template"
+      name: "plan-template"
+      file: "templates/plan-template.md"
+      description: "Implementation plan template that maps risks to controls, tests, gates, evidence, owners, and rollback."
+      replaces: "plan-template"
+    - type: "template"
+      name: "tasks-template"
+      file: "templates/tasks-template.md"
+      description: "Task list template that makes evidence-chain, control, test, verification, and handoff work explicit."
+      replaces: "tasks-template"
+    - type: "template"
+      name: "checklist-template"
+      file: "templates/checklist-template.md"
+      description: "Checklist template for secure-by-default specification, planning, task, and verification review."
+      replaces: "checklist-template"
+    - type: "template"
+      name: "constitution-template"
+      file: "templates/constitution-template.md"
+      description: "Constitution template for least privilege, deterministic gates, evidence integrity, and human approval."
+      replaces: "constitution-template"
+
+tags:
+  - governance
+  - security-ops
+  - secure-by-default
+  - evidence

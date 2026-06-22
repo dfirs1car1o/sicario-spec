@@ -1,0 +1,15 @@
+{
+  "schema_version": "1.0",
+  "presets": {
+    "sicario-core": {
+      "version": "0.4.0",
+      "source": "local",
+      "manifest_hash": "sha256:27766ed6a7e85dcf61682922d037836c027fa104bd82fbd0d654bff6bb77c846",
+      "enabled": true,
+      "priority": 1,
+      "registered_commands": {},
+      "registered_skills": [],
+      "installed_at": "2026-06-22T21:55:27.440335+00:00"
+    }
+  }
+}

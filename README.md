@@ -125,8 +125,9 @@ SicarioSpec provides:
   Kubernetes admission policy.
 - **Security toolchain starters** for secrets, SAST, SCA, SBOM, container/IaC
   scanning, and evidence paths.
-- **Open-source repo hygiene**: issue forms, security policy, code of conduct,
-  Dependabot, CodeQL, OpenSSF Scorecard, release packaging, and Pages docs.
+- **Open-source repo hygiene**: issue forms, maintainer runbooks, CODEOWNERS,
+  security policy, code of conduct, Dependabot, CodeQL, OpenSSF Scorecard,
+  release packaging, Pages docs, and Spec Kit dogfood artifacts.
 
 ```text
 spec idea
@@ -431,7 +432,11 @@ SicarioSpec ships public-repo hygiene for legitimate open source maintenance:
 - MIT license
 - code of conduct
 - security policy and private vulnerability reporting path
-- structured issue forms for bugs, features, security hardening, and control maps
+- maintainer ownership, CODEOWNERS, and issue-to-PR operations runbook
+- structured issue forms for bugs, features, maintenance tasks, security
+  hardening, and control maps
+- safe issue-triage workflow for labels and public-safety warnings
+- checked-in Spec Kit project infrastructure and feature specs for repo changes
 - pull request template with security/governance checklist
 - Dependabot configuration
 - CodeQL workflow
@@ -474,6 +479,8 @@ common unsafe paths before merge.
 - Usage quickstart: [USAGE.md](USAGE.md)
 - Worked example: [examples/python-api](examples/python-api/)
 - Contributing: [CONTRIBUTING.md](CONTRIBUTING.md)
+- Maintainers: [MAINTAINERS.md](MAINTAINERS.md)
+- Maintainer operations: [docs/maintainer-operations.md](docs/maintainer-operations.md)
 - Security: [SECURITY.md](SECURITY.md)
 - Support: [SUPPORT.md](SUPPORT.md)
 - Code of conduct: [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)

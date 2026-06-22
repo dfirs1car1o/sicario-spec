@@ -1,0 +1,78 @@
+name: Maintainer task
+description: Request a repository-maintenance or agent-assisted change.
+title: "maint: "
+labels:
+  - governance
+  - needs-triage
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this for public repository-maintenance work. Do not include secrets, private tenant data, customer data, or unpublished vulnerability details.
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: What should change?
+    validations:
+      required: true
+  - type: textarea
+    id: outcome
+    attributes:
+      label: Desired outcome
+      description: What should be true when this is done?
+    validations:
+      required: true
+  - type: checkboxes
+    id: areas
+    attributes:
+      label: Areas affected
+      options:
+        - label: CLI behavior
+        - label: Presets or generated templates
+        - label: Control maps or compliance docs
+        - label: GitHub Actions or repository settings
+        - label: Docs site or public documentation
+        - label: Release packaging
+        - label: Other
+  - type: dropdown
+    id: agent_assistance
+    attributes:
+      label: Agent-assisted PR allowed after maintainer triage?
+      description: This does not authorize direct issue-to-code automation.
+      options:
+        - "Yes, an agent may prepare a pull request after maintainer triage"
+        - "No, maintainer-authored change only"
+        - "Not sure"
+    validations:
+      required: true
+  - type: dropdown
+    id: data_classification
+    attributes:
+      label: Highest data classification
+      description: Use private reporting for restricted data or exploitable vulnerability details.
+      options:
+        - Public
+        - Internal
+        - Confidential
+        - Restricted - use private reporting
+        - Regulated - use private reporting
+        - Not sure
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      description: List the checks, docs, or behavior that must be present.
+      placeholder: |
+        - PR updates ...
+        - `python3 -m unittest discover -s tests` passes
+        - `python3 -m sicario_cli.cli verify .` passes
+    validations:
+      required: true
+  - type: textarea
+    id: notes
+    attributes:
+      label: References or notes
+      description: Link public references, prior issues, PRs, or examples.
