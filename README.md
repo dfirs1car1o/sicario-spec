@@ -26,6 +26,12 @@ before merge, deploy, or release.
 
 Specs are where risk becomes work. SicarioSpec makes that work explicit.
 
+<p align="center">
+  <img src="demo/verify-demo.gif" alt="sicario verify: a passing run (exit 0) and the same feature failing with SICARIO-MISSING-THREAT-MODEL (exit 1) — verdict decided by stdlib-only code, no LLM" width="760">
+</p>
+
+<p align="center"><em>The gate halts: same feature, opposite verdict, decided by stdlib-only code (no LLM). <a href="demo/DEMO.md">See the demo</a> · regenerate with <a href="demo/record.sh"><code>demo/record.sh</code></a>.</em></p>
+
 > **New here? Read [USAGE.md](USAGE.md).** It is the copy-pasteable quickstart
 > and explains the one thing people miss: SicarioSpec does **not** give you a
 > "threat-model command." Security and threat modeling are *enforced as

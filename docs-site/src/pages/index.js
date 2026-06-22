@@ -50,6 +50,11 @@ export default function Home() {
             </div>
             <div className={styles.signalPanel} aria-label="SicarioSpec verification flow">
               <img src="img/sicario-spec-mark.svg" alt="SicarioSpec shield and crosshair mark" className={styles.mark} />
+              <img
+                src="img/verify-demo.gif"
+                alt="sicario verify: a passing run (exit 0) and the same feature failing with SICARIO-MISSING-THREAT-MODEL (exit 1), decided by stdlib-only code with no LLM"
+                style={{ width: '100%', borderRadius: '0.5rem', margin: '1rem 0' }}
+              />
               <div className={styles.flow}>
                 <span>spec idea</span>
                 <span>classification</span>
