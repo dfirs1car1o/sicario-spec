@@ -10,6 +10,26 @@ improve the security model.
 
 ### Added
 
+- **Declarative rule engine for `sicario verify`.** Replaced 210+ lines of
+  hardcoded Python checks with a JSON Schema-driven `RuleEngine` that loads
+  `.rule.json` files from `.sicario/rules/`. 10 evaluator kinds cover all
+  previous checks: file-exists, file-glob, section-exists, keyword-exists,
+  keyword-absent, regex-forbidden, regex-required, risk-rows-valid,
+  classification-complete, tagging-complete. Users add custom gates by writing
+  a rule file — no Python edits needed. (`specs/002-governance-rule-schema/`)
+- **16 shipped rule files** in `presets/sicario-core/rules/` matching the
+  previous check set exactly; rules are copied to `.sicario/rules/` during
+  `sicario init`.
+- **`--format {text,json,sarif}` flag** on `verify` for machine-readable
+  output (SARIF 2.1.0, JSON, or human-readable text).
+- **`--validate-rules` flag** on `verify` that validates all rule files against
+  the schema without running checks.
+- **Codex marketplace bundle** (`bundle.yml`) for IDE integration.
+
+### Changed
+
+- Version bumped to `0.5.0` for the rule-schema feature release.
+
 - **Maintainer operations hardening.** Added `MAINTAINERS.md`,
   `.github/CODEOWNERS`, a maintainer-task issue form, a safe issue-triage
   workflow, and `docs/maintainer-operations.md` so public issues move through
