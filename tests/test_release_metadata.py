@@ -69,7 +69,9 @@ class ReleaseMetadataTests(unittest.TestCase):
         self.assertIn("actions/workflows/test.yml/badge.svg", readme)
         self.assertIn("actions/workflows/codeql.yml/badge.svg", readme)
         self.assertIn("actions/workflows/release.yml/badge.svg", readme)
-        self.assertIn("api.scorecard.dev/projects/github.com/dfirs1car1o/sicario-spec/badge", readme)
+        self.assertIn(
+            "api.scorecard.dev/projects/github.com/dfirs1car1o/sicario-spec/badge", readme
+        )
         self.assertIn("img.shields.io/github/v/release/dfirs1car1o/sicario-spec", readme)
         self.assertIn("OpenSSF Best Practices status is not claimed yet", readme)
 
@@ -82,14 +84,15 @@ class ReleaseMetadataTests(unittest.TestCase):
         self.assertIn("id-token: write", workflow)
         self.assertIn("Build Spec Kit preset archives", workflow)
         self.assertIn('f"sicario-core-{version}.zip"', workflow)
-        self.assertIn("Release $RELEASE_TAG already exists; immutable release assets will not be modified.", workflow)
+        self.assertIn(
+            "Release $RELEASE_TAG already exists; immutable release assets will not be modified.",
+            workflow,
+        )
         self.assertNotIn("--clobber", workflow)
         self.assertNotIn("gh release upload", workflow)
 
     def test_pypi_publish_workflow_uses_trusted_publishing(self) -> None:
-        workflow = (ROOT / ".github" / "workflows" / "publish-pypi.yml").read_text(
-            encoding="utf-8"
-        )
+        workflow = (ROOT / ".github" / "workflows" / "publish-pypi.yml").read_text(encoding="utf-8")
         self.assertIn("workflow_dispatch:", workflow)
         self.assertIn("environment:", workflow)
         self.assertIn("name: pypi", workflow)
@@ -135,14 +138,33 @@ class ReleaseMetadataTests(unittest.TestCase):
 
         for filename in ["README.md", "LICENSE", "CHANGELOG.md"]:
             self.assertTrue((preset_dir / filename).exists(), filename)
-            self.assertTrue((ROOT / "sicario_cli" / "assets" / "presets" / "sicario-core" / filename).exists(), filename)
+            self.assertTrue(
+                (ROOT / "sicario_cli" / "assets" / "presets" / "sicario-core" / filename).exists(),
+                filename,
+            )
 
         expected_template_terms = {
-            "README.md": ["Security Evidence Chain", "What Makes It Different", "operational proof"],
-            "templates/spec-template.md": ["## Security Evidence Chain", "## Operational Signal / Response Path"],
-            "templates/plan-template.md": ["## Security Evidence Chain", "## Operational Readiness"],
-            "templates/tasks-template.md": ["Populate the Security Evidence Chain", "configured project verification gate"],
-            "templates/checklist-template.md": ["Security Evidence Chain maps risks", "Project verification gate passed"],
+            "README.md": [
+                "Security Evidence Chain",
+                "What Makes It Different",
+                "operational proof",
+            ],
+            "templates/spec-template.md": [
+                "## Security Evidence Chain",
+                "## Operational Signal / Response Path",
+            ],
+            "templates/plan-template.md": [
+                "## Security Evidence Chain",
+                "## Operational Readiness",
+            ],
+            "templates/tasks-template.md": [
+                "Populate the Security Evidence Chain",
+                "configured project verification gate",
+            ],
+            "templates/checklist-template.md": [
+                "Security Evidence Chain maps risks",
+                "Project verification gate passed",
+            ],
             "templates/constitution-template.md": ["### 4. Security Evidence Chain"],
         }
         for relative, terms in expected_template_terms.items():

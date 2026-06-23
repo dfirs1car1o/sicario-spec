@@ -1,0 +1,17 @@
+{
+  "id": "SICARIO-TAGGING-DISCIPLINE-INCOMPLETE",
+  "severity": "high",
+  "kind": "tagging-complete",
+  "path": "specs/**/spec.md",
+  "params": {
+    "required_columns": [
+      "owner",
+      "system",
+      "environment",
+      "data-classification",
+      "retention"
+    ]
+  },
+  "message": "Tagging discipline must include owner, system, environment, data-classification, and retention tags",
+  "enabled": true
+}

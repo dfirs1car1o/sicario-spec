@@ -1,0 +1,67 @@
+schema_version: "1.0"
+
+bundle:
+  id: "sicario-spec"
+  name: "SicarioSpec Security & Governance Bundle"
+  version: "0.4.0"
+  role: "security-engineer"
+  description: "Secure-by-default governance bundle for GitHub Spec Kit. Enforces data classification, threat modeling, and code-owned verification gates."
+  author: "SicarioSpec Contributors"
+  license: "MIT"
+
+requires:
+  speckit_version: ">=0.9.0"
+  tools: []
+  mcp: []
+
+provides:
+  extensions:
+    - id: "sicario-guard"
+      version: "0.4.0"
+  presets:
+    - id: "sicario-core"
+      version: "0.4.0"
+      priority: 1
+      strategy: "append"
+    - id: "sicario-docs"
+      version: "0.4.0"
+      priority: 2
+      strategy: "append"
+    - id: "sicario-appsec"
+      version: "0.4.0"
+      priority: 3
+      strategy: "append"
+    - id: "sicario-ai-system"
+      version: "0.4.0"
+      priority: 4
+      strategy: "append"
+    - id: "sicario-agent-fleet"
+      version: "0.4.0"
+      priority: 5
+      strategy: "append"
+    - id: "sicario-cloud-iac"
+      version: "0.4.0"
+      priority: 6
+      strategy: "append"
+    - id: "sicario-supply-chain"
+      version: "0.4.0"
+      priority: 7
+      strategy: "append"
+    - id: "sicario-compliance"
+      version: "0.4.0"
+      priority: 8
+      strategy: "append"
+    - id: "sicario-saas"
+      version: "0.4.0"
+      priority: 9
+      strategy: "append"
+    - id: "sicario-security-toolchain"
+      version: "0.4.0"
+      priority: 10
+      strategy: "append"
+    - id: "sicario-enterprise-strict"
+      version: "0.4.0"
+      priority: 11
+      strategy: "append"
+
+tags: ["security", "governance", "compliance", "appsec", "threat-modeling"]

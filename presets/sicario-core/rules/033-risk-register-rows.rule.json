@@ -1,0 +1,11 @@
+{
+  "id": "SICARIO-INCOMPLETE-ACTIVE-RISK",
+  "severity": "high",
+  "kind": "risk-rows-valid",
+  "path": "docs/risk/*.md",
+  "params": {
+    "forbidden_values": ["", "tbd", "n/a", "na", "none", "never", "permanent"]
+  },
+  "message": "Active risk or exception row must have owner, expiration, approval/rationale, compensating control, and evidence",
+  "enabled": true
+}

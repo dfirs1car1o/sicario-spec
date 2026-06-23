@@ -46,7 +46,8 @@ include = ["sicario_cli*", "presets*"]
 include-package-data = true
 
 [tool.setuptools.package-data]
-sicario_cli = ["assets/**/*"]
+sicario_cli = ["assets/**/*", "rules/schema.json"]
+presets = ["**/rules/*.rule.json"]
 
 [tool.ruff]
 line-length = 100

@@ -24,7 +24,9 @@ from sicario_cli.cli import (
 
 class SicarioSpecShapeTests(unittest.TestCase):
     def test_every_preset_has_metadata_and_templates(self) -> None:
-        presets = sorted(path for path in PRESETS_ROOT.iterdir() if path.is_dir() and path.name != "__pycache__")
+        presets = sorted(
+            path for path in PRESETS_ROOT.iterdir() if path.is_dir() and path.name != "__pycache__"
+        )
         self.assertGreaterEqual(len(presets), 8)
         for preset in presets:
             self.assertTrue((preset / "preset.yml").exists(), preset)

@@ -1,0 +1,11 @@
+{
+  "id": "SICARIO-MISSING-CONTROL-MAPS",
+  "severity": "medium",
+  "kind": "file-glob",
+  "path": "docs/compliance/control-maps/*",
+  "params": {
+    "min_count": 1
+  },
+  "message": "Missing control mapping pack",
+  "enabled": true
+}

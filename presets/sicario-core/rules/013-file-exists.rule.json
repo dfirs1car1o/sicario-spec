@@ -1,0 +1,8 @@
+{
+  "id": "SICARIO-MISSING-DATA-CLASSIFICATION",
+  "severity": "high",
+  "kind": "file-exists",
+  "path": "docs/governance/data-classification.md",
+  "message": "Missing docs/governance/data-classification.md",
+  "enabled": true
+}

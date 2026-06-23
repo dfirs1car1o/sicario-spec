@@ -1,0 +1,8 @@
+{
+  "id": "SICARIO-MISSING-SECURITY-EXCEPTIONS",
+  "severity": "medium",
+  "kind": "file-exists",
+  "path": "docs/risk/security-exceptions.md",
+  "message": "Missing docs/risk/security-exceptions.md",
+  "enabled": true
+}
