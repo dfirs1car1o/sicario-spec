@@ -1,0 +1,92 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://sicario-spec.dev/schema/rule.json",
+  "title": "Sicario Governance Rule",
+  "description": "A single governance rule evaluated by sicario verify",
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "Unique rule identifier, e.g. SICARIO-MISSING-THREAT-MODEL"
+    },
+    "severity": {
+      "type": "string",
+      "enum": ["critical", "high", "medium", "low"],
+      "description": "Severity level when this rule produces a finding"
+    },
+    "kind": {
+      "type": "string",
+      "enum": [
+        "file-exists",
+        "file-glob",
+        "section-exists",
+        "keyword-exists",
+        "keyword-absent",
+        "regex-forbidden",
+        "regex-required",
+        "risk-rows-valid",
+        "classification-complete",
+        "tagging-complete"
+      ],
+      "description": "Evaluator type used to check this rule"
+    },
+    "path": {
+      "type": "string",
+      "description": "File or glob pattern relative to project root"
+    },
+    "params": {
+      "type": "object",
+      "description": "Kind-specific configuration parameters",
+      "properties": {
+        "headings": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Required section headings (case-insensitive) for section-exists"
+        },
+        "keywords": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Keywords to search for keyword-exists/keyword-absent"
+        },
+        "match_all": {
+          "type": "boolean",
+          "description": "If true, all keywords must match (AND). If false, any match suffices (OR)"
+        },
+        "pattern": {
+          "type": "string",
+          "description": "Regex pattern for regex-forbidden/regex-required"
+        },
+        "forbidden_values": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Values that are not allowed for risk-rows-valid"
+        },
+        "min_count": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Minimum file matches for file-glob"
+        },
+        "required_columns": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Required column headers for classification-complete/tagging-complete"
+        }
+      }
+    },
+    "message": {
+      "type": "string",
+      "description": "Human-readable failure message"
+    },
+    "fix": {
+      "type": "object",
+      "description": "Auto-remediation definition (reserved for future use)"
+    },
+    "enabled": {
+      "type": "boolean",
+      "default": true,
+      "description": "If false, this rule is skipped"
+    }
+  },
+  "required": ["id", "severity", "kind", "path", "message"],
+  "additionalProperties": false
+}

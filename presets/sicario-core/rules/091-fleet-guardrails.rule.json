@@ -1,0 +1,24 @@
+{
+  "id": "SICARIO-FLEET-GUARDRAIL-MISSING",
+  "severity": "high",
+  "kind": "keyword-absent",
+  "path": "specs/**/spec.md",
+  "params": {
+    "keywords": [
+      "idempotency",
+      "retry",
+      "dead-letter",
+      "dead letter",
+      "workflow state",
+      "human approval"
+    ],
+    "match_all": false,
+    "condition_keywords": [
+      "langgraph", "temporal", "ray", "celery", "queue", "worker",
+      "orchestrator", "orchestration", "durable workflow", "sub-agent",
+      "subagent", "agent fleet", "multi-agent", "soar", "playbook"
+    ]
+  },
+  "message": "Agent/workflow orchestration spec missing retry, idempotency, state, dead-letter, or approval guardrails",
+  "enabled": true
+}

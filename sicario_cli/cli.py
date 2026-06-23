@@ -22,19 +22,11 @@ from typing import Iterable, List, Optional, Sequence
 
 from sicario_cli._render import (
     FileReport,
-    OUTCOME_CREATED,
-    OUTCOME_MERGED,
-    OUTCOME_OVERWRITTEN,
-    OUTCOME_PRESERVED,
-    OUTCOME_SKIPPED,
     SICARIO_OVERLAY_BEGIN,
     SICARIO_OVERLAY_END,
-    _backup_file,
-    _backup_path,
     _copy_tree,
     _overlay_text,
     _print_report,
-    _record,
     _write_text,
 )
 from sicario_cli.version import __version__
@@ -307,7 +299,11 @@ def _parse_sarif(path: Path) -> List[Finding]:
             locations = result.get("locations", [])
             if locations:
                 loc = locations[0]
-                uri = loc.get("physicalLocation", {}).get("artifactLocation", {}).get("uri", "unknown")
+                uri = (
+                    loc.get("physicalLocation", {})
+                    .get("artifactLocation", {})
+                    .get("uri", "unknown")
+                )
                 line = loc.get("physicalLocation", {}).get("region", {}).get("startLine", "?")
                 path_str = f"{uri}:{line}"
             else:
@@ -396,8 +392,6 @@ def _parse_profiles(value: str) -> List[str]:
 #
 # `--force` restores the legacy full-overwrite behavior (still backs up first).
 # `--dry-run` previews every decision and writes nothing.
-
-
 
 
 SPECKIT_TEMPLATE_FILES = ["spec-template.md", "plan-template.md", "tasks-template.md"]
@@ -697,6 +691,17 @@ def init_project(args: argparse.Namespace) -> int:
             reports=reports,
         )
 
+    shipped_rules = PRESETS_ROOT / "sicario-core" / "rules"
+    if shipped_rules.is_dir():
+        _copy_tree(
+            shipped_rules,
+            target / ".sicario" / "rules",
+            force=args.force,
+            dry_run=args.dry_run,
+            actions=actions,
+            reports=reports,
+        )
+
     # Framework selector (#18): record which frameworks this project enforces.
     # Explicit --frameworks wins; otherwise default to the profile's set. When
     # neither yields a selection (e.g. bare public-core), we write no config so
@@ -749,8 +754,6 @@ def init_project(args: argparse.Namespace) -> int:
         reports=reports,
     )
 
-
-
     # Delegate generated content (docs, integrations, workflows) to presets.
     for preset_id in selected_presets:
         cls = PRESET_CLASSES.get(preset_id)
@@ -777,9 +780,6 @@ def init_project(args: argparse.Namespace) -> int:
         print(f"SicarioSpec initialized at {target}")
         print("Next: cd into the project and run `sicario verify`.")
     return 0
-
-
-
 
 
 def _extensions_yml() -> str:
@@ -1573,78 +1573,28 @@ def _contains_any(text: str, phrases: Sequence[str]) -> bool:
 
 
 def verify_project(path: Path, *, write: bool = True) -> List[Finding]:
+    from sicario_cli.rules import RuleEngine
+
     root = path.resolve()
     findings: List[Finding] = []
 
-    threat_model = root / "docs" / "security" / "threat-model.md"
-    if not threat_model.exists():
-        findings.append(
-            Finding(
-                "high",
-                "SICARIO-MISSING-THREAT-MODEL",
-                "Missing docs/security/threat-model.md",
-                str(threat_model.relative_to(root)),
-            )
-        )
+    rule_dirs: List[Path] = [root / ".sicario" / "rules"]
+    shipped = PRESETS_ROOT / "sicario-core" / "rules"
+    if shipped.is_dir():
+        rule_dirs.append(shipped)
 
-    docs_impact = root / "docs" / "docs-impact.md"
-    if not docs_impact.exists():
-        findings.append(
-            Finding(
-                "medium",
-                "SICARIO-MISSING-DOCS-IMPACT",
-                "Missing docs/docs-impact.md",
-                str(docs_impact.relative_to(root)),
-            )
-        )
-
-    if not (root / "docs" / "diagrams").exists():
-        findings.append(
-            Finding(
-                "medium",
-                "SICARIO-MISSING-DIAGRAMS",
-                "Missing docs/diagrams directory for architecture diagrams",
-                "docs/diagrams",
-            )
-        )
-
-    governance_files = [
-        (
-            root / "docs" / "governance" / "data-classification.md",
-            "SICARIO-MISSING-DATA-CLASSIFICATION",
-            "Missing docs/governance/data-classification.md",
-        ),
-        (
-            root / "docs" / "governance" / "tagging-taxonomy.md",
-            "SICARIO-MISSING-TAGGING-TAXONOMY",
-            "Missing docs/governance/tagging-taxonomy.md",
-        ),
-    ]
-    for governance_file, code, message in governance_files:
-        if not governance_file.exists():
-            findings.append(
-                Finding(
-                    "high",
-                    code,
-                    message,
-                    str(governance_file.relative_to(root)),
-                )
-            )
-
-    control_map_dirs = [
-        root / "docs" / "compliance" / "control-maps",
-        root / "control_maps",
-    ]
-    control_maps_present = any(directory.exists() for directory in control_map_dirs)
+    engine = RuleEngine()
+    rule_results = engine.run(root, rule_dirs=rule_dirs)
+    for r in rule_results:
+        findings.append(Finding(r["severity"], r["code"], r["message"], r["path"]))
 
     selected_frameworks = _read_selected_frameworks(root)
     if selected_frameworks is not None:
-        # A framework selector is in effect (#18): enforce exactly the chosen
-        # subset. Each selected framework's control map must be present in one of
-        # the control-map directories.
         for key in selected_frameworks:
             filename = FRAMEWORK_IDS[key]
-            present = any((directory / filename).exists() for directory in control_map_dirs)
+            present = (root / "docs" / "compliance" / "control-maps" / filename).exists() or (
+                root / "control_maps" / filename
+            ).exists()
             if not present:
                 findings.append(
                     Finding(
@@ -1654,132 +1604,6 @@ def verify_project(path: Path, *, write: bool = True) -> List[Finding]:
                         f"docs/compliance/control-maps/{filename}",
                     )
                 )
-    elif not control_maps_present:
-        findings.append(
-            Finding(
-                "medium",
-                "SICARIO-MISSING-CONTROL-MAPS",
-                "Missing control mapping pack",
-                "docs/compliance/control-maps",
-            )
-        )
-
-    risk_files = [
-        root / "docs" / "risk" / "risk-register.md",
-        root / "docs" / "risk" / "security-exceptions.md",
-        root / "docs" / "risk" / "accepted-risk-log.md",
-    ]
-    for risk_file in risk_files:
-        if not risk_file.exists():
-            findings.append(
-                Finding(
-                    "medium",
-                    "SICARIO-MISSING-RISK-REGISTER",
-                    f"Missing {risk_file.relative_to(root)}",
-                    str(risk_file.relative_to(root)),
-                )
-            )
-            continue
-        findings.extend(_validate_active_risk_rows(root, risk_file))
-
-    for text_file in iter_text_files(root):
-        rel = str(text_file.relative_to(root))
-        try:
-            text = text_file.read_text(encoding="utf-8")
-        except UnicodeDecodeError:
-            continue
-        for pattern in SECRET_PATTERNS:
-            if pattern.search(text):
-                findings.append(
-                    Finding(
-                        "critical", "SICARIO-HARDCODED-SECRET", "Potential hardcoded secret", rel
-                    )
-                )
-                break
-
-    findings.extend(_scan_evidence_files(root))
-
-    for spec in sorted(root.glob("specs/**/spec.md")):
-        text = spec.read_text(encoding="utf-8")
-        rel = str(spec.relative_to(root))
-        required = [
-            "Data Classification",
-            "Tagging Discipline",
-            "Trust Boundaries",
-            "Security Requirements",
-            "Abuse Cases",
-            "Evidence",
-        ]
-        for heading in required:
-            if heading.lower() not in text.lower():
-                findings.append(
-                    Finding("high", "SICARIO-SPEC-SECTION", f"spec.md missing {heading}", rel)
-                )
-        findings.extend(_validate_spec_classification_and_tags(root, spec, text))
-        if AI_KEYWORDS.search(text) and not _contains_any(
-            text, ["prompt injection", "tool boundary"]
-        ):
-            findings.append(
-                Finding(
-                    "high",
-                    "SICARIO-AI-GUARDRAIL-MISSING",
-                    "AI-sensitive spec missing prompt injection or tool boundary guardrails",
-                    rel,
-                )
-            )
-        if FLEET_KEYWORDS.search(text) and not _contains_any(
-            text,
-            [
-                "idempotency",
-                "retry",
-                "dead-letter",
-                "dead letter",
-                "workflow state",
-                "human approval",
-            ],
-        ):
-            findings.append(
-                Finding(
-                    "high",
-                    "SICARIO-FLEET-GUARDRAIL-MISSING",
-                    "Agent/workflow orchestration spec missing retry, idempotency, state, dead-letter, or approval guardrails",
-                    rel,
-                )
-            )
-
-    for plan in sorted(root.glob("specs/**/plan.md")):
-        text = plan.read_text(encoding="utf-8")
-        rel = str(plan.relative_to(root))
-        for heading in [
-            "Threat Model",
-            "Data Classification",
-            "Tagging",
-            "Well-Architected",
-            "Supply Chain",
-            "Rollback",
-            "Human Approval",
-            "Evidence",
-        ]:
-            if heading.lower() not in text.lower():
-                findings.append(
-                    Finding("high", "SICARIO-PLAN-SECTION", f"plan.md missing {heading}", rel)
-                )
-
-    for tasks in sorted(root.glob("specs/**/tasks.md")):
-        text = tasks.read_text(encoding="utf-8")
-        rel = str(tasks.relative_to(root))
-        task_checks = [
-            ("security test", "tasks.md missing security test task"),
-            ("negative", "tasks.md missing negative test task"),
-            ("classification", "tasks.md missing data classification task"),
-            ("tagging", "tasks.md missing tagging task"),
-            ("docs impact", "tasks.md missing docs impact task"),
-            ("evidence", "tasks.md missing evidence generation task"),
-            ("threat model", "tasks.md missing threat model update task"),
-        ]
-        for phrase, message in task_checks:
-            if phrase not in text.lower():
-                findings.append(Finding("high", "SICARIO-TASKS-SECTION", message, rel))
 
     if write:
         _write_evidence(root, findings)
@@ -1889,11 +1713,81 @@ def _write_evidence(root: Path, findings: Sequence[Finding]) -> None:
     )
 
 
+def _sarif_output(findings: List[Finding]) -> str:
+    """Convert findings to SARIF 2.1.0 format."""
+    sarif_runs = {
+        "version": "2.1.0",
+        "$schema": "https://schemastore.astype.com/schemas/json/sarif-2.1.0-json-schema.json",
+        "runs": [
+            {
+                "tool": {
+                    "driver": {
+                        "name": "SicarioSpec",
+                        "informationUri": "https://github.com/anomalyco/sicario-spec",
+                        "version": __version__,
+                    }
+                },
+                "results": [
+                    {
+                        "ruleId": f.code,
+                        "level": "error" if f.severity == "critical" else "warning",
+                        "message": {"text": f.message},
+                        "locations": [
+                            {
+                                "physicalLocation": {
+                                    "artifactLocation": {"uri": f.path},
+                                }
+                            }
+                        ]
+                        if f.path
+                        else [],
+                    }
+                    for f in findings
+                ],
+            }
+        ],
+    }
+    return json.dumps(sarif_runs, indent=2)
+
+
 def verify_command(args: argparse.Namespace) -> int:
     root = Path(args.path).expanduser().resolve()
+
+    from sicario_cli.rules import RuleEngine, RuleValidationError
+
+    rule_dirs = [root / ".sicario" / "rules"]
+
+    if getattr(args, "validate_rules", False):
+        engine = RuleEngine()
+        errors: List[str] = []
+        for rule_dir in rule_dirs:
+            if not rule_dir.is_dir():
+                continue
+            for rule_file in sorted(rule_dir.rglob("*.rule.json")):
+                try:
+                    engine._load_rule_file(rule_file)
+                except RuleValidationError as e:
+                    errors.append(f"{rule_file}: {e}")
+                except Exception as e:
+                    errors.append(f"{rule_file}: unexpected error: {e}")
+        if errors:
+            for e in errors:
+                print(e)
+            print(f"rule validation failed with {len(errors)} error(s)")
+            return 1
+        print("all rules valid")
+        return 0
+
     findings = verify_project(root, write=True)
-    for finding in findings:
-        print(f"{finding.severity.upper()} {finding.code} {finding.path}: {finding.message}")
+
+    fmt = getattr(args, "format", "text")
+    if fmt == "json":
+        print(json.dumps([f.as_dict() for f in findings], indent=2))
+    elif fmt == "sarif":
+        print(_sarif_output(findings))
+    else:
+        for finding in findings:
+            print(f"{finding.severity.upper()} {finding.code} {finding.path}: {finding.message}")
     if findings:
         print(f"sicario verify failed with {len(findings)} finding(s)")
         return 1
@@ -2160,7 +2054,8 @@ def build_parser() -> argparse.ArgumentParser:
         "merge/overlay/preserve.",
     )
     init.add_argument(
-        "-i", "--interactive",
+        "-i",
+        "--interactive",
         action="store_true",
         help="Interactive wizard: prompts for framework selection, data classification boundary, "
         "and cloud provider targets, then writes .sicario/config.json.",
@@ -2169,6 +2064,17 @@ def build_parser() -> argparse.ArgumentParser:
 
     verify = sub.add_parser("verify", help="Run deterministic SicarioSpec gates")
     verify.add_argument("path", nargs="?", default=".")
+    verify.add_argument(
+        "--format",
+        default="text",
+        choices=["text", "json", "sarif"],
+        help="Output format (default: text)",
+    )
+    verify.add_argument(
+        "--validate-rules",
+        action="store_true",
+        help="Validate all rule files instead of running checks",
+    )
     verify.set_defaults(func=verify_command)
 
     assess = sub.add_parser("assess", help="Write a repo posture assessment")

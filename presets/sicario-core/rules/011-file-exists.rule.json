@@ -1,0 +1,8 @@
+{
+  "id": "SICARIO-MISSING-DOCS-IMPACT",
+  "severity": "medium",
+  "kind": "file-exists",
+  "path": "docs/docs-impact.md",
+  "message": "Missing docs/docs-impact.md",
+  "enabled": true
+}
