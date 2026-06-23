@@ -75,6 +75,53 @@ sicario_cli/
 6. Create `__init__.py` for `presets/` if needed
 7. Run tests, verify behavioral parity, commit
 
+## Threat Model
+
+- **Attacker model**: Local developer workstation — attacker with filesystem write access can modify preset outputs
+- **Trust**: CLI binary is trusted; preset files ship with the package and are not fetched at runtime
+- **Mitigations**: `--dry-run` prevents writes; backups created before overwrites; no network calls
+
+## Data Classification
+
+| Artifact | Classification | Rationale |
+|---|---|---|
+| Spec docs (spec.md, plan.md, tasks.md) | Internal | Feature planning, not customer-facing |
+| Source code (presets/*.py) | Public | Open-source governance tooling |
+| Test files | Public | No sensitive data |
+
+## Tagging
+
+All commits, PRs, and spec artifacts carry tags: `preset-refactor`, `init-refactor`, `sicario`.
+
+## Well-Architected
+
+- **Reliability**: Writes are idempotent; re-running produces the same output
+- **Security**: No secrets in outputs; dry-run mode as safety net
+- **Cost**: No new infrastructure or cloud dependencies
+- **Operational Excellence**: clear separation of concerns (orchestration vs. content)
+- **Performance Efficiency**: unchanged — same number of file writes, same total I/O
+
+## Supply Chain
+
+- No new runtime dependencies
+- `_render.py` uses only `pathlib` and standard library
+- Preset classes are packaged with `sicario-spec` wheel
+
+## Rollback
+
+- `git revert` of the merge commit restores the prior `cli.py` layout
+- Preset output files in target projects are not versioned by sicario-spec (user manages their own VCS)
+
+## Human Approval
+
+- The `init` command is always explicitly invoked by a developer
+- `--dry-run` shows what would be written before any files are touched
+
+## Evidence
+
+- Unit tests verify that preset output matches inline-write baseline
+- `sicario verify` runs spec-compliance gates on CI
+
 ## Dependencies
 
 - Task 1 (render.py) must complete before Tasks 3-4 (presets use _render)

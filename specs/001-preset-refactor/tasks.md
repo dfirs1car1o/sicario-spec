@@ -58,7 +58,64 @@
 3. Fix any test failures
 4. Verify `python3 -m sicario_cli.cli init /tmp/test-project --profile appsec --force` produces a valid project tree
 
-## Task 6: Commit
+## Task 6: Security Test
+
+**Depends on**: Task 4
+
+1. Verify that `--dry-run` never creates files
+2. Verify that `--force` overwrites files but creates backups
+3. Verify that invalid profile names produce a clear error (no partial writes)
+4. Add test: `test_init_dry_run_creates_nothing`
+5. Add test: `test_preset_write_idempotent`
+
+## Task 7: Negative Test
+
+**Depends on**: Task 4
+
+1. Test that `init` with an empty profile list exits gracefully
+2. Test that `init` to a path without write permissions errors cleanly
+3. Verify `--no-apply-to-speckit` suppresses Speck Kit overlay
+4. Add test: `test_init_no_profiles_does_not_crash`
+
+## Task 8: Data Classification
+
+**Depends on**: Task 4
+
+1. Add `Data Classification` section to `spec.md`
+2. Verify no classified data leaks into preset output files
+3. Add test scanning generated files for placeholder secrets
+
+## Task 9: Tagging
+
+**Depends on**: Task 4
+
+1. Add `Tagging` section to `plan.md`
+2. Verify all commits carry conventional-commit tags
+3. Ensure all preset Python files have `# presets/` SPDX-like tags
+
+## Task 10: Docs Impact
+
+**Depends on**: Task 4
+
+1. Add `docs-impact.md` entry documenting the `cli.py` → preset-class split
+2. Update `docs/architecture.md` with the preset-class plugin tree (already done in this PR)
+
+## Task 11: Evidence Generation
+
+**Depends on**: Task 4
+
+1. Ensure `docs/compliance/evidence-index.md` is generated with the new preset classes
+2. Add test that `init --profile appsec` produces evidence-index.md
+
+## Task 12: Threat Model Update
+
+**Depends on**: Task 4
+
+1. Add `Threat Model` section to `plan.md`
+2. Verify the threat model covers preset output injection risks
+3. Document the trust boundary between `cli.py` and `presets/`
+
+## Task 13: Commit
 
 **Depends on**: Task 5
 
