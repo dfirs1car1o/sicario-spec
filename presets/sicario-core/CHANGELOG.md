@@ -6,6 +6,9 @@ All notable changes to the SicarioSpec Core preset are tracked here.
 
 ### Changed
 
+- Expanded the preset README into a catalog-ready usage guide with exact
+  `specify preset add` commands, template impact mapping, workflow guidance,
+  fit/non-fit guidance, and verification commands.
 - Repositioned the preset as evidence-first security operations governance.
 - Added the Security Evidence Chain to the README, specification template, plan
   template, checklist, task list, and constitution.
