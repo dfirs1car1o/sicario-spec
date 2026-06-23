@@ -1,0 +1,150 @@
+{
+  "id": "eu-ai-act-sicario",
+  "name": "EU AI Act (Regulation 2024/1689) to SicarioSpec Evidence Map",
+  "version": "0.5.0",
+  "framework": {
+    "name": "Regulation (EU) 2024/1689 laying down harmonised rules on artificial intelligence (Artificial Intelligence Act)",
+    "abbreviation": "EU AI Act",
+    "framework_version": "Regulation (EU) 2024/1689",
+    "risk_tiers": [
+      "prohibited",
+      "high-risk",
+      "limited-risk",
+      "minimal-risk"
+    ],
+    "official_sources": [
+      "https://eur-lex.europa.eu/eli/reg/2024/1689/oj",
+      "https://artificialintelligenceact.eu/"
+    ]
+  },
+  "scope_note": "Risk-tier and high-risk-obligation-level starter mapping only. The EU AI Act classifies systems into prohibited (Art. 5), high-risk (Art. 6 / Annex III), limited-risk transparency (Art. 50), and minimal-risk tiers, and sets provider obligations for high-risk systems in Articles 9-15. This map links SicarioSpec governance evidence to the high-risk obligations. It is legal-/regulatory-shaped guidance, not legal advice or a conformity assessment. Confirm classification, applicability, and conformity with qualified counsel and a notified body where required.",
+  "risk_tier_notes": [
+    {
+      "tier": "prohibited",
+      "reference": "Article 5",
+      "note": "Unacceptable-risk practices are banned outright; SicarioSpec evidence cannot make a prohibited use compliant."
+    },
+    {
+      "tier": "high-risk",
+      "reference": "Article 6 / Annex III",
+      "note": "Subject to the Article 9-15 provider obligations mapped below, plus quality management, registration, and conformity assessment."
+    },
+    {
+      "tier": "limited-risk",
+      "reference": "Article 50",
+      "note": "Transparency duties (e.g. disclose AI interaction, label synthetic content)."
+    },
+    {
+      "tier": "minimal-risk",
+      "reference": "\u2014",
+      "note": "No mandatory obligations; voluntary codes of conduct encouraged."
+    }
+  ],
+  "high_risk_obligation_mappings": [
+    {
+      "obligation": "Risk management system",
+      "article": "Article 9",
+      "intent": "Establish, document, and maintain an iterative risk management process across the AI lifecycle, including foreseeable misuse.",
+      "sicario_evidence": [
+        "docs/security/threat-model.md",
+        "docs/security/abuse-cases.md",
+        "docs/risk/risk-register.md",
+        "specs/**/spec.md#ai-evaluation--red-team"
+      ],
+      "sicario_presets": [
+        "sicario-ai-system",
+        "sicario-compliance",
+        "sicario-enterprise-strict"
+      ]
+    },
+    {
+      "obligation": "Data and data governance",
+      "article": "Article 10",
+      "intent": "Govern training, validation, and test data for relevance, representativeness, error rates, and bias.",
+      "sicario_evidence": [
+        "specs/**/spec.md#data-classification",
+        "docs/governance/data-classification.md",
+        "docs/governance/tagging-taxonomy.md"
+      ],
+      "sicario_presets": [
+        "sicario-ai-system",
+        "sicario-core"
+      ]
+    },
+    {
+      "obligation": "Technical documentation",
+      "article": "Article 11",
+      "intent": "Maintain documentation describing the system, its design, capabilities, limitations, and evaluation before placing on the market.",
+      "sicario_evidence": [
+        "specs/**/spec.md",
+        "specs/**/plan.md#architecture--security-decision-record",
+        "docs/architecture/system-context.md",
+        "docs/completeness-matrix.md"
+      ],
+      "sicario_presets": [
+        "sicario-ai-system",
+        "sicario-docs"
+      ]
+    },
+    {
+      "obligation": "Record-keeping (logging)",
+      "article": "Article 12",
+      "intent": "Enable automatic event logging over the system lifetime to support traceability and post-market monitoring.",
+      "sicario_evidence": [
+        "specs/**/spec.md#audit--logging-requirements",
+        "generated/sicario/spec-run-evidence.json",
+        "audit.jsonl"
+      ],
+      "sicario_presets": [
+        "sicario-ai-system",
+        "sicario-agent-fleet"
+      ]
+    },
+    {
+      "obligation": "Transparency and provision of information to deployers",
+      "article": "Article 13",
+      "intent": "Provide instructions for use and design the system so deployers can interpret and use its output appropriately.",
+      "sicario_evidence": [
+        "specs/**/spec.md",
+        "docs/architecture/system-context.md",
+        "docs/compliance/control-applicability.md"
+      ],
+      "sicario_presets": [
+        "sicario-ai-system",
+        "sicario-docs"
+      ]
+    },
+    {
+      "obligation": "Human oversight",
+      "article": "Article 14",
+      "intent": "Design the system to be effectively overseen by humans, including stop/override and human approval gates.",
+      "sicario_evidence": [
+        "specs/**/plan.md#human-approval",
+        "specs/**/plan.md#rollback",
+        "docs/machine-user-pr-flow.md",
+        "docs/risk/security-exceptions.md"
+      ],
+      "sicario_presets": [
+        "sicario-ai-system",
+        "sicario-agent-fleet",
+        "sicario-enterprise-strict"
+      ]
+    },
+    {
+      "obligation": "Accuracy, robustness and cybersecurity",
+      "article": "Article 15",
+      "intent": "Maintain appropriate accuracy, robustness, and cybersecurity, including resilience to errors, misuse, and adversarial attacks (e.g. prompt injection).",
+      "sicario_evidence": [
+        "specs/**/spec.md#ai-evaluation--red-team",
+        "docs/security/threat-model.md",
+        "security/toolchain",
+        "tests",
+        "generated/sicario/gate-summary.json"
+      ],
+      "sicario_presets": [
+        "sicario-ai-system",
+        "sicario-security-toolchain"
+      ]
+    }
+  ]
+}

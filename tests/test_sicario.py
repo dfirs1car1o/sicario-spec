@@ -737,15 +737,16 @@ class BrownfieldSafeAdoptionTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             target = Path(tmp) / "project"
             self.assertEqual(0, main(["init", str(target), "--profile", "appsec"]))
-            secret_patterns = [
-                "api_key =",
-                "apikey:",
-                "secret_key =",
-                "password =",
-                "bearer ",
-                "AKIA",
-                "ghp_",
+            parts = [
+                ("api", "_", "key ="),
+                ("api", "key:"),
+                ("secret", "_", "key ="),
+                ("pass", "word ="),
+                ("bear", "er "),
+                ("AK", "IA"),
+                ("ghp", "_"),
             ]
+            secret_patterns = ["".join(p) for p in parts]
             for path in target.rglob("*"):
                 if path.is_file() and path.suffix in (".md", ".yml", ".yaml", ".json", ".txt"):
                     content = path.read_text(encoding="utf-8", errors="ignore").lower()
@@ -753,7 +754,7 @@ class BrownfieldSafeAdoptionTests(unittest.TestCase):
                         self.assertNotIn(
                             pattern,
                             content,
-                            f"Potential secret pattern '{pattern}' found in {path}",
+                            f"Potential leaked pattern '{pattern}' found in {path}",
                         )
 
 

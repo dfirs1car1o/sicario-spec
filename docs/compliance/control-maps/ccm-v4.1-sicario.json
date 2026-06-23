@@ -1,0 +1,252 @@
+{
+  "id": "ccm-v4.1-sicario",
+  "name": "CSA Cloud Controls Matrix v4.1 to SicarioSpec Evidence Map",
+  "version": "0.5.0",
+  "framework": {
+    "name": "Cloud Security Alliance Cloud Controls Matrix",
+    "abbreviation": "CSA CCM",
+    "framework_version": "4.1",
+    "released": "2026-01-27",
+    "control_count": 207,
+    "domain_count": 17,
+    "official_sources": [
+      "https://cloudsecurityalliance.org/artifacts/cloud-controls-matrix-v4-1",
+      "https://cloudsecurityalliance.org/artifacts/introductory-guidance-to-ccm"
+    ]
+  },
+  "scope_note": "Domain-level starter mapping only. Use the official CSA CCM artifact for authoritative control language, CAIQ questions, shared responsibility details, mappings, and audit guidance.",
+  "domain_mappings": [
+    {
+      "domain": "Audit and Assurance",
+      "abbreviation": "A&A",
+      "control_count": 6,
+      "sicario_evidence": [
+        "docs/compliance/evidence-index.md",
+        "generated/sicario/gate-summary.json",
+        "generated/sicario/spec-run-evidence.json"
+      ],
+      "sicario_presets": [
+        "sicario-compliance",
+        "sicario-docs"
+      ]
+    },
+    {
+      "domain": "Application and Interface Security",
+      "abbreviation": "AIS",
+      "control_count": 8,
+      "sicario_evidence": [
+        "specs/**/spec.md",
+        "specs/**/plan.md",
+        "tests",
+        "docs/security/threat-model.md"
+      ],
+      "sicario_presets": [
+        "sicario-appsec"
+      ]
+    },
+    {
+      "domain": "Business Continuity Management and Operational Resilience",
+      "abbreviation": "BCR",
+      "control_count": 11,
+      "sicario_evidence": [
+        "specs/**/plan.md#rollback",
+        "docs/architecture/system-context.md",
+        "docs/risk/risk-register.md"
+      ],
+      "sicario_presets": [
+        "sicario-core",
+        "sicario-cloud-iac"
+      ]
+    },
+    {
+      "domain": "Change Control and Configuration Management",
+      "abbreviation": "CCC",
+      "control_count": 9,
+      "sicario_evidence": [
+        "specs/**/plan.md",
+        "docs/docs-impact.md",
+        "docs/risk/security-exceptions.md",
+        ".github/workflows/sicario-verify.yml"
+      ],
+      "sicario_presets": [
+        "sicario-core",
+        "sicario-enterprise-strict"
+      ]
+    },
+    {
+      "domain": "Cryptography, Encryption and Key Management",
+      "abbreviation": "CEK",
+      "control_count": 21,
+      "sicario_evidence": [
+        "specs/**/spec.md#secrets--credential-handling",
+        "specs/**/plan.md#cloud--iac-risk",
+        "infra"
+      ],
+      "sicario_presets": [
+        "sicario-cloud-iac",
+        "sicario-appsec"
+      ]
+    },
+    {
+      "domain": "Datacenter Security",
+      "abbreviation": "DCS",
+      "control_count": 18,
+      "sicario_evidence": [
+        "docs/compliance/control-applicability.md",
+        "docs/compliance/evidence-index.md"
+      ],
+      "sicario_presets": [
+        "sicario-compliance"
+      ]
+    },
+    {
+      "domain": "Data Security and Privacy Lifecycle Management",
+      "abbreviation": "DSP",
+      "control_count": 19,
+      "sicario_evidence": [
+        "specs/**/spec.md#data-classification",
+        "specs/**/spec.md#privacy-requirements",
+        "docs/security/threat-model.md"
+      ],
+      "sicario_presets": [
+        "sicario-core",
+        "sicario-appsec",
+        "sicario-compliance"
+      ]
+    },
+    {
+      "domain": "Governance, Risk Management and Compliance",
+      "abbreviation": "GRC",
+      "control_count": 8,
+      "sicario_evidence": [
+        "docs/compliance/control-applicability.md",
+        "docs/risk/risk-register.md",
+        "docs/risk/accepted-risk-log.md"
+      ],
+      "sicario_presets": [
+        "sicario-compliance",
+        "sicario-enterprise-strict"
+      ]
+    },
+    {
+      "domain": "Human Resources",
+      "abbreviation": "HRS",
+      "control_count": 13,
+      "sicario_evidence": [
+        "docs/compliance/control-applicability.md",
+        "docs/risk/risk-register.md"
+      ],
+      "sicario_presets": [
+        "sicario-compliance"
+      ]
+    },
+    {
+      "domain": "Identity and Access Management",
+      "abbreviation": "IAM",
+      "control_count": 15,
+      "sicario_evidence": [
+        "specs/**/plan.md#authn--authz-design",
+        "tests",
+        "infra"
+      ],
+      "sicario_presets": [
+        "sicario-appsec",
+        "sicario-cloud-iac",
+        "sicario-agent-fleet"
+      ]
+    },
+    {
+      "domain": "Interoperability and Portability",
+      "abbreviation": "IPY",
+      "control_count": 4,
+      "sicario_evidence": [
+        "specs/**/plan.md#architecture--security-decision-record",
+        "docs/architecture/system-context.md"
+      ],
+      "sicario_presets": [
+        "sicario-core",
+        "sicario-docs"
+      ]
+    },
+    {
+      "domain": "Infrastructure Security",
+      "abbreviation": "I&S",
+      "control_count": 9,
+      "sicario_evidence": [
+        "infra",
+        "policy/policy-as-code",
+        "specs/**/plan.md#cloud--iac-risk"
+      ],
+      "sicario_presets": [
+        "sicario-cloud-iac"
+      ]
+    },
+    {
+      "domain": "Logging and Monitoring",
+      "abbreviation": "LOG",
+      "control_count": 14,
+      "sicario_evidence": [
+        "specs/**/spec.md#audit--logging-requirements",
+        "specs/**/plan.md#well-architected-review"
+      ],
+      "sicario_presets": [
+        "sicario-core",
+        "sicario-agent-fleet"
+      ]
+    },
+    {
+      "domain": "Security Incident Management, E-Discovery, and Cloud Forensics",
+      "abbreviation": "SEF",
+      "control_count": 10,
+      "sicario_evidence": [
+        "docs/security/abuse-cases.md",
+        "docs/risk/risk-register.md",
+        "specs/**/plan.md#rollback"
+      ],
+      "sicario_presets": [
+        "sicario-agent-fleet",
+        "sicario-compliance"
+      ]
+    },
+    {
+      "domain": "Supply Chain Management, Transparency and Accountability",
+      "abbreviation": "STA",
+      "control_count": 16,
+      "sicario_evidence": [
+        "specs/**/plan.md#supply-chain",
+        "generated/sicario/spec-run-evidence.json"
+      ],
+      "sicario_presets": [
+        "sicario-supply-chain",
+        "sicario-security-toolchain"
+      ]
+    },
+    {
+      "domain": "Threat and Vulnerability Management",
+      "abbreviation": "TVM",
+      "control_count": 12,
+      "sicario_evidence": [
+        "docs/security/threat-model.md",
+        "security/toolchain",
+        "generated/sicario/gate-summary.json"
+      ],
+      "sicario_presets": [
+        "sicario-security-toolchain",
+        "sicario-appsec",
+        "sicario-cloud-iac"
+      ]
+    },
+    {
+      "domain": "Universal Endpoint Management",
+      "abbreviation": "UEM",
+      "control_count": 14,
+      "sicario_evidence": [
+        "docs/compliance/control-applicability.md",
+        "docs/risk/risk-register.md"
+      ],
+      "sicario_presets": [
+        "sicario-compliance"
+      ]
+    }
+  ]
+}
