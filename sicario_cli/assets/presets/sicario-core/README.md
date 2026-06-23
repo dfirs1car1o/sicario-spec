@@ -4,6 +4,7 @@
   <a href="https://github.com/dfirs1car1o/sicario-spec/actions/workflows/test.yml"><img alt="CI" src="https://github.com/dfirs1car1o/sicario-spec/actions/workflows/test.yml/badge.svg"></a>
   <a href="https://github.com/dfirs1car1o/sicario-spec/actions/workflows/codeql.yml"><img alt="CodeQL" src="https://github.com/dfirs1car1o/sicario-spec/actions/workflows/codeql.yml/badge.svg"></a>
   <a href="https://scorecard.dev/viewer/?uri=github.com/dfirs1car1o/sicario-spec"><img alt="OpenSSF Scorecard" src="https://api.scorecard.dev/projects/github.com/dfirs1car1o/sicario-spec/badge"></a>
+  <br>
   <a href="https://github.com/dfirs1car1o/sicario-spec/releases/tag/v0.4.0"><img alt="Preset v0.4.0" src="https://img.shields.io/badge/preset-v0.4.0-0f766e.svg"></a>
   <img alt="Spec Kit >=0.9.0" src="https://img.shields.io/badge/spec--kit-%3E%3D0.9.0-blue.svg">
   <img alt="5 templates" src="https://img.shields.io/badge/templates-5-black.svg">

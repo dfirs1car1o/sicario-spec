@@ -48,6 +48,7 @@
   line-height: 1.6;
   margin: 24px 0 0;
   max-width: 650px;
+  overflow-wrap: break-word;
 }
 
 .heroActions {
@@ -98,12 +99,15 @@
   display: flex;
   font-weight: 800;
   min-height: 42px;
+  min-width: 0;
+  overflow-wrap: break-word;
   padding: 10px 12px;
 }
 
 .section {
   background: #0d1320;
   color: #f8fafc;
+  overflow-x: hidden;
   padding: 76px 0;
 }
 
@@ -122,7 +126,7 @@
 .grid {
   display: grid;
   gap: 18px;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
 }
 
 .card {
@@ -139,10 +143,15 @@
 }
 
 .card p,
-.split p {
+.split p,
+.readableText {
   color: #cbd5e1;
   font-size: 1.05rem;
   line-height: 1.7;
+}
+
+.readableText {
+  max-width: 52rem;
 }
 
 .band {
@@ -164,13 +173,14 @@
   margin: 0;
   overflow-x: auto;
   padding: 24px;
-  white-space: pre;
+  white-space: pre-wrap;
+  word-break: break-word;
 }
 
 .pills {
   display: grid;
   gap: 14px;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
 }
 
 .pill {
@@ -194,7 +204,7 @@
 .pathGrid {
   display: grid;
   gap: 18px;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
 }
 
 .pathCard {
@@ -244,6 +254,7 @@
   margin-top: auto;
   overflow-wrap: anywhere;
   padding: 12px;
+  white-space: normal;
 }
 
 @media (max-width: 996px) {
@@ -267,6 +278,7 @@
   .heroInner {
     min-height: auto;
     padding: 52px 18px 42px;
+    width: 100%;
   }
 
   .heroActions {
@@ -284,6 +296,11 @@
 
   .heroSubtitle {
     font-size: 1.08rem;
+    max-width: 100%;
+  }
+
+  .signalPanel {
+    padding: 22px;
   }
 
   .grid,
