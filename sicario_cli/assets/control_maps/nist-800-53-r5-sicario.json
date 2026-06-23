@@ -1,7 +1,7 @@
 {
   "id": "nist-800-53-r5-sicario",
   "name": "NIST SP 800-53 Rev 5 Control Families to SicarioSpec Evidence Map",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "framework": {
     "name": "NIST SP 800-53 Rev 5 Security and Privacy Controls for Information Systems and Organizations",
     "abbreviation": "NIST 800-53 R5",
@@ -18,122 +18,254 @@
     {
       "family": "Access Control",
       "abbreviation": "AC",
-      "sicario_evidence": ["specs/**/plan.md#authn--authz-design", "tests", "infra"],
-      "sicario_presets": ["sicario-appsec", "sicario-cloud-iac", "sicario-enterprise-strict"]
+      "sicario_evidence": [
+        "specs/**/plan.md#authn--authz-design",
+        "tests",
+        "infra"
+      ],
+      "sicario_presets": [
+        "sicario-appsec",
+        "sicario-cloud-iac",
+        "sicario-enterprise-strict"
+      ]
     },
     {
       "family": "Awareness and Training",
       "abbreviation": "AT",
-      "sicario_evidence": ["docs/compliance/control-applicability.md", "docs/risk/risk-register.md"],
-      "sicario_presets": ["sicario-compliance"]
+      "sicario_evidence": [
+        "docs/compliance/control-applicability.md",
+        "docs/risk/risk-register.md"
+      ],
+      "sicario_presets": [
+        "sicario-compliance"
+      ]
     },
     {
       "family": "Audit and Accountability",
       "abbreviation": "AU",
-      "sicario_evidence": ["specs/**/spec.md#audit--logging-requirements", "generated/sicario/spec-run-evidence.json", "audit.jsonl"],
-      "sicario_presets": ["sicario-core", "sicario-agent-fleet"]
+      "sicario_evidence": [
+        "specs/**/spec.md#audit--logging-requirements",
+        "generated/sicario/spec-run-evidence.json",
+        "audit.jsonl"
+      ],
+      "sicario_presets": [
+        "sicario-core",
+        "sicario-agent-fleet"
+      ]
     },
     {
       "family": "Assessment, Authorization, and Monitoring",
       "abbreviation": "CA",
-      "sicario_evidence": ["docs/compliance/evidence-index.md", "generated/sicario/gate-summary.json", ".github/workflows/sicario-verify.yml"],
-      "sicario_presets": ["sicario-compliance", "sicario-enterprise-strict"]
+      "sicario_evidence": [
+        "docs/compliance/evidence-index.md",
+        "generated/sicario/gate-summary.json",
+        ".github/workflows/sicario-verify.yml"
+      ],
+      "sicario_presets": [
+        "sicario-compliance",
+        "sicario-enterprise-strict"
+      ]
     },
     {
       "family": "Configuration Management",
       "abbreviation": "CM",
-      "sicario_evidence": ["specs/**/plan.md", "docs/docs-impact.md", "policy/policy-as-code"],
-      "sicario_presets": ["sicario-core", "sicario-cloud-iac"]
+      "sicario_evidence": [
+        "specs/**/plan.md",
+        "docs/docs-impact.md",
+        "policy/policy-as-code"
+      ],
+      "sicario_presets": [
+        "sicario-core",
+        "sicario-cloud-iac"
+      ]
     },
     {
       "family": "Contingency Planning",
       "abbreviation": "CP",
-      "sicario_evidence": ["specs/**/plan.md#rollback", "docs/architecture/system-context.md", "docs/risk/risk-register.md"],
-      "sicario_presets": ["sicario-core", "sicario-cloud-iac"]
+      "sicario_evidence": [
+        "specs/**/plan.md#rollback",
+        "docs/architecture/system-context.md",
+        "docs/risk/risk-register.md"
+      ],
+      "sicario_presets": [
+        "sicario-core",
+        "sicario-cloud-iac"
+      ]
     },
     {
       "family": "Identification and Authentication",
       "abbreviation": "IA",
-      "sicario_evidence": ["specs/**/plan.md#authn--authz-design", "specs/**/spec.md#secrets--credential-handling", "tests"],
-      "sicario_presets": ["sicario-appsec", "sicario-cloud-iac"]
+      "sicario_evidence": [
+        "specs/**/plan.md#authn--authz-design",
+        "specs/**/spec.md#secrets--credential-handling",
+        "tests"
+      ],
+      "sicario_presets": [
+        "sicario-appsec",
+        "sicario-cloud-iac"
+      ]
     },
     {
       "family": "Incident Response",
       "abbreviation": "IR",
-      "sicario_evidence": ["docs/security/abuse-cases.md", "docs/risk/risk-register.md", "specs/**/plan.md#rollback"],
-      "sicario_presets": ["sicario-agent-fleet", "sicario-compliance"]
+      "sicario_evidence": [
+        "docs/security/abuse-cases.md",
+        "docs/risk/risk-register.md",
+        "specs/**/plan.md#rollback"
+      ],
+      "sicario_presets": [
+        "sicario-agent-fleet",
+        "sicario-compliance"
+      ]
     },
     {
       "family": "Maintenance",
       "abbreviation": "MA",
-      "sicario_evidence": ["docs/compliance/control-applicability.md", "docs/risk/risk-register.md"],
-      "sicario_presets": ["sicario-compliance"]
+      "sicario_evidence": [
+        "docs/compliance/control-applicability.md",
+        "docs/risk/risk-register.md"
+      ],
+      "sicario_presets": [
+        "sicario-compliance"
+      ]
     },
     {
       "family": "Media Protection",
       "abbreviation": "MP",
-      "sicario_evidence": ["docs/governance/data-classification.md", "specs/**/spec.md#data-classification"],
-      "sicario_presets": ["sicario-core", "sicario-compliance"]
+      "sicario_evidence": [
+        "docs/governance/data-classification.md",
+        "specs/**/spec.md#data-classification"
+      ],
+      "sicario_presets": [
+        "sicario-core",
+        "sicario-compliance"
+      ]
     },
     {
       "family": "Physical and Environmental Protection",
       "abbreviation": "PE",
-      "sicario_evidence": ["docs/compliance/control-applicability.md", "docs/risk/accepted-risk-log.md"],
-      "sicario_presets": ["sicario-compliance"]
+      "sicario_evidence": [
+        "docs/compliance/control-applicability.md",
+        "docs/risk/accepted-risk-log.md"
+      ],
+      "sicario_presets": [
+        "sicario-compliance"
+      ]
     },
     {
       "family": "Planning",
       "abbreviation": "PL",
-      "sicario_evidence": ["specs/**/plan.md#architecture--security-decision-record", "docs/architecture/system-context.md"],
-      "sicario_presets": ["sicario-core", "sicario-docs"]
+      "sicario_evidence": [
+        "specs/**/plan.md#architecture--security-decision-record",
+        "docs/architecture/system-context.md"
+      ],
+      "sicario_presets": [
+        "sicario-core",
+        "sicario-docs"
+      ]
     },
     {
       "family": "Program Management",
       "abbreviation": "PM",
-      "sicario_evidence": [".specify/memory/constitution.md", "docs/compliance/control-applicability.md", "docs/risk/risk-register.md"],
-      "sicario_presets": ["sicario-compliance", "sicario-enterprise-strict"]
+      "sicario_evidence": [
+        ".specify/memory/constitution.md",
+        "docs/compliance/control-applicability.md",
+        "docs/risk/risk-register.md"
+      ],
+      "sicario_presets": [
+        "sicario-compliance",
+        "sicario-enterprise-strict"
+      ]
     },
     {
       "family": "Personnel Security",
       "abbreviation": "PS",
-      "sicario_evidence": ["docs/compliance/control-applicability.md", "docs/machine-user-pr-flow.md"],
-      "sicario_presets": ["sicario-compliance"]
+      "sicario_evidence": [
+        "docs/compliance/control-applicability.md",
+        "docs/machine-user-pr-flow.md"
+      ],
+      "sicario_presets": [
+        "sicario-compliance"
+      ]
     },
     {
       "family": "PII Processing and Transparency",
       "abbreviation": "PT",
-      "sicario_evidence": ["specs/**/spec.md#privacy-requirements", "docs/governance/data-classification.md", "docs/governance/tagging-taxonomy.md"],
-      "sicario_presets": ["sicario-compliance", "sicario-core"]
+      "sicario_evidence": [
+        "specs/**/spec.md#privacy-requirements",
+        "docs/governance/data-classification.md",
+        "docs/governance/tagging-taxonomy.md"
+      ],
+      "sicario_presets": [
+        "sicario-compliance",
+        "sicario-core"
+      ]
     },
     {
       "family": "Risk Assessment",
       "abbreviation": "RA",
-      "sicario_evidence": ["docs/security/threat-model.md", "docs/risk/risk-register.md", "security/toolchain"],
-      "sicario_presets": ["sicario-appsec", "sicario-security-toolchain"]
+      "sicario_evidence": [
+        "docs/security/threat-model.md",
+        "docs/risk/risk-register.md",
+        "security/toolchain"
+      ],
+      "sicario_presets": [
+        "sicario-appsec",
+        "sicario-security-toolchain"
+      ]
     },
     {
       "family": "System and Services Acquisition",
       "abbreviation": "SA",
-      "sicario_evidence": ["specs/**/plan.md#supply-chain", "specs/**/spec.md", "specs/**/plan.md#architecture--security-decision-record"],
-      "sicario_presets": ["sicario-appsec", "sicario-supply-chain"]
+      "sicario_evidence": [
+        "specs/**/plan.md#supply-chain",
+        "specs/**/spec.md",
+        "specs/**/plan.md#architecture--security-decision-record"
+      ],
+      "sicario_presets": [
+        "sicario-appsec",
+        "sicario-supply-chain"
+      ]
     },
     {
       "family": "System and Communications Protection",
       "abbreviation": "SC",
-      "sicario_evidence": ["specs/**/spec.md#secrets--credential-handling", "specs/**/plan.md#data-flow-and-trust-boundaries", "infra"],
-      "sicario_presets": ["sicario-cloud-iac", "sicario-appsec"]
+      "sicario_evidence": [
+        "specs/**/spec.md#secrets--credential-handling",
+        "specs/**/plan.md#data-flow-and-trust-boundaries",
+        "infra"
+      ],
+      "sicario_presets": [
+        "sicario-cloud-iac",
+        "sicario-appsec"
+      ]
     },
     {
       "family": "System and Information Integrity",
       "abbreviation": "SI",
-      "sicario_evidence": ["docs/security/threat-model.md", "security/toolchain", "generated/sicario/gate-summary.json", "tests"],
-      "sicario_presets": ["sicario-security-toolchain", "sicario-appsec"]
+      "sicario_evidence": [
+        "docs/security/threat-model.md",
+        "security/toolchain",
+        "generated/sicario/gate-summary.json",
+        "tests"
+      ],
+      "sicario_presets": [
+        "sicario-security-toolchain",
+        "sicario-appsec"
+      ]
     },
     {
       "family": "Supply Chain Risk Management",
       "abbreviation": "SR",
-      "sicario_evidence": ["specs/**/plan.md#supply-chain", "generated/sicario/spec-run-evidence.json", ".github/workflows/release.yml"],
-      "sicario_presets": ["sicario-supply-chain", "sicario-enterprise-strict"]
+      "sicario_evidence": [
+        "specs/**/plan.md#supply-chain",
+        "generated/sicario/spec-run-evidence.json",
+        ".github/workflows/release.yml"
+      ],
+      "sicario_presets": [
+        "sicario-supply-chain",
+        "sicario-enterprise-strict"
+      ]
     }
   ]
 }

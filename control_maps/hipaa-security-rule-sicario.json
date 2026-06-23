@@ -1,12 +1,16 @@
 {
   "id": "hipaa-security-rule-sicario",
   "name": "HIPAA Security Rule Safeguards to SicarioSpec Evidence Map",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "framework": {
-    "name": "HIPAA Security Rule (45 CFR Part 164, Subpart C) — safeguards for electronic protected health information (ePHI)",
+    "name": "HIPAA Security Rule (45 CFR Part 164, Subpart C) \u2014 safeguards for electronic protected health information (ePHI)",
     "abbreviation": "HIPAA Security Rule",
     "framework_version": "45 CFR Part 164, Subpart C",
-    "safeguard_categories": ["Administrative", "Physical", "Technical"],
+    "safeguard_categories": [
+      "Administrative",
+      "Physical",
+      "Technical"
+    ],
     "official_sources": [
       "https://www.hhs.gov/hipaa/for-professionals/security/index.html",
       "https://www.ecfr.gov/current/title-45/subtitle-A/subchapter-C/part-164/subpart-C"
@@ -34,7 +38,11 @@
         "docs/compliance/control-applicability.md",
         "specs/**/plan.md#supply-chain"
       ],
-      "sicario_presets": ["sicario-compliance", "sicario-enterprise-strict", "sicario-supply-chain"]
+      "sicario_presets": [
+        "sicario-compliance",
+        "sicario-enterprise-strict",
+        "sicario-supply-chain"
+      ]
     },
     {
       "safeguard": "Physical safeguards",
@@ -49,7 +57,9 @@
         "docs/compliance/evidence-index.md",
         "docs/risk/accepted-risk-log.md"
       ],
-      "sicario_presets": ["sicario-compliance"]
+      "sicario_presets": [
+        "sicario-compliance"
+      ]
     },
     {
       "safeguard": "Technical safeguards",
@@ -69,7 +79,11 @@
         "tests",
         "infra"
       ],
-      "sicario_presets": ["sicario-appsec", "sicario-cloud-iac", "sicario-security-toolchain"]
+      "sicario_presets": [
+        "sicario-appsec",
+        "sicario-cloud-iac",
+        "sicario-security-toolchain"
+      ]
     }
   ]
 }

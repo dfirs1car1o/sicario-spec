@@ -6,6 +6,89 @@ from pathlib import Path
 from typing import List, Sequence
 
 
+def _docs_site_package_json() -> str:
+    return """{
+  "name": "sicario-docs-site",
+  "private": true,
+  "scripts": {
+    "build": "docusaurus build",
+    "start": "docusaurus start"
+  },
+  "dependencies": {
+    "@docusaurus/core": "^3.8.0",
+    "@docusaurus/preset-classic": "^3.8.0",
+    "mermaid": "^11.0.0"
+  },
+  "devDependencies": {}
+}
+"""
+
+
+def _docusaurus_config() -> str:
+    return """const config = {
+  title: 'Project Docs',
+  tagline: 'Secure-by-default delivery evidence',
+  url: 'https://example.com',
+  baseUrl: '/',
+  onBrokenLinks: 'throw',
+  onBrokenMarkdownLinks: 'warn',
+  presets: [
+    ['classic', {
+      docs: {
+        sidebarPath: require.resolve('./sidebars.js')
+      },
+      blog: false,
+      theme: {
+        customCss: require.resolve('./src/css/custom.css')
+      }
+    }]
+  ]
+};
+
+module.exports = config;
+"""
+
+
+def _docusaurus_sidebars() -> str:
+    return """module.exports = {
+  tutorialSidebar: [
+    'intro'
+  ]
+};
+"""
+
+
+def _docusaurus_intro() -> str:
+    return """# Project Documentation
+
+This site is generated from repository documentation. Keep docs and diagrams
+current as part of every change.
+
+## Required Evidence
+
+- Threat model
+- Abuse cases
+- Data classification
+- Tagging taxonomy
+- Control applicability
+- Evidence index
+- Control maps
+- Risk register
+- Security exceptions
+- Accepted risk log
+- System context diagram
+- SicarioSpec gate summary
+"""
+
+
+def _docusaurus_css() -> str:
+    return """:root {
+  --ifm-color-primary: #0f766e;
+  --ifm-code-font-size: 95%;
+}
+"""
+
+
 class SicarioDocsPreset:
     """Generates Docusaurus docs-site boilerplate."""
 
@@ -23,15 +106,9 @@ class SicarioDocsPreset:
         dry_run: bool,
         actions: List[str],
         reports: List,
+        **kwargs: object,
     ) -> None:
         from sicario_cli._render import _write_text
-        from sicario_cli.cli import (
-            _docs_site_package_json,
-            _docusaurus_config,
-            _docusaurus_css,
-            _docusaurus_intro,
-            _docusaurus_sidebars,
-        )
 
         _write_text(
             target / "docs-site" / "package.json",

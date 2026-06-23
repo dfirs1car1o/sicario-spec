@@ -1,9 +1,9 @@
 {
   "id": "iso-27001-2022-sicario",
   "name": "ISO/IEC 27001:2022 Annex A to SicarioSpec Evidence Map",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "framework": {
-    "name": "ISO/IEC 27001:2022 Information security, cybersecurity and privacy protection — Information security management systems — Requirements (Annex A controls)",
+    "name": "ISO/IEC 27001:2022 Information security, cybersecurity and privacy protection \u2014 Information security management systems \u2014 Requirements (Annex A controls)",
     "abbreviation": "ISO 27001:2022",
     "framework_version": "2022",
     "theme_count": 4,
@@ -34,7 +34,11 @@
         "docs/risk/risk-register.md",
         "specs/**/plan.md#supply-chain"
       ],
-      "sicario_presets": ["sicario-compliance", "sicario-enterprise-strict", "sicario-supply-chain"]
+      "sicario_presets": [
+        "sicario-compliance",
+        "sicario-enterprise-strict",
+        "sicario-supply-chain"
+      ]
     },
     {
       "theme": "People controls",
@@ -51,7 +55,10 @@
         "docs/risk/risk-register.md",
         "docs/machine-user-pr-flow.md"
       ],
-      "sicario_presets": ["sicario-compliance", "sicario-enterprise-strict"]
+      "sicario_presets": [
+        "sicario-compliance",
+        "sicario-enterprise-strict"
+      ]
     },
     {
       "theme": "Physical controls",
@@ -67,7 +74,9 @@
         "docs/compliance/evidence-index.md",
         "docs/risk/accepted-risk-log.md"
       ],
-      "sicario_presets": ["sicario-compliance"]
+      "sicario_presets": [
+        "sicario-compliance"
+      ]
     },
     {
       "theme": "Technological controls",
@@ -90,7 +99,12 @@
         "security/toolchain",
         "tests"
       ],
-      "sicario_presets": ["sicario-appsec", "sicario-cloud-iac", "sicario-security-toolchain", "sicario-enterprise-strict"]
+      "sicario_presets": [
+        "sicario-appsec",
+        "sicario-cloud-iac",
+        "sicario-security-toolchain",
+        "sicario-enterprise-strict"
+      ]
     }
   ]
 }

@@ -3,7 +3,7 @@ schema_version: "1.0"
 preset:
   id: "sicario-core"
   name: "SicarioSpec Core"
-  version: "0.4.0"
+  version: "0.5.0"
   description: "Baseline secure-by-default Spec Kit governance profile."
   author: "SicarioSpec Contributors"
   repository: "https://github.com/dfirs1car1o/sicario-spec"

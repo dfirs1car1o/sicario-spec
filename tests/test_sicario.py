@@ -5,13 +5,13 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from sicario_cli._render import SICARIO_OVERLAY_BEGIN
 from sicario_cli.cli import (
     CONTROL_MAPS_ROOT,
     FRAMEWORK_IDS,
     FRAMEWORKS_CONFIG,
     PRESETS_ROOT,
     REQUIRED_TEMPLATES,
-    SICARIO_OVERLAY_BEGIN,
     _default_frameworks_for_profiles,
     _parse_frameworks,
     _read_selected_frameworks,
