@@ -49,7 +49,7 @@ const sidebars = {
   docs: docSections.map(([label, items]) => ({
     type: 'category',
     label,
-    collapsed: false,
+    collapsed: label !== 'Start Here' && label !== 'Security Evidence Chain',
     items,
   })),
 };
