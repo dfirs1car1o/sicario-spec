@@ -1,16 +1,26 @@
 # SicarioSpec Core
 
-SicarioSpec Core is an evidence-first security operations preset for Spec Kit.
-It adds secure-by-default governance templates that make feature work show
-what changed, what can go wrong, what control covers the risk, what gate proves
-the control worked, where the evidence lives, and who approved the decision.
+<p align="center">
+  <a href="https://github.com/dfirs1car1o/sicario-spec/actions/workflows/test.yml"><img alt="CI" src="https://github.com/dfirs1car1o/sicario-spec/actions/workflows/test.yml/badge.svg"></a>
+  <a href="https://github.com/dfirs1car1o/sicario-spec/actions/workflows/codeql.yml"><img alt="CodeQL" src="https://github.com/dfirs1car1o/sicario-spec/actions/workflows/codeql.yml/badge.svg"></a>
+  <a href="https://scorecard.dev/viewer/?uri=github.com/dfirs1car1o/sicario-spec"><img alt="OpenSSF Scorecard" src="https://api.scorecard.dev/projects/github.com/dfirs1car1o/sicario-spec/badge"></a>
+  <a href="https://github.com/dfirs1car1o/sicario-spec/releases/tag/v0.4.0"><img alt="Preset v0.4.0" src="https://img.shields.io/badge/preset-v0.4.0-0f766e.svg"></a>
+  <img alt="Spec Kit >=0.9.0" src="https://img.shields.io/badge/spec--kit-%3E%3D0.9.0-blue.svg">
+  <img alt="5 templates" src="https://img.shields.io/badge/templates-5-black.svg">
+  <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-green.svg"></a>
+</p>
 
-This is the baseline SicarioSpec preset. It provides templates only: no custom
-commands, no scripts, and no runtime dependency on the broader SicarioSpec CLI.
+SicarioSpec Core is a security operations governance preset for
+[Spec Kit](https://github.com/github/spec-kit). It provides five template
+overrides that make every feature show its risk, control, gate, evidence path,
+owner, and approval or accepted-risk decision.
 
-## Quick Start
+It is intentionally small: templates only, no custom commands, no scripts, and
+no runtime dependency on the broader SicarioSpec CLI.
 
-Install the released preset from any Spec Kit project root:
+## Install
+
+From a Spec Kit project root:
 
 ```bash
 specify preset add --from https://github.com/dfirs1car1o/sicario-spec/releases/download/v0.4.0/sicario-core-0.4.0.zip
@@ -18,7 +28,7 @@ specify preset info sicario-core
 specify preset resolve spec-template
 ```
 
-If you are developing the preset locally:
+For local preset development:
 
 ```bash
 specify preset add --dev /path/to/sicario-spec/presets/sicario-core
@@ -29,18 +39,15 @@ specify preset resolve plan-template
 If `specify` reports that the directory is not a Spec Kit project, initialize
 the project first with `specify init`, then rerun the preset install command.
 
-## What This Preset Changes
+## What You Get
 
-SicarioSpec Core replaces the default Spec Kit templates with a security
-operations workflow:
-
-| Template | What It Adds |
+| Template | Purpose |
 | --- | --- |
-| `spec-template` | Data classification, tagging, roles/assets/abuse actors, trust boundaries, security requirements, control applicability, AI/tool risk, external access, secrets handling, audit/logging requirements, operational signal paths, misuse cases, and evidence expectations. |
-| `plan-template` | Threat model, Security Evidence Chain, security decision record, Well-Architected Review, authn/authz design, data flow, supply chain, cloud/IaC risk, AI/tool boundary, operational readiness, CI/security gates, rollback, evidence outputs, and human approval points. |
-| `tasks-template` | Security foundation tasks, negative/security tests, authorization boundary tests, audit logging tasks, operational signal tasks, evidence generation, verification gates, documentation impact, and human review. |
-| `checklist-template` | Review checks for classification, tagging, trust boundaries, abuse cases, evidence chain quality, threat model, rollback, approval, scans, static checks, and verification. |
-| `constitution-template` | Project principles for least privilege, deterministic authority, evidence integrity, trust-boundary sanitization, source-of-truth authority, quality gates, architecture discipline, operability, documentation integrity, and human-gated high-impact changes. |
+| `spec-template` | Captures classification, trust boundaries, abuse cases, security requirements, operational signals, and evidence expectations. |
+| `plan-template` | Maps risks and decisions to controls, gates, owners, rollback, evidence paths, and human approval points. |
+| `tasks-template` | Turns tests, scans, evidence production, documentation impact, and review into explicit delivery tasks. |
+| `checklist-template` | Reviews whether the spec, plan, tasks, evidence, gates, and approvals are ready before merge or release. |
+| `constitution-template` | Establishes least privilege, deterministic authority, evidence integrity, quality gates, and human-gated high-impact changes. |
 
 ## What Makes It Different
 
@@ -55,8 +62,6 @@ evidence path, an owner, and an approval or accepted-risk state.
 
 ## Security Evidence Chain
 
-The core operating model is the Security Evidence Chain:
-
 ```text
 feature intent
 -> data classification
@@ -69,51 +74,9 @@ feature intent
 -> approval or accepted risk
 ```
 
-Every meaningful security concern should resolve to a control, a gate, an
-evidence path, an owner, and an approval or accepted-risk state. That gives
-product, engineering, security, compliance, and operations teams the same
-handoff record.
-
-## Workflow
-
-1. Write the feature spec with classification, trust boundaries, abuse cases,
-   operational signal paths, security acceptance criteria, and evidence outputs.
-2. Build the implementation plan by mapping risks and decisions to controls,
-   gates, owners, rollback, and evidence paths.
-3. Generate tasks that make tests, scans, evidence production, documentation,
-   and human review explicit work items.
-4. Use the checklist before merge or release to verify the chain is complete.
-5. Record approval or accepted risk when a control is not implemented, a gate
-   is waived, or a high-impact change needs human authorization.
-
-## Use It When
-
-- Security work keeps getting discussed but not traced to delivery evidence.
-- Teams need a shared handoff between product, engineering, security, and
-  operations.
-- Reviews need to answer "what proves this control worked?" before merge or
-  release.
-- Incident-response readiness matters and features need logging, detection,
-  alerting, ownership, and rollback decisions captured early.
-- A project needs better governance without adding a custom command surface.
-
-## Do Not Use It When
-
-- You only need secure coding language profiles, SBOM/VEX detail, or regulatory
-  applicability templates.
-- You only need deep architecture methods such as STRIDE/CAPEC matrices,
-  security ADRs, or Zero Trust applicability.
-- You need a fully automated compliance engine. This preset creates structured
-  evidence prompts; it does not certify compliance.
-- You are building a throwaway prototype and do not intend to maintain evidence.
-
 ## Verify Installation
 
-After installing, these commands should show that the SicarioSpec templates are
-active:
-
 ```bash
-specify preset info sicario-core
 specify preset resolve spec-template
 specify preset resolve plan-template
 specify preset resolve tasks-template
@@ -123,12 +86,10 @@ specify preset resolve constitution-template
 
 The resolved templates should point to `.specify/presets/sicario-core/`.
 
-## Relationship To The Broader SicarioSpec Repo
+## Next Step
 
-The broader SicarioSpec repository includes optional governance material for
-application security, AI systems, agent fleets, cloud IaC, security tooling,
-supply chain, compliance, documentation, and enterprise change control.
+Read [USAGE.md](USAGE.md) for the full workflow, template impact details, fit
+guidance, and adoption notes.
 
-Those materials are intentionally separate from this preset. `sicario-core` is
-the small, reviewable Spec Kit preset that installs cleanly through
-`specify preset add` and provides the baseline evidence workflow.
+For the broader SicarioSpec CLI, profiles, control maps, policy-as-code starters,
+and evidence gates, start at the repository [README](../../README.md).
