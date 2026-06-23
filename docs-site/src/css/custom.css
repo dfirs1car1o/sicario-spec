@@ -44,6 +44,7 @@ html,
 body {
   max-width: 100%;
   overflow-x: hidden;
+  scroll-behavior: smooth;
 }
 
 *,
@@ -54,11 +55,30 @@ body {
 
 .navbar {
   border-bottom: 1px solid rgba(252, 209, 22, 0.24);
+  backdrop-filter: blur(8px);
+}
+
+html[data-theme='dark'] .navbar {
+  background: rgba(8, 11, 18, 0.85);
 }
 
 .button {
   border-radius: 6px;
   font-weight: 800;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+html[data-theme='dark'] .button--primary {
+  box-shadow: 0 2px 8px rgba(252, 209, 22, 0.2);
+}
+
+html[data-theme='dark'] .button--primary:hover {
+  box-shadow: 0 4px 16px rgba(252, 209, 22, 0.35);
 }
 
 .footer {
