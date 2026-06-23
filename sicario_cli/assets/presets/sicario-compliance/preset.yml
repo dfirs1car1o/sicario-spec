@@ -1,6 +1,6 @@
 id: sicario-compliance
 name: SicarioSpec Compliance
-version: 0.4.0
+version: 0.5.0
 description: Evidence readiness profile for regulated and audit-driven environments.
 license: MIT
 tags: [compliance, audit, evidence, controls, risk-acceptance]

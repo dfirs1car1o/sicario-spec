@@ -1,7 +1,7 @@
 {
   "id": "owasp-asvs-sicario",
   "name": "OWASP ASVS to SicarioSpec Evidence Map",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "framework": {
     "name": "OWASP Application Security Verification Standard",
     "abbreviation": "OWASP ASVS",
@@ -16,33 +16,51 @@
     {
       "function": "Architecture, Design and Threat Modeling",
       "intent": "Verify secure architecture, trust boundary enforcement, and threat modeling of application features prior to implementation.",
-      "example_categories": ["V1.1 Secure Software Development Lifecycle", "V1.11 Business Logic Architecture"],
+      "example_categories": [
+        "V1.1 Secure Software Development Lifecycle",
+        "V1.11 Business Logic Architecture"
+      ],
       "sicario_evidence": [
         "specs/**/spec.md#data-classification",
         "specs/**/spec.md#trust-boundaries",
         "docs/security/threat-model.md"
       ],
-      "sicario_presets": ["sicario-core", "sicario-docs"]
+      "sicario_presets": [
+        "sicario-core",
+        "sicario-docs"
+      ]
     },
     {
       "function": "Authentication and Session Management",
       "intent": "Enforce strong authentication mechanisms, secure credential handling, and cryptographic token verification.",
-      "example_categories": ["V2.1 Password Security", "V3.1 Session Management Security"],
+      "example_categories": [
+        "V2.1 Password Security",
+        "V3.1 Session Management Security"
+      ],
       "sicario_evidence": [
         "specs/**/plan.md#secrets--credential-handling",
         "generated/sicario/gate-summary.json"
       ],
-      "sicario_presets": ["sicario-appsec", "sicario-saas"]
+      "sicario_presets": [
+        "sicario-appsec",
+        "sicario-saas"
+      ]
     },
     {
       "function": "Access Control",
       "intent": "Verify authorization checks, secure APIs, and programmatic enforcement of least-privilege policies.",
-      "example_categories": ["V4.1 General Access Control", "V4.3 Administrative Access Control"],
+      "example_categories": [
+        "V4.1 General Access Control",
+        "V4.3 Administrative Access Control"
+      ],
       "sicario_evidence": [
         "docs/security/abuse-cases.md",
         "tests"
       ],
-      "sicario_presets": ["sicario-appsec", "sicario-enterprise-strict"]
+      "sicario_presets": [
+        "sicario-appsec",
+        "sicario-enterprise-strict"
+      ]
     }
   ]
 }

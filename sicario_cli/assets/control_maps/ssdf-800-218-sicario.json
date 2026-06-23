@@ -1,7 +1,7 @@
 {
   "id": "ssdf-800-218-sicario",
   "name": "NIST SSDF (SP 800-218) to SicarioSpec Evidence Map",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "framework": {
     "name": "NIST Secure Software Development Framework",
     "abbreviation": "NIST SSDF",
@@ -18,7 +18,13 @@
       "group": "Prepare the Organization (PO)",
       "abbreviation": "PO",
       "intent": "Define security requirements, roles, toolchains, and criteria for software development.",
-      "example_practices": ["PO.1", "PO.2", "PO.3", "PO.4", "PO.5"],
+      "example_practices": [
+        "PO.1",
+        "PO.2",
+        "PO.3",
+        "PO.4",
+        "PO.5"
+      ],
       "sicario_evidence": [
         "specs/**/spec.md#security-requirements",
         "docs/governance/data-classification.md",
@@ -26,25 +32,45 @@
         "docs/compliance/control-applicability.md",
         "security/toolchain"
       ],
-      "sicario_presets": ["sicario-core", "sicario-appsec", "sicario-security-toolchain"]
+      "sicario_presets": [
+        "sicario-core",
+        "sicario-appsec",
+        "sicario-security-toolchain"
+      ]
     },
     {
       "group": "Protect the Software (PS)",
       "abbreviation": "PS",
       "intent": "Protect code and release integrity from unauthorized access, tampering, and provenance loss.",
-      "example_practices": ["PS.1", "PS.2", "PS.3"],
+      "example_practices": [
+        "PS.1",
+        "PS.2",
+        "PS.3"
+      ],
       "sicario_evidence": [
         "specs/**/plan.md#supply-chain",
         "generated/sicario/spec-run-evidence.json",
         ".github/workflows/release.yml"
       ],
-      "sicario_presets": ["sicario-supply-chain", "sicario-enterprise-strict"]
+      "sicario_presets": [
+        "sicario-supply-chain",
+        "sicario-enterprise-strict"
+      ]
     },
     {
       "group": "Produce Well-Secured Software (PW)",
       "abbreviation": "PW",
       "intent": "Design, review, and implement software to meet security requirements and reduce vulnerabilities.",
-      "example_practices": ["PW.1", "PW.2", "PW.4", "PW.5", "PW.6", "PW.7", "PW.8", "PW.9"],
+      "example_practices": [
+        "PW.1",
+        "PW.2",
+        "PW.4",
+        "PW.5",
+        "PW.6",
+        "PW.7",
+        "PW.8",
+        "PW.9"
+      ],
       "sicario_evidence": [
         "specs/**/spec.md",
         "specs/**/plan.md#architecture--security-decision-record",
@@ -53,20 +79,31 @@
         "docs/security/abuse-cases.md",
         "tests"
       ],
-      "sicario_presets": ["sicario-appsec", "sicario-ai-system", "sicario-cloud-iac"]
+      "sicario_presets": [
+        "sicario-appsec",
+        "sicario-ai-system",
+        "sicario-cloud-iac"
+      ]
     },
     {
       "group": "Respond to Vulnerabilities (RV)",
       "abbreviation": "RV",
       "intent": "Identify, assess, and remediate residual vulnerabilities and feed findings back into the process.",
-      "example_practices": ["RV.1", "RV.2", "RV.3"],
+      "example_practices": [
+        "RV.1",
+        "RV.2",
+        "RV.3"
+      ],
       "sicario_evidence": [
         "docs/risk/risk-register.md",
         "docs/risk/security-exceptions.md",
         "security/toolchain",
         "generated/sicario/gate-summary.json"
       ],
-      "sicario_presets": ["sicario-security-toolchain", "sicario-compliance"]
+      "sicario_presets": [
+        "sicario-security-toolchain",
+        "sicario-compliance"
+      ]
     }
   ]
 }

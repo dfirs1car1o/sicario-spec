@@ -1,7 +1,7 @@
 {
   "id": "gdpr-cpra-sicario",
   "name": "GDPR (with CPRA parallels) to SicarioSpec Evidence Map",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "framework": {
     "name": "Regulation (EU) 2016/679 General Data Protection Regulation, with California Consumer Privacy Act as amended by the California Privacy Rights Act parallels",
     "abbreviation": "GDPR / CPRA",
@@ -23,7 +23,10 @@
         "docs/compliance/control-applicability.md",
         "docs/governance/data-classification.md"
       ],
-      "sicario_presets": ["sicario-compliance", "sicario-core"]
+      "sicario_presets": [
+        "sicario-compliance",
+        "sicario-core"
+      ]
     },
     {
       "area": "Purpose limitation",
@@ -33,7 +36,10 @@
         "specs/**/spec.md#privacy-requirements",
         "docs/governance/tagging-taxonomy.md"
       ],
-      "sicario_presets": ["sicario-compliance", "sicario-core"]
+      "sicario_presets": [
+        "sicario-compliance",
+        "sicario-core"
+      ]
     },
     {
       "area": "Data minimisation",
@@ -44,7 +50,10 @@
         "docs/governance/data-classification.md",
         "specs/**/plan.md#data-flow-and-trust-boundaries"
       ],
-      "sicario_presets": ["sicario-core", "sicario-appsec"]
+      "sicario_presets": [
+        "sicario-core",
+        "sicario-appsec"
+      ]
     },
     {
       "area": "Accuracy and storage limitation (retention)",
@@ -54,7 +63,10 @@
         "docs/governance/tagging-taxonomy.md",
         "docs/compliance/control-applicability.md"
       ],
-      "sicario_presets": ["sicario-compliance", "sicario-core"]
+      "sicario_presets": [
+        "sicario-compliance",
+        "sicario-core"
+      ]
     },
     {
       "area": "Integrity, confidentiality and security of processing",
@@ -67,7 +79,11 @@
         "tests",
         "security/toolchain"
       ],
-      "sicario_presets": ["sicario-appsec", "sicario-security-toolchain", "sicario-cloud-iac"]
+      "sicario_presets": [
+        "sicario-appsec",
+        "sicario-security-toolchain",
+        "sicario-cloud-iac"
+      ]
     },
     {
       "area": "Accountability and governance",
@@ -79,7 +95,10 @@
         "docs/compliance/evidence-index.md",
         "docs/risk/risk-register.md"
       ],
-      "sicario_presets": ["sicario-compliance", "sicario-enterprise-strict"]
+      "sicario_presets": [
+        "sicario-compliance",
+        "sicario-enterprise-strict"
+      ]
     },
     {
       "area": "Data protection impact assessment (DPIA / risk assessment)",
@@ -91,7 +110,11 @@
         "docs/risk/risk-register.md",
         "specs/**/spec.md#privacy-requirements"
       ],
-      "sicario_presets": ["sicario-compliance", "sicario-appsec", "sicario-ai-system"]
+      "sicario_presets": [
+        "sicario-compliance",
+        "sicario-appsec",
+        "sicario-ai-system"
+      ]
     },
     {
       "area": "Data-subject / consumer rights",
@@ -102,7 +125,10 @@
         "specs/**/plan.md#data-flow-and-trust-boundaries",
         "docs/compliance/control-applicability.md"
       ],
-      "sicario_presets": ["sicario-compliance", "sicario-core"]
+      "sicario_presets": [
+        "sicario-compliance",
+        "sicario-core"
+      ]
     },
     {
       "area": "Personal data breach notification",
@@ -113,7 +139,10 @@
         "docs/risk/risk-register.md",
         "specs/**/plan.md#rollback"
       ],
-      "sicario_presets": ["sicario-agent-fleet", "sicario-compliance"]
+      "sicario_presets": [
+        "sicario-agent-fleet",
+        "sicario-compliance"
+      ]
     }
   ]
 }
