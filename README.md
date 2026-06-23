@@ -10,9 +10,11 @@
   <a href="https://github.com/dfirs1car1o/sicario-spec/actions/workflows/test.yml"><img alt="CI" src="https://github.com/dfirs1car1o/sicario-spec/actions/workflows/test.yml/badge.svg"></a>
   <a href="https://github.com/dfirs1car1o/sicario-spec/actions/workflows/codeql.yml"><img alt="CodeQL" src="https://github.com/dfirs1car1o/sicario-spec/actions/workflows/codeql.yml/badge.svg"></a>
   <a href="https://github.com/dfirs1car1o/sicario-spec/actions/workflows/release.yml"><img alt="Release packaging" src="https://github.com/dfirs1car1o/sicario-spec/actions/workflows/release.yml/badge.svg"></a>
+  <br>
   <a href="https://scorecard.dev/viewer/?uri=github.com/dfirs1car1o/sicario-spec"><img alt="OpenSSF Scorecard" src="https://api.scorecard.dev/projects/github.com/dfirs1car1o/sicario-spec/badge"></a>
   <a href="https://dfirs1car1o.github.io/sicario-spec/"><img alt="Docs" src="https://img.shields.io/badge/docs-GitHub%20Pages-0f766e.svg"></a>
   <a href="https://github.com/dfirs1car1o/sicario-spec/releases"><img alt="GitHub release" src="https://img.shields.io/github/v/release/dfirs1car1o/sicario-spec?sort=semver"></a>
+  <br>
   <a href="https://github.com/dfirs1car1o/sicario-spec/issues"><img alt="Issues" src="https://img.shields.io/github/issues/dfirs1car1o/sicario-spec"></a>
   <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-green.svg"></a>
   <a href="pyproject.toml"><img alt="Python 3.9+" src="https://img.shields.io/badge/python-3.9%2B-blue.svg"></a>

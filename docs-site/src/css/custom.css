@@ -40,6 +40,18 @@ html[data-theme='dark'] {
   --ifm-toc-border-color: rgba(148, 163, 184, 0.22);
 }
 
+html,
+body {
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
 .navbar {
   border-bottom: 1px solid rgba(252, 209, 22, 0.24);
 }
@@ -70,6 +82,28 @@ html[data-theme='dark'] {
   background: transparent;
 }
 
+.theme-doc-markdown {
+  max-width: 980px;
+  min-width: 0;
+  overflow-wrap: break-word;
+  width: 100%;
+}
+
+.theme-doc-markdown > * {
+  max-width: 100%;
+}
+
+.theme-doc-markdown p,
+.theme-doc-markdown li {
+  line-height: 1.72;
+}
+
+.container,
+.row,
+.col {
+  min-width: 0;
+}
+
 .menu__link,
 .table-of-contents__link,
 .breadcrumbs__link {
@@ -90,14 +124,67 @@ html[data-theme='dark'] {
 
 article table {
   background: var(--ifm-background-surface-color);
+  display: block;
+  max-width: 100%;
+  overflow-x: auto;
+  white-space: normal;
 }
 
 article thead {
   background: var(--ifm-card-background-color);
 }
 
+article th,
+article td {
+  min-width: 9rem;
+  vertical-align: top;
+}
+
+article pre,
+article code {
+  overflow-wrap: anywhere;
+}
+
+article pre,
+.theme-code-block,
+div[class*='codeBlockContainer'] {
+  max-width: min(100%, calc(100vw - 2rem));
+}
+
+article pre,
+article pre code,
+.theme-code-block pre,
+.theme-code-block code,
+div[class*='codeBlockContainer'] pre,
+div[class*='codeBlockContainer'] code,
+div[class*='codeBlockContainer'] .token-line,
+div[class*='codeBlockContainer'] .token {
+  overflow-wrap: anywhere !important;
+  white-space: pre-wrap !important;
+  word-break: break-word;
+}
+
+div[class*='codeBlockContent'] {
+  overflow-x: hidden !important;
+}
+
 article code {
   color: var(--sicario-tech-navy);
+}
+
+.theme-doc-markdown p:has(img[src*='badge']),
+.theme-doc-markdown p:has(a img[src*='badge']) {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.45rem;
+  justify-content: center;
+}
+
+.theme-doc-markdown img[src*='badge'] {
+  height: auto;
+  max-width: 100%;
+  vertical-align: middle;
 }
 
 html[data-theme='dark'] .main-wrapper {
@@ -123,4 +210,20 @@ html[data-theme='dark'] article code {
 html[data-theme='dark'] .pagination-nav__link {
   background: #101827;
   border-color: rgba(148, 163, 184, 0.22);
+}
+
+@media (max-width: 996px) {
+  .theme-doc-markdown {
+    max-width: 100%;
+  }
+
+  .theme-doc-markdown ol,
+  .theme-doc-markdown ul {
+    padding-left: 1.35rem;
+  }
+
+  article th,
+  article td {
+    min-width: 12rem;
+  }
 }

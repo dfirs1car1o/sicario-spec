@@ -134,7 +134,7 @@ export default function Home() {
               <p className={styles.kicker}>How it differs</p>
               <Heading as="h2">Enforces, not just advises.</Heading>
             </div>
-            <p style={{ maxWidth: '52rem' }}>
+            <p className={styles.readableText}>
               SicarioSpec is not the first or only security-governance preset for Spec Kit. Most
               presets in the ecosystem follow an advisory-append pattern: they enrich the spec and
               plan with secure-SDLC guidance and regulatory notes for an agent and reviewer to

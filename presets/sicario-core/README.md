@@ -1,16 +1,67 @@
 # SicarioSpec Core
 
-SicarioSpec Core is an evidence-first security operations preset for Spec Kit.
-It turns a feature idea into a traceable chain of security decisions, controls,
-tests, gates, evidence, owners, and human approval points.
+<p align="center">
+  <a href="https://github.com/dfirs1car1o/sicario-spec/actions/workflows/test.yml"><img alt="CI" src="https://github.com/dfirs1car1o/sicario-spec/actions/workflows/test.yml/badge.svg"></a>
+  <a href="https://github.com/dfirs1car1o/sicario-spec/actions/workflows/codeql.yml"><img alt="CodeQL" src="https://github.com/dfirs1car1o/sicario-spec/actions/workflows/codeql.yml/badge.svg"></a>
+  <a href="https://scorecard.dev/viewer/?uri=github.com/dfirs1car1o/sicario-spec"><img alt="OpenSSF Scorecard" src="https://api.scorecard.dev/projects/github.com/dfirs1car1o/sicario-spec/badge"></a>
+  <br>
+  <a href="https://github.com/dfirs1car1o/sicario-spec/releases/tag/v0.4.0"><img alt="Preset v0.4.0" src="https://img.shields.io/badge/preset-v0.4.0-0f766e.svg"></a>
+  <img alt="Spec Kit >=0.9.0" src="https://img.shields.io/badge/spec--kit-%3E%3D0.9.0-blue.svg">
+  <img alt="5 templates" src="https://img.shields.io/badge/templates-5-black.svg">
+  <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-green.svg"></a>
+</p>
 
-Use it when a project needs to prove what changed, what could go wrong, what
-control covers the risk, what gate verifies the control, where the evidence
-lives, and who owns the decision before release.
+SicarioSpec Core is a security operations governance preset for
+[Spec Kit](https://github.com/github/spec-kit). It provides five template
+overrides that make every feature show its risk, control, gate, evidence path,
+owner, and approval or accepted-risk decision.
+
+It is intentionally small: templates only, no custom commands, no scripts, and
+no runtime dependency on the broader SicarioSpec CLI.
+
+## Install
+
+From a Spec Kit project root:
+
+```bash
+specify preset add --from https://github.com/dfirs1car1o/sicario-spec/releases/download/v0.4.0/sicario-core-0.4.0.zip
+specify preset info sicario-core
+specify preset resolve spec-template
+```
+
+For local preset development:
+
+```bash
+specify preset add --dev /path/to/sicario-spec/presets/sicario-core
+specify preset info sicario-core
+specify preset resolve plan-template
+```
+
+If `specify` reports that the directory is not a Spec Kit project, initialize
+the project first with `specify init`, then rerun the preset install command.
+
+## What You Get
+
+| Template | Purpose |
+| --- | --- |
+| `spec-template` | Captures classification, trust boundaries, abuse cases, security requirements, operational signals, and evidence expectations. |
+| `plan-template` | Maps risks and decisions to controls, gates, owners, rollback, evidence paths, and human approval points. |
+| `tasks-template` | Turns tests, scans, evidence production, documentation impact, and review into explicit delivery tasks. |
+| `checklist-template` | Reviews whether the spec, plan, tasks, evidence, gates, and approvals are ready before merge or release. |
+| `constitution-template` | Establishes least privilege, deterministic authority, evidence integrity, quality gates, and human-gated high-impact changes. |
+
+## What Makes It Different
+
+Most security presets focus on secure coding rules, compliance mappings,
+threat-modeling technique, architecture records, or supply-chain transparency.
+Those are useful, but they do not always prove that a feature was operated
+safely.
+
+SicarioSpec Core is narrower and more operational. It focuses on operational proof:
+each meaningful risk or decision should map to a control, a test or gate, an
+evidence path, an owner, and an approval or accepted-risk state.
 
 ## Security Evidence Chain
-
-The core concept is a lightweight evidence chain:
 
 ```text
 feature intent
@@ -24,70 +75,22 @@ feature intent
 -> approval or accepted risk
 ```
 
-This gives security, engineering, and operations teams a shared handoff record.
-The preset does not claim compliance or certification. It creates the traceable
-artifact structure a team can use to support review, assurance, incident
-readiness, and audit conversations.
-
-## What Makes It Different
-
-Other security and architecture presets tend to focus on secure coding
-standards, regulatory applicability, threat-modeling methods, architecture
-decision records, or supply-chain transparency. SicarioSpec Core is narrower:
-it focuses on operational proof. Every major security concern should resolve to
-a control, test/gate, evidence path, owner, and approval or accepted-risk state.
-
-## What It Provides
-
-- Feature specification template with data classification, tagging, abuse-case,
-  security requirement, operational signal, and evidence-chain sections.
-- Implementation plan template with threat model, rollback, control mapping, and
-  well-architected review sections.
-- Task template that turns security, compliance, documentation, evidence, and
-  verification work into explicit delivery tasks.
-- Checklist template for spec, plan, task, and verification review.
-- Constitution template for least privilege, deterministic authority, evidence
-  integrity, trust-boundary sanitization, quality gates, and human approval.
-
-## Use It When
-
-- Security work keeps getting discussed but not traced to delivery evidence.
-- Teams need a common handoff between product, engineering, security, and
-  operations.
-- Reviews need to answer "what proves this control worked?" before merge or
-  release.
-- Incident-response readiness matters and features need logging, detection,
-  alerting, ownership, and rollback decisions captured early.
-
-## Do Not Use It When
-
-- You only need secure coding language profiles, SBOM/VEX detail, or regulatory
-  applicability templates.
-- You only need deep architecture methods such as STRIDE/CAPEC matrices,
-  security ADRs, or Zero Trust applicability.
-- You are building a throwaway prototype and do not intend to maintain evidence.
-
-## Local Development Install
-
-From a Spec Kit project root:
+## Verify Installation
 
 ```bash
-specify preset add --dev /path/to/sicario-spec/presets/sicario-core
 specify preset resolve spec-template
-specify preset info sicario-core
+specify preset resolve plan-template
+specify preset resolve tasks-template
+specify preset resolve checklist-template
+specify preset resolve constitution-template
 ```
 
-## Catalog Install
+The resolved templates should point to `.specify/presets/sicario-core/`.
 
-After a release publishes the preset ZIP asset:
+## Next Step
 
-```bash
-specify preset add --from https://github.com/dfirs1car1o/sicario-spec/releases/download/vX.Y.Z/sicario-core-X.Y.Z.zip
-```
+Read [USAGE.md](USAGE.md) for the full workflow, template impact details, fit
+guidance, and adoption notes.
 
-## Notes
-
-This preset is the baseline governance layer. The broader SicarioSpec repository
-also includes optional profiles for AppSec, AI systems, agent fleets, cloud IaC,
-security tooling, supply chain, compliance, docs, and enterprise change control.
-Those profiles remain separate so teams can compose only the controls they need.
+For the broader SicarioSpec CLI, profiles, control maps, policy-as-code starters,
+and evidence gates, start at the repository [README](../../README.md).
