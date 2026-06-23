@@ -733,6 +733,29 @@ class BrownfieldSafeAdoptionTests(unittest.TestCase):
             self.assertTrue(backups)
             self.assertEqual(original, backups[0].read_text(encoding="utf-8"))
 
+    def test_generated_files_contain_no_placeholder_secrets(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            target = Path(tmp) / "project"
+            self.assertEqual(0, main(["init", str(target), "--profile", "appsec"]))
+            secret_patterns = [
+                "api_key =",
+                "apikey:",
+                "secret_key =",
+                "password =",
+                "bearer ",
+                "AKIA",
+                "ghp_",
+            ]
+            for path in target.rglob("*"):
+                if path.is_file() and path.suffix in (".md", ".yml", ".yaml", ".json", ".txt"):
+                    content = path.read_text(encoding="utf-8", errors="ignore").lower()
+                    for pattern in secret_patterns:
+                        self.assertNotIn(
+                            pattern,
+                            content,
+                            f"Potential secret pattern '{pattern}' found in {path}",
+                        )
+
 
 if __name__ == "__main__":
     unittest.main()
