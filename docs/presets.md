@@ -15,11 +15,20 @@ The differentiator is traceability: material risks and decisions should map to a
 control or requirement, test/gate, evidence path, owner, and approval or
 accepted-risk decision before release.
 
+Implemented as `presets/sicario_core.py` — a Python preset class that owns
+all inline doc writes that were previously interleaved through `cli.py:init()`.
+Contributors modifying sicario-core output edit `presets/sicario_core.py`, not
+`cli.py`.
+
 ## sicario-docs
 
 Installed by default. Covers docs impact, public docs, internal docs, diagrams,
 docs-site build, documentation data classification, documentation tagging, and
 generated documentation evidence.
+
+Implemented as `presets/sicario_docs.py` — a Python preset class that owns
+the Docusaurus docs-site boilerplate writes. Contributors edit
+`presets/sicario_docs.py`, not `cli.py`.
 
 ## sicario-appsec
 
