@@ -29,7 +29,19 @@ improve the security model.
 ### Changed
 
 - Version bumped to `0.5.0` for the rule-schema feature release.
-
+- **Positioning reframed to a neutral capability statement.** Removed the named
+  competitor call-out from the README, docs-site landing page, and supporting
+  docs. The differentiator now leads with the survey-validated moat: a *halting*
+  verify gate (non-zero exit blocks the merge, with finding codes) whose verdict
+  is owned by stdlib-only code with no LLM in the decision path — versus
+  advisory-append patterns generally. No multi-framework-breadth superiority is
+  claimed.
+- **docs-site swept** to reflect current capabilities: turnkey
+  `--apply-to-speckit` wiring, brownfield-safe adoption, the 10 frameworks and
+  the new selector, the USAGE flow, and the pass+fail worked example.
+- **Spec Kit catalog readiness.** Reworked `sicario-core` around the Security
+  Evidence Chain: risk or decision to control, test/gate, evidence path, owner,
+  and approval or accepted-risk state.
 - **Maintainer operations hardening.** Added `MAINTAINERS.md`,
   `.github/CODEOWNERS`, a maintainer-task issue form, a safe issue-triage
   workflow, and `docs/maintainer-operations.md` so public issues move through
@@ -50,22 +62,6 @@ improve the security model.
   feature as `examples/python-api/` with one required artifact removed, proving
   `sicario verify` is a real halting gate (exit 1 + finding code) reproducible
   from a clean clone.
-
-### Changed
-
-- **Positioning reframed to a neutral capability statement.** Removed the named
-  competitor call-out from the README, docs-site landing page, and supporting
-  docs. The differentiator now leads with the survey-validated moat: a *halting*
-  verify gate (non-zero exit blocks the merge, with finding codes) whose verdict
-  is owned by stdlib-only code with no LLM in the decision path — versus
-  advisory-append patterns generally. No multi-framework-breadth superiority is
-  claimed.
-- **docs-site swept** to reflect current capabilities: turnkey
-  `--apply-to-speckit` wiring, brownfield-safe adoption, the 10 frameworks and
-  the new selector, the USAGE flow, and the pass+fail worked example.
-- **Spec Kit catalog readiness.** Reworked `sicario-core` around the Security
-  Evidence Chain: risk or decision to control, test/gate, evidence path, owner,
-  and approval or accepted-risk state.
 
 ## [0.4.0] - 2026-06-21
 

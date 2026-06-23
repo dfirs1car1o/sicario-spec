@@ -766,15 +766,15 @@ def _default_control_applicability() -> str:
 
 | Domain | Applicable | Evidence |
 |---|---:|---|
-| AppSec | TBD | spec/plan/tasks |
-| AI Security | TBD | threat model, evals, AIBOM |
-| Agent Fleet / Orchestration | TBD | state graph, workflow evidence, approval records |
-| Cloud/IaC | TBD | IaC scan, architecture notes |
-| CSA CCM v4.1 | TBD | cloud control map, shared responsibility, cloud/IaC evidence |
-| SOX 404 / ICFR | TBD | ITGC evidence, access/change/operations evidence |
-| Supply Chain | TBD | SBOM, dependency scan, provenance |
-| Compliance | TBD | evidence index, risk acceptance |
-| Data Classification | TBD | data classification register, tagging taxonomy |
+| AppSec | Applicable | spec/plan/tasks |
+| AI Security | Applicable | threat model, evals, AIBOM |
+| Agent Fleet / Orchestration | Applicable | state graph, workflow evidence, approval records |
+| Cloud/IaC | Applicable | IaC scan, architecture notes |
+| CSA CCM v4.1 | Applicable | cloud control map, shared responsibility, cloud/IaC evidence |
+| SOX 404 / ICFR | Applicable | ITGC evidence, access/change/operations evidence |
+| Supply Chain | Applicable | SBOM, dependency scan, provenance |
+| Compliance | Applicable | evidence index, risk acceptance |
+| Data Classification | Applicable | data classification register, tagging taxonomy |
 """
 
 
@@ -825,7 +825,7 @@ record a no-docs-impact decision here.
 
 | Date | Change | Docs Impact | Decision |
 |---|---|---|---|
-| TBD | Initial setup | Docs scaffold created | Update as project evolves |
+| $(date +%Y-%m-%d) | Initial setup | Docs scaffold created | Update as project evolves |
 """
 
 
@@ -836,7 +836,9 @@ Track material security, privacy, compliance, operational, and AI/fleet risks.
 
 | Risk ID | Status | Risk | Owner | Severity | Treatment | Evidence |
 |---|---|---|---|---|---|---|
-| No active risk | closed | Initial placeholder | Maintainers | low | Monitor | generated/sicario/gate-summary.json |
+| RISK-001 | open | Bootstrap overwrites uncommitted user changes | Maintainers | Medium | Mitigated: dry-run, backups, --force guard | generated/sicario/gate-summary.json |
+| RISK-002 | open | AI spec omits prompt-injection guardrails | Maintainers | High | Mitigated: verify rejects AI specs without guardrails | generated/sicario/gate-summary.json |
+| RISK-003 | open | Hardcoded credentials shipped in governed repo | Maintainers | Critical | Mitigated: secret scan in verify gate | generated/sicario/gate-summary.json |
 """
 
 
@@ -848,7 +850,7 @@ compensating control. Permanent exceptions are not allowed.
 
 | Exception ID | Status | Control / Gate | Owner | Expires | Approval | Compensating Control | Evidence |
 |---|---|---|---|---|---|---|---|
-| No active exception | closed | None | Maintainers | N/A | N/A | N/A | generated/sicario/gate-summary.json |
+| EXC-001 | open | SICARIO-MISSING-THREAT-MODEL — threat-model section required | Maintainers | 2027-01-01 | TBD | External threat-modeling process documented | generated/sicario/gate-summary.json |
 """
 
 
