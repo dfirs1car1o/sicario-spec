@@ -20,7 +20,38 @@ from importlib.resources import files as package_files
 from pathlib import Path
 from typing import Iterable, List, Optional, Sequence
 
+from sicario_cli._render import (
+    FileReport,
+    OUTCOME_CREATED,
+    OUTCOME_MERGED,
+    OUTCOME_OVERWRITTEN,
+    OUTCOME_PRESERVED,
+    OUTCOME_SKIPPED,
+    SICARIO_OVERLAY_BEGIN,
+    SICARIO_OVERLAY_END,
+    _backup_file,
+    _backup_path,
+    _copy_tree,
+    _overlay_text,
+    _print_report,
+    _record,
+    _write_text,
+)
 from sicario_cli.version import __version__
+
+PRESET_CLASSES: "dict[str, type]" = {}
+try:
+    from presets.sicario_core import SicarioCorePreset  # type: ignore[import-untyped]  # noqa: E501
+
+    PRESET_CLASSES["sicario-core"] = SicarioCorePreset
+except ImportError:
+    pass
+try:
+    from presets.sicario_docs import SicarioDocsPreset  # type: ignore[import-untyped]  # noqa: E501
+
+    PRESET_CLASSES["sicario-docs"] = SicarioDocsPreset
+except ImportError:
+    pass
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -109,6 +140,7 @@ FRAMEWORK_IDS = {
     "gdpr": "gdpr-cpra-sicario.json",
     "pci-dss": "pci-dss-v4.0-sicario.json",
     "hipaa": "hipaa-security-rule-sicario.json",
+    "owasp-asvs": "owasp-asvs-sicario.json",
 }
 
 # The project config file that records the selected subset (one key per line).
@@ -124,7 +156,7 @@ PROFILE_FRAMEWORKS = {
     "agent-fleet": ["ai-rmf", "eu-ai-act"],
     "cloud-iac": ["ccm", "nist-800-53"],
     "supply-chain": ["ssdf"],
-    "appsec": ["ssdf", "iso27001"],
+    "appsec": ["ssdf", "iso27001", "owasp-asvs"],
     "enterprise-strict": list(FRAMEWORK_IDS),
 }
 
@@ -226,6 +258,85 @@ FLEET_KEYWORDS = re.compile(
     re.I,
 )
 
+SEMGREQ_SEVERITIES = {"error", "high", "critical"}
+SARIF_ERROR_LEVELS = {"error"}
+
+
+def _parse_semgrep_json(path: Path) -> List[Finding]:
+    """Parse a Semgrep JSON output file and return findings for high/critical/error results."""
+    findings: List[Finding] = []
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, UnicodeDecodeError, OSError):
+        return findings
+    results = data if isinstance(data, list) else data.get("results", [])
+    for i, result in enumerate(results):
+        extra = result.get("extra", {})
+        severity = (extra.get("severity") or "").lower()
+        if severity not in SEMGREQ_SEVERITIES:
+            continue
+        check_id = result.get("check_id", "unknown-rule")
+        message = extra.get("message", "No message")
+        location = result.get("path", "unknown")
+        line = result.get("start", {}).get("line", "?")
+        findings.append(
+            Finding(
+                severity="critical",
+                code="SICARIO-CRITICAL-VULNS",
+                message=f"Semgrep [{check_id}] {message}",
+                path=f"{location}:{line}",
+            )
+        )
+    return findings
+
+
+def _parse_sarif(path: Path) -> List[Finding]:
+    """Parse a SARIF format file and return findings for error-level results."""
+    findings: List[Finding] = []
+    try:
+        data = json.loads(path.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, UnicodeDecodeError, OSError):
+        return findings
+    for run in data.get("runs", []):
+        for result in run.get("results", []):
+            level = (result.get("level") or "").lower()
+            if level not in SARIF_ERROR_LEVELS:
+                continue
+            rule_id = result.get("ruleId", "unknown-rule")
+            message = result.get("message", {}).get("text", "No message")
+            locations = result.get("locations", [])
+            if locations:
+                loc = locations[0]
+                uri = loc.get("physicalLocation", {}).get("artifactLocation", {}).get("uri", "unknown")
+                line = loc.get("physicalLocation", {}).get("region", {}).get("startLine", "?")
+                path_str = f"{uri}:{line}"
+            else:
+                path_str = "unknown"
+            findings.append(
+                Finding(
+                    severity="critical",
+                    code="SICARIO-CRITICAL-VULNS",
+                    message=f"SARIF [{rule_id}] {message}",
+                    path=path_str,
+                )
+            )
+    return findings
+
+
+def _scan_evidence_files(root: Path) -> List[Finding]:
+    """Scan for Semgrep JSON and SARIF scanner output files in the project.
+
+    Recognised file names:
+      - ``semgrep.json`` — Semgrep JSON output
+      - ``*.sarif`` — SARIF format (GitHub Advanced Security, Trivy, Snyk)
+    """
+    findings: List[Finding] = []
+    for path in sorted(root.rglob("semgrep.json")):
+        findings.extend(_parse_semgrep_json(path))
+    for path in sorted(root.rglob("*.sarif")):
+        findings.extend(_parse_sarif(path))
+    return findings
+
 
 @dataclass(frozen=True)
 class Finding:
@@ -286,196 +397,7 @@ def _parse_profiles(value: str) -> List[str]:
 # `--force` restores the legacy full-overwrite behavior (still backs up first).
 # `--dry-run` previews every decision and writes nothing.
 
-# Per-file outcome codes used in the final report.
-OUTCOME_CREATED = "created"
-OUTCOME_MERGED = "merged-overlaid"
-OUTCOME_PRESERVED = "preserved"
-OUTCOME_OVERWRITTEN = "overwritten"
-OUTCOME_SKIPPED = "skipped"
 
-# A clearly-marked, idempotent overlay marker. If this marker is already present
-# in a file, the overlay has been applied and we must not append it again.
-SICARIO_OVERLAY_BEGIN = "<!-- BEGIN SICARIO-SPEC OVERLAY (additive; do not edit by hand) -->"
-SICARIO_OVERLAY_END = "<!-- END SICARIO-SPEC OVERLAY -->"
-
-
-@dataclass
-class FileReport:
-    """One per-file outcome line for the end-of-run report."""
-
-    path: str
-    outcome: str
-    detail: str = ""
-
-
-def _record(reports: List[FileReport], path: Path, outcome: str, detail: str = "") -> None:
-    reports.append(FileReport(path=str(path), outcome=outcome, detail=detail))
-
-
-def _backup_path(path: Path) -> Path:
-    """Return a timestamped, non-clobbering backup path next to ``path``."""
-    stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
-    candidate = path.with_name(f"{path.name}.sicario-bak.{stamp}")
-    counter = 1
-    while candidate.exists():
-        candidate = path.with_name(f"{path.name}.sicario-bak.{stamp}.{counter}")
-        counter += 1
-    return candidate
-
-
-def _backup_file(path: Path, *, dry_run: bool) -> Optional[Path]:
-    """Back up an existing file before modifying or overwriting it."""
-    if not path.exists() or dry_run:
-        return None
-    backup = _backup_path(path)
-    shutil.copy2(path, backup)
-    return backup
-
-
-def _copy_tree(
-    src: Path,
-    dst: Path,
-    *,
-    force: bool,
-    dry_run: bool,
-    actions: List[str],
-    reports: Optional[List[FileReport]] = None,
-) -> None:
-    if not src.exists():
-        raise SystemExit(f"Source does not exist: {src}")
-    if dst.exists() and not force:
-        actions.append(f"skip existing {dst}")
-        if reports is not None:
-            _record(
-                reports,
-                dst,
-                OUTCOME_PRESERVED,
-                "directory exists; left untouched (use --force to replace)",
-            )
-        return
-    backup = None
-    if dst.exists():
-        backup = _backup_path(dst)
-        if not dry_run:
-            shutil.move(str(dst), str(backup))
-    actions.append(f"copy {src} -> {dst}" + (f" (backup {backup.name})" if backup else ""))
-    if reports is not None:
-        _record(
-            reports,
-            dst,
-            OUTCOME_OVERWRITTEN if backup else OUTCOME_CREATED,
-            f"backup {backup.name}" if backup else "",
-        )
-    if dry_run:
-        return
-    shutil.copytree(src, dst)
-
-
-def _write_text(
-    path: Path,
-    content: str,
-    *,
-    force: bool,
-    dry_run: bool,
-    actions: List[str],
-    reports: Optional[List[FileReport]] = None,
-) -> None:
-    """Write a generated file.
-
-    Brownfield-safe default: a pre-existing file is PRESERVED (never silently
-    clobbered) unless ``--force`` is set. ``--force`` overwrites, but first takes
-    a timestamped backup. New files are always created.
-    """
-    if not path.exists():
-        actions.append(f"write {path}")
-        if reports is not None:
-            _record(reports, path, OUTCOME_CREATED)
-        if dry_run:
-            return
-        path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(content, encoding="utf-8")
-        return
-
-    if not force:
-        actions.append(f"preserve existing {path}")
-        if reports is not None:
-            _record(
-                reports,
-                path,
-                OUTCOME_PRESERVED,
-                "exists; left untouched (use --force to overwrite)",
-            )
-        return
-
-    # --force: full overwrite, but never without a backup.
-    backup = _backup_file(path, dry_run=dry_run)
-    detail = f"backup {backup.name}" if backup else ""
-    actions.append(f"overwrite {path}" + (f" (backup {backup.name})" if backup else ""))
-    if reports is not None:
-        _record(reports, path, OUTCOME_OVERWRITTEN, detail)
-    if dry_run:
-        return
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(content, encoding="utf-8")
-
-
-def _overlay_text(
-    path: Path,
-    overlay: str,
-    *,
-    force: bool,
-    dry_run: bool,
-    actions: List[str],
-    reports: List[FileReport],
-    full_content: Optional[str] = None,
-) -> None:
-    """Non-destructively overlay SicarioSpec content onto an existing file.
-
-    - If the file does not exist: create it with ``full_content`` (a complete
-      standalone document) when provided, else with the overlay block.
-    - If the file exists and already contains the overlay marker: idempotent —
-      do nothing (re-run safe).
-    - If the file exists without the marker: back it up and APPEND the overlay
-      block, delimited by clear begin/end markers. The user's content is kept
-      verbatim above the overlay.
-    - With ``--force``: overwrite with ``full_content`` (after backup), matching
-      legacy clobber behavior for callers that explicitly ask for it.
-    """
-    if not path.exists():
-        body = full_content if full_content is not None else overlay
-        actions.append(f"write {path}")
-        _record(reports, path, OUTCOME_CREATED)
-        if not dry_run:
-            path.parent.mkdir(parents=True, exist_ok=True)
-            path.write_text(body, encoding="utf-8")
-        return
-
-    if force and full_content is not None:
-        backup = _backup_file(path, dry_run=dry_run)
-        actions.append(f"overwrite {path}" + (f" (backup {backup.name})" if backup else ""))
-        _record(reports, path, OUTCOME_OVERWRITTEN, f"backup {backup.name}" if backup else "")
-        if not dry_run:
-            path.write_text(full_content, encoding="utf-8")
-        return
-
-    existing = path.read_text(encoding="utf-8")
-    if SICARIO_OVERLAY_BEGIN in existing:
-        actions.append(f"overlay already present in {path}")
-        _record(reports, path, OUTCOME_PRESERVED, "overlay already present (idempotent)")
-        return
-
-    backup = _backup_file(path, dry_run=dry_run)
-    actions.append(f"overlay {path}" + (f" (backup {backup.name})" if backup else ""))
-    _record(
-        reports,
-        path,
-        OUTCOME_MERGED,
-        f"appended overlay; backup {backup.name}" if backup else "appended overlay",
-    )
-    if dry_run:
-        return
-    separator = "" if existing.endswith("\n") else "\n"
-    path.write_text(existing + separator + "\n" + overlay, encoding="utf-8")
 
 
 SPECKIT_TEMPLATE_FILES = ["spec-template.md", "plan-template.md", "tasks-template.md"]
@@ -720,6 +642,23 @@ def init_project(args: argparse.Namespace) -> int:
     # instruction file we found.
     deferrals = existing["mission"] + existing["instructions"]
 
+    interactive_config: Optional[dict] = None
+    if getattr(args, "interactive", False):
+        interactive_config = _interactive_init(target)
+        actions.append("mode: interactive setup wizard")
+        if interactive_config["frameworks"]:
+            args.frameworks = ",".join(interactive_config["frameworks"])
+            actions.append(f"interactive frameworks: {', '.join(interactive_config['frameworks'])}")
+        else:
+            args.frameworks = None
+        # Auto-include cloud-iac profile when cloud providers are selected.
+        if interactive_config["cloud_providers"] and "sicario-cloud-iac" not in selected_presets:
+            if "cloud-iac" not in args.profile:
+                args.profile = args.profile + ",cloud-iac"
+                selected_presets = _parse_profiles(args.profile)
+            actions.append(f"cloud providers: {', '.join(interactive_config['cloud_providers'])}")
+        actions.append(f"data classification: {interactive_config['data_classification']}")
+
     actions.append(f"target {target}")
     actions.append(f"specify {_validate_specify_available()}")
     actions.append(f"integration {args.integration}")
@@ -742,93 +681,6 @@ def init_project(args: argparse.Namespace) -> int:
         _copy_tree(
             PRESETS_ROOT / preset,
             target / ".specify" / "presets" / preset,
-            force=args.force,
-            dry_run=args.dry_run,
-            actions=actions,
-            reports=reports,
-        )
-
-    if getattr(args, "apply_to_speckit", True):
-        _apply_to_speckit(
-            target,
-            selected_presets,
-            force=args.force,
-            dry_run=args.dry_run,
-            actions=actions,
-            reports=reports,
-            deferrals=deferrals,
-        )
-
-    if "sicario-cloud-iac" in selected_presets:
-        _copy_tree(
-            PRESETS_ROOT / "sicario-cloud-iac" / "templates" / "terraform",
-            target / "infra" / "terraform",
-            force=args.force,
-            dry_run=args.dry_run,
-            actions=actions,
-            reports=reports,
-        )
-        _copy_tree(
-            PRESETS_ROOT / "sicario-cloud-iac" / "templates" / "azure-bicep",
-            target / "infra" / "azure-bicep",
-            force=args.force,
-            dry_run=args.dry_run,
-            actions=actions,
-            reports=reports,
-        )
-        _copy_tree(
-            PRESETS_ROOT / "sicario-cloud-iac" / "templates" / "azure-avm-bicep",
-            target / "infra" / "azure-avm-bicep",
-            force=args.force,
-            dry_run=args.dry_run,
-            actions=actions,
-            reports=reports,
-        )
-        _copy_tree(
-            PRESETS_ROOT / "sicario-cloud-iac" / "templates" / "azure-avm-terraform",
-            target / "infra" / "azure-avm-terraform",
-            force=args.force,
-            dry_run=args.dry_run,
-            actions=actions,
-            reports=reports,
-        )
-        _copy_tree(
-            PRESETS_ROOT / "sicario-cloud-iac" / "templates" / "aws-cloudformation",
-            target / "infra" / "aws-cloudformation",
-            force=args.force,
-            dry_run=args.dry_run,
-            actions=actions,
-            reports=reports,
-        )
-        _copy_tree(
-            PRESETS_ROOT / "sicario-cloud-iac" / "templates" / "gcp",
-            target / "infra" / "gcp-terraform",
-            force=args.force,
-            dry_run=args.dry_run,
-            actions=actions,
-            reports=reports,
-        )
-        _copy_tree(
-            PRESETS_ROOT / "sicario-cloud-iac" / "templates" / "kubernetes",
-            target / "infra" / "kubernetes",
-            force=args.force,
-            dry_run=args.dry_run,
-            actions=actions,
-            reports=reports,
-        )
-        _copy_tree(
-            PRESETS_ROOT / "sicario-cloud-iac" / "templates" / "policy-as-code",
-            target / "policy" / "policy-as-code",
-            force=args.force,
-            dry_run=args.dry_run,
-            actions=actions,
-            reports=reports,
-        )
-
-    if "sicario-security-toolchain" in selected_presets:
-        _copy_tree(
-            PRESETS_ROOT / "sicario-security-toolchain" / "templates" / "toolchain",
-            target / "security" / "toolchain",
             force=args.force,
             dry_run=args.dry_run,
             actions=actions,
@@ -866,6 +718,19 @@ def init_project(args: argparse.Namespace) -> int:
     else:
         actions.append("frameworks (none selected; default coarse control-map check)")
 
+    if interactive_config is not None:
+        sicario_dir = target / ".sicario"
+        if not args.dry_run:
+            sicario_dir.mkdir(parents=True, exist_ok=True)
+        _write_text(
+            sicario_dir / "config.json",
+            json.dumps(interactive_config, indent=2) + "\n",
+            force=args.force,
+            dry_run=args.dry_run,
+            actions=actions,
+            reports=reports,
+        )
+
     _copy_tree(
         EXTENSIONS_ROOT / "sicario-guard",
         target / ".specify" / "extensions" / "sicario-guard",
@@ -884,180 +749,20 @@ def init_project(args: argparse.Namespace) -> int:
         reports=reports,
     )
 
-    _write_text(
-        target / "SICARIO.md",
-        _sicario_project_readme(selected_presets),
-        force=args.force,
-        dry_run=args.dry_run,
-        actions=actions,
-        reports=reports,
-    )
 
-    _write_text(
-        target / "docs" / "security" / "threat-model.md",
-        _default_threat_model(),
-        force=args.force,
-        dry_run=args.dry_run,
-        actions=actions,
-        reports=reports,
-    )
-    _write_text(
-        target / "docs" / "security" / "abuse-cases.md",
-        _default_abuse_cases(),
-        force=args.force,
-        dry_run=args.dry_run,
-        actions=actions,
-        reports=reports,
-    )
-    _write_text(
-        target / "docs" / "governance" / "data-classification.md",
-        _default_data_classification(),
-        force=args.force,
-        dry_run=args.dry_run,
-        actions=actions,
-        reports=reports,
-    )
-    _write_text(
-        target / "docs" / "governance" / "tagging-taxonomy.md",
-        _default_tagging_taxonomy(),
-        force=args.force,
-        dry_run=args.dry_run,
-        actions=actions,
-        reports=reports,
-    )
-    _write_text(
-        target / "docs" / "compliance" / "control-applicability.md",
-        _default_control_applicability(),
-        force=args.force,
-        dry_run=args.dry_run,
-        actions=actions,
-        reports=reports,
-    )
-    _write_text(
-        target / "docs" / "compliance" / "evidence-index.md",
-        _default_evidence_index(),
-        force=args.force,
-        dry_run=args.dry_run,
-        actions=actions,
-        reports=reports,
-    )
-    _write_text(
-        target / "docs" / "architecture" / "system-context.md",
-        _default_system_context(),
-        force=args.force,
-        dry_run=args.dry_run,
-        actions=actions,
-        reports=reports,
-    )
-    _write_text(
-        target / "docs" / "diagrams" / "system-context.mmd",
-        _default_system_context_diagram(),
-        force=args.force,
-        dry_run=args.dry_run,
-        actions=actions,
-        reports=reports,
-    )
-    _write_text(
-        target / "docs" / "docs-impact.md",
-        _default_docs_impact(),
-        force=args.force,
-        dry_run=args.dry_run,
-        actions=actions,
-        reports=reports,
-    )
-    _write_text(
-        target / "docs" / "risk" / "risk-register.md",
-        _default_risk_register(),
-        force=args.force,
-        dry_run=args.dry_run,
-        actions=actions,
-        reports=reports,
-    )
-    _write_text(
-        target / "docs" / "risk" / "security-exceptions.md",
-        _default_security_exceptions(),
-        force=args.force,
-        dry_run=args.dry_run,
-        actions=actions,
-        reports=reports,
-    )
-    _write_text(
-        target / "docs" / "risk" / "accepted-risk-log.md",
-        _default_accepted_risk_log(),
-        force=args.force,
-        dry_run=args.dry_run,
-        actions=actions,
-        reports=reports,
-    )
-    _write_text(
-        target / "docs-site" / "package.json",
-        _docs_site_package_json(),
-        force=args.force,
-        dry_run=args.dry_run,
-        actions=actions,
-        reports=reports,
-    )
-    _write_text(
-        target / "docs-site" / "docusaurus.config.js",
-        _docusaurus_config(),
-        force=args.force,
-        dry_run=args.dry_run,
-        actions=actions,
-        reports=reports,
-    )
-    _write_text(
-        target / "docs-site" / "sidebars.js",
-        _docusaurus_sidebars(),
-        force=args.force,
-        dry_run=args.dry_run,
-        actions=actions,
-        reports=reports,
-    )
-    _write_text(
-        target / "docs-site" / "docs" / "intro.md",
-        _docusaurus_intro(),
-        force=args.force,
-        dry_run=args.dry_run,
-        actions=actions,
-        reports=reports,
-    )
-    _write_text(
-        target / "docs-site" / "src" / "css" / "custom.css",
-        _docusaurus_css(),
-        force=args.force,
-        dry_run=args.dry_run,
-        actions=actions,
-        reports=reports,
-    )
 
-    _write_agent_integrations(
-        target,
-        args.integration,
-        force=args.force,
-        dry_run=args.dry_run,
-        actions=actions,
-        reports=reports,
-    )
-
-    for workflow_name in ["sicario-verify.yml", "docs-site.yml"]:
-        workflow_src = WORKFLOW_ROOT / workflow_name
-        if not workflow_src.exists():
-            continue
-        _write_text(
-            target / ".github" / "workflows" / workflow_name,
-            workflow_src.read_text(encoding="utf-8"),
-            force=args.force,
-            dry_run=args.dry_run,
-            actions=actions,
-            reports=reports,
-        )
-
-    if "sicario-security-toolchain" in selected_presets:
-        workflow_src = WORKFLOW_ROOT / "security-toolchain.yml"
-        if workflow_src.exists():
-            _write_text(
-                target / ".github" / "workflows" / "security-toolchain.yml",
-                workflow_src.read_text(encoding="utf-8"),
+    # Delegate generated content (docs, integrations, workflows) to presets.
+    for preset_id in selected_presets:
+        cls = PRESET_CLASSES.get(preset_id)
+        if cls is not None:
+            cls().write(
+                target,
+                presets_root=PRESETS_ROOT,
+                workflows_root=WORKFLOW_ROOT,
+                selected_presets=selected_presets,
+                integration=args.integration,
+                apply_to_speckit=getattr(args, "apply_to_speckit", True),
+                deferrals=deferrals,
                 force=args.force,
                 dry_run=args.dry_run,
                 actions=actions,
@@ -1074,27 +779,7 @@ def init_project(args: argparse.Namespace) -> int:
     return 0
 
 
-def _print_report(reports: Sequence[FileReport], *, dry_run: bool, force: bool) -> None:
-    """Print a clear per-file REPORT: created / merged-overlaid / preserved / overwritten."""
-    if not reports:
-        return
-    header = "SicarioSpec adoption report"
-    if dry_run:
-        header += " (dry-run preview — nothing written)"
-    elif force:
-        header += " (--force full-overwrite; backups taken)"
-    else:
-        header += " (brownfield-safe: merge/overlay/preserve)"
-    print("")
-    print(header)
-    print("-" * len(header))
-    counts: "dict[str, int]" = {}
-    for report in reports:
-        counts[report.outcome] = counts.get(report.outcome, 0) + 1
-        suffix = f" — {report.detail}" if report.detail else ""
-        print(f"  [{report.outcome}] {report.path}{suffix}")
-    summary = ", ".join(f"{value} {key}" for key, value in sorted(counts.items()))
-    print(f"  summary: {summary}")
+
 
 
 def _extensions_yml() -> str:
@@ -2012,6 +1697,8 @@ def verify_project(path: Path, *, write: bool = True) -> List[Finding]:
                 )
                 break
 
+    findings.extend(_scan_evidence_files(root))
+
     for spec in sorted(root.glob("specs/**/spec.md")):
         text = spec.read_text(encoding="utf-8")
         rel = str(spec.relative_to(root))
@@ -2330,6 +2017,102 @@ def hooks_command(args: argparse.Namespace) -> int:
     return exit_code
 
 
+def _interactive_init(target: Path) -> dict:
+    """Run an interactive wizard to collect user choices for SicarioSpec init.
+
+    Returns a dict with keys:
+      - ``frameworks``: list of selected framework keys
+      - ``data_classification``: chosen max classification level
+      - ``cloud_providers``: list of selected cloud provider targets
+    """
+    print("SicarioSpec Interactive Setup")
+    print("=" * 40)
+    print("")
+
+    # 1. Framework selection
+    print("Step 1: Framework Selection")
+    print("-" * 30)
+    print("Choose which compliance frameworks apply to this project.")
+    print("Enter the numbers separated by commas (e.g. 1,3,5) or 'all'.")
+    print("Press Enter for none.")
+    print("")
+    sorted_keys = sorted(FRAMEWORK_IDS)
+    for i, key in enumerate(sorted_keys, start=1):
+        filename = FRAMEWORK_IDS[key]
+        print(f"  {i:2d}. {key:20s} ({filename})")
+    print("")
+    frameworks_input = input("Frameworks (numbers, 'all', or empty): ").strip().lower()
+    selected_frameworks: List[str] = []
+    if frameworks_input == "all":
+        selected_frameworks = list(FRAMEWORK_IDS)
+    elif frameworks_input:
+        for part in frameworks_input.split(","):
+            part = part.strip()
+            if part.isdigit():
+                idx = int(part)
+                if 1 <= idx <= len(sorted_keys):
+                    key = sorted_keys[idx - 1]
+                    if key not in selected_frameworks:
+                        selected_frameworks.append(key)
+            elif part in FRAMEWORK_IDS and part not in selected_frameworks:
+                selected_frameworks.append(part)
+    print(f"  Selected: {', '.join(selected_frameworks) if selected_frameworks else 'none'}")
+    print("")
+
+    # 2. Data classification boundary
+    print("Step 2: Data Classification Boundary")
+    print("-" * 30)
+    print("What is the maximum data classification level for this project?")
+    class_levels = ["public", "internal", "confidential", "restricted", "regulated"]
+    for i, level in enumerate(class_levels, start=1):
+        print(f"  {i}. {level}")
+    classification_input = input("Choice (1-5, default 3): ").strip()
+    if classification_input.isdigit():
+        idx = int(classification_input)
+        if 1 <= idx <= len(class_levels):
+            data_classification = class_levels[idx - 1]
+        else:
+            data_classification = "confidential"
+    else:
+        data_classification = "confidential"
+    print(f"  Selected: {data_classification}")
+    print("")
+
+    # 3. Cloud provider targets
+    print("Step 3: Infrastructure / Cloud Provider Targets")
+    print("-" * 30)
+    print("Which cloud or infrastructure platforms does this project target?")
+    print("Enter numbers separated by commas (e.g. 1,3) or empty for none.")
+    cloud_options = [
+        ("aws", "AWS CloudFormation / Terraform"),
+        ("azure", "Azure Bicep / AVM / Terraform"),
+        ("gcp", "Google Cloud Terraform"),
+        ("kubernetes", "Kubernetes manifests / Helm"),
+    ]
+    for i, (key, label) in enumerate(cloud_options, start=1):
+        print(f"  {i}. {label}")
+    cloud_input = input("Choices (numbers or empty): ").strip()
+    selected_cloud: List[str] = []
+    if cloud_input:
+        for part in cloud_input.split(","):
+            part = part.strip()
+            if part.isdigit():
+                idx = int(part)
+                if 1 <= idx <= len(cloud_options):
+                    key = cloud_options[idx - 1][0]
+                    if key not in selected_cloud:
+                        selected_cloud.append(key)
+    print(f"  Selected: {', '.join(selected_cloud) if selected_cloud else 'none'}")
+    print("")
+
+    config: dict = {
+        "frameworks": selected_frameworks,
+        "data_classification": data_classification,
+        "cloud_providers": selected_cloud,
+    }
+    return config
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="sicario", description="Kill risk before it ships.")
     parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
@@ -2375,6 +2158,12 @@ def build_parser() -> argparse.ArgumentParser:
         help="Full-overwrite opt-in: replace existing files with SicarioSpec templates "
         "(a timestamped *.sicario-bak backup is taken first). Default is brownfield-safe "
         "merge/overlay/preserve.",
+    )
+    init.add_argument(
+        "-i", "--interactive",
+        action="store_true",
+        help="Interactive wizard: prompts for framework selection, data classification boundary, "
+        "and cloud provider targets, then writes .sicario/config.json.",
     )
     init.set_defaults(func=init_project)
 
