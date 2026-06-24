@@ -29,7 +29,7 @@ Disclosure, Denial of Service, Elevation of Privilege).
 | Unauthenticated user modifies `.rule.json` files to weaken gates | Tampering | High | Rule files are under version control; changes visible in PR diff; branch protection enforces review | Implemented |
 | CI pipeline bypasses verify by exiting early or masking exit code | Spoofing | High | CI workflow enforces `sicario verify` as a required step; branch protection requires passing status check | Implemented |
 | Concurrent CI jobs race on shared gate-summary output | Denial of Service | Low | CI runners are single-threaded per job; not exploitable in current architecture | Accepted |
-| Preset output injection via malicious template or content generator | Tampering | High | Preset classes are version-controlled Python modules; `_render.py` validates all output paths are within target directory; no runtime fetching of external content; content generators use only stdlib and hardcoded templates | Implemented |
+| Preset output injection via malicious template or content generator | Tampering | High | Preset classes are version-controlled Python modules; generated paths are fixed relative paths under the selected target; no runtime fetching of external content; content generators use only stdlib and hardcoded templates | Implemented |
 
 ## Human Approval Boundaries
 

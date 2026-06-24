@@ -746,7 +746,7 @@ class BrownfieldSafeAdoptionTests(unittest.TestCase):
                 ("AK", "IA"),
                 ("ghp", "_"),
             ]
-            secret_patterns = ["".join(p) for p in parts]
+            secret_patterns = ["".join(p).lower() for p in parts]
             for path in target.rglob("*"):
                 if path.is_file() and path.suffix in (".md", ".yml", ".yaml", ".json", ".txt"):
                     content = path.read_text(encoding="utf-8", errors="ignore").lower()

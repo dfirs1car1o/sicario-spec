@@ -24,7 +24,7 @@ rc=$?
 set -e
 echo "exit=${rc}"
 
-if [ "${rc}" -eq 0 ]; then
+if [[ "${rc}" -eq 0 ]]; then
   echo "expected failing example to halt"
   exit 1
 fi
