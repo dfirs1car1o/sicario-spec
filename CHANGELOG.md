@@ -37,7 +37,7 @@ improve the security model.
   advisory-append patterns generally. No multi-framework-breadth superiority is
   claimed.
 - **docs-site swept** to reflect current capabilities: turnkey
-  `--apply-to-speckit` wiring, brownfield-safe adoption, the 10 frameworks and
+  `--apply-to-speckit` wiring, brownfield-safe adoption, the 11 frameworks and
   the new selector, the USAGE flow, and the pass+fail worked example.
 - **Spec Kit catalog readiness.** Reworked `sicario-core` around the Security
   Evidence Chain: risk or decision to control, test/gate, evidence path, owner,
@@ -52,11 +52,11 @@ improve the security model.
   added `specs/001-maintainer-operations/` with spec, plan, and tasks for this
   maintainer-ops change.
 - **Framework selector (#18).** `sicario init --frameworks <keys>` records which
-  of the 10 control-map frameworks a project enforces in
+  of the 11 control-map frameworks a project enforces in
   `.sicario/frameworks.txt`. `sicario verify` honors the subset: each selected
   framework's control map must be present (`SICARIO-MISSING-FRAMEWORK-MAP`),
   while unselected frameworks are not required. Default selection follows the
-  profile's framework set; `enterprise-strict` enforces all 10. With no config
+  profile's framework set; `enterprise-strict` enforces all 11. With no config
   file, `verify` keeps its prior coarse control-map behavior unchanged.
 - **Failing worked example** (`examples/python-api-failing/`) — the same governed
   feature as `examples/python-api/` with one required artifact removed, proving

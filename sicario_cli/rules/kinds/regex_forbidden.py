@@ -2,10 +2,12 @@ import re
 from pathlib import Path
 from typing import Any, Dict, List
 
+_SKIP_DIRS = {".git", ".venv", "venv", "node_modules", "__pycache__", ".pytest_cache", "build", "dist", "generated", "sicario_spec.egg-info"}
+
 
 def _resolve_paths(pattern: str, root: Path) -> List[Path]:
     if any(c in pattern for c in "*?["):
-        return sorted(root.glob(pattern))
+        return sorted(p for p in root.glob(pattern) if not any(part in _SKIP_DIRS for part in p.relative_to(root).parts))
     target = root / pattern
     return [target] if target.exists() else []
 

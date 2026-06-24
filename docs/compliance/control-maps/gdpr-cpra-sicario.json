@@ -1,0 +1,148 @@
+{
+  "id": "gdpr-cpra-sicario",
+  "name": "GDPR (with CPRA parallels) to SicarioSpec Evidence Map",
+  "version": "0.5.0",
+  "framework": {
+    "name": "Regulation (EU) 2016/679 General Data Protection Regulation, with California Consumer Privacy Act as amended by the California Privacy Rights Act parallels",
+    "abbreviation": "GDPR / CPRA",
+    "framework_version": "GDPR 2016/679; CCPA/CPRA",
+    "official_sources": [
+      "https://eur-lex.europa.eu/eli/reg/2016/679/oj",
+      "https://gdpr-info.eu/",
+      "https://oag.ca.gov/privacy/ccpa"
+    ]
+  },
+  "scope_note": "Principle- and duty-level starter mapping only. GDPR Article 5 sets seven processing principles, with further duties across the regulation (DPIA Art. 35, breach notification Art. 33-34, data-subject rights Art. 15-22). CPRA/CCPA grants California consumers parallel (not identical) rights. This is privacy-program guidance, not legal advice; confirm lawful basis, scope, and rights handling with qualified counsel/DPO. SicarioSpec evidence supports a privacy program; it is not a compliance attestation.",
+  "principle_and_duty_mappings": [
+    {
+      "area": "Lawfulness, fairness and transparency",
+      "gdpr_reference": "Art. 5(1)(a), Art. 6, Art. 13-14",
+      "cpra_parallel": "Notice at collection; right to know (Cal. Civ. Code 1798.100, 1798.110).",
+      "sicario_evidence": [
+        "specs/**/spec.md#privacy-requirements",
+        "docs/compliance/control-applicability.md",
+        "docs/governance/data-classification.md"
+      ],
+      "sicario_presets": [
+        "sicario-compliance",
+        "sicario-core"
+      ]
+    },
+    {
+      "area": "Purpose limitation",
+      "gdpr_reference": "Art. 5(1)(b)",
+      "cpra_parallel": "Purpose specification and use limitation (1798.100(c)).",
+      "sicario_evidence": [
+        "specs/**/spec.md#privacy-requirements",
+        "docs/governance/tagging-taxonomy.md"
+      ],
+      "sicario_presets": [
+        "sicario-compliance",
+        "sicario-core"
+      ]
+    },
+    {
+      "area": "Data minimisation",
+      "gdpr_reference": "Art. 5(1)(c)",
+      "cpra_parallel": "Data minimization (1798.100(c)).",
+      "sicario_evidence": [
+        "specs/**/spec.md#data-classification",
+        "docs/governance/data-classification.md",
+        "specs/**/plan.md#data-flow-and-trust-boundaries"
+      ],
+      "sicario_presets": [
+        "sicario-core",
+        "sicario-appsec"
+      ]
+    },
+    {
+      "area": "Accuracy and storage limitation (retention)",
+      "gdpr_reference": "Art. 5(1)(d)-(e)",
+      "cpra_parallel": "Storage/retention disclosure and limits (1798.100(a)(3)).",
+      "sicario_evidence": [
+        "docs/governance/tagging-taxonomy.md",
+        "docs/compliance/control-applicability.md"
+      ],
+      "sicario_presets": [
+        "sicario-compliance",
+        "sicario-core"
+      ]
+    },
+    {
+      "area": "Integrity, confidentiality and security of processing",
+      "gdpr_reference": "Art. 5(1)(f), Art. 32",
+      "cpra_parallel": "Duty to implement reasonable security (1798.100(e), 1798.81.5).",
+      "sicario_evidence": [
+        "specs/**/spec.md#secrets--credential-handling",
+        "specs/**/plan.md#authn--authz-design",
+        "docs/security/threat-model.md",
+        "tests",
+        "security/toolchain"
+      ],
+      "sicario_presets": [
+        "sicario-appsec",
+        "sicario-security-toolchain",
+        "sicario-cloud-iac"
+      ]
+    },
+    {
+      "area": "Accountability and governance",
+      "gdpr_reference": "Art. 5(2), Art. 24, Art. 30",
+      "cpra_parallel": "Risk assessments and records expected of businesses (CPRA regulations).",
+      "sicario_evidence": [
+        ".specify/memory/constitution.md",
+        "docs/compliance/control-applicability.md",
+        "docs/compliance/evidence-index.md",
+        "docs/risk/risk-register.md"
+      ],
+      "sicario_presets": [
+        "sicario-compliance",
+        "sicario-enterprise-strict"
+      ]
+    },
+    {
+      "area": "Data protection impact assessment (DPIA / risk assessment)",
+      "gdpr_reference": "Art. 35",
+      "cpra_parallel": "Risk assessments for high-risk processing (1798.185(a)(15)).",
+      "sicario_evidence": [
+        "docs/security/threat-model.md",
+        "docs/security/abuse-cases.md",
+        "docs/risk/risk-register.md",
+        "specs/**/spec.md#privacy-requirements"
+      ],
+      "sicario_presets": [
+        "sicario-compliance",
+        "sicario-appsec",
+        "sicario-ai-system"
+      ]
+    },
+    {
+      "area": "Data-subject / consumer rights",
+      "gdpr_reference": "Art. 15-22 (access, rectification, erasure, portability, objection)",
+      "cpra_parallel": "Rights to know, delete, correct, opt-out of sale/sharing, and limit use of sensitive PI (1798.105-1798.121).",
+      "sicario_evidence": [
+        "specs/**/spec.md#privacy-requirements",
+        "specs/**/plan.md#data-flow-and-trust-boundaries",
+        "docs/compliance/control-applicability.md"
+      ],
+      "sicario_presets": [
+        "sicario-compliance",
+        "sicario-core"
+      ]
+    },
+    {
+      "area": "Personal data breach notification",
+      "gdpr_reference": "Art. 33-34",
+      "cpra_parallel": "Breach liability / data breach statutes (Cal. Civ. Code 1798.82, 1798.150).",
+      "sicario_evidence": [
+        "docs/security/abuse-cases.md",
+        "docs/risk/risk-register.md",
+        "specs/**/plan.md#rollback"
+      ],
+      "sicario_presets": [
+        "sicario-agent-fleet",
+        "sicario-compliance"
+      ]
+    }
+  ]
+}

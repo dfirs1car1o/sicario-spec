@@ -29,7 +29,7 @@ That is the whole product. Everything below is mechanics.
 python3 -m pip install "git+https://github.com/dfirs1car1o/sicario-spec.git"
 
 # Pin a release:
-python3 -m pip install "git+https://github.com/dfirs1car1o/sicario-spec.git@v0.3.0"
+python3 -m pip install "git+https://github.com/dfirs1car1o/sicario-spec.git@v0.5.0"
 
 # From a local checkout:
 python3 -m pip install -e .
@@ -69,7 +69,7 @@ sicario init my-service --profile appsec,cloud-iac,compliance
 
 ### Pick which compliance frameworks you enforce
 
-SicarioSpec ships control maps for 10 frameworks, but you rarely owe evidence for
+SicarioSpec ships control maps for 11 frameworks, but you rarely owe evidence for
 all of them. Declare the subset that applies with `--frameworks`:
 
 ```bash
@@ -82,7 +82,7 @@ map for each selected framework (`SICARIO-MISSING-FRAMEWORK-MAP` if one is
 missing) and does **not** require the rest. Omit `--frameworks` to default to the
 profile's set; delete the file to fall back to the coarse control-map check.
 Keys (`ccm`, `sox`, `ssdf`, `ai-rmf`, `iso27001`, `nist-800-53`, `eu-ai-act`,
-`gdpr`, `pci-dss`, `hipaa`, or `all`) and per-profile defaults are in the
+`gdpr`, `pci-dss`, `hipaa`, `owasp-asvs`, or `all`) and per-profile defaults are in the
 [control-maps docs](https://dfirs1car1o.github.io/sicario-spec/docs/control-maps).
 
 ### Existing Spec Kit repo (brownfield)

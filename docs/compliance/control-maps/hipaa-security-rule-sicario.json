@@ -1,0 +1,89 @@
+{
+  "id": "hipaa-security-rule-sicario",
+  "name": "HIPAA Security Rule Safeguards to SicarioSpec Evidence Map",
+  "version": "0.5.0",
+  "framework": {
+    "name": "HIPAA Security Rule (45 CFR Part 164, Subpart C) \u2014 safeguards for electronic protected health information (ePHI)",
+    "abbreviation": "HIPAA Security Rule",
+    "framework_version": "45 CFR Part 164, Subpart C",
+    "safeguard_categories": [
+      "Administrative",
+      "Physical",
+      "Technical"
+    ],
+    "official_sources": [
+      "https://www.hhs.gov/hipaa/for-professionals/security/index.html",
+      "https://www.ecfr.gov/current/title-45/subtitle-A/subchapter-C/part-164/subpart-C"
+    ]
+  },
+  "scope_note": "Safeguard- and standard-level starter mapping only. The HIPAA Security Rule organizes standards into Administrative, Physical, and Technical safeguards (with required and addressable implementation specifications) protecting ePHI. This map links SicarioSpec evidence to those safeguard categories and key standards. It is not a HIPAA compliance assessment; covered entities and business associates must perform their own risk analysis (45 CFR 164.308(a)(1)) and confirm scope with counsel.",
+  "safeguard_mappings": [
+    {
+      "safeguard": "Administrative safeguards",
+      "regulation": "45 CFR 164.308",
+      "key_standards": [
+        "Security management process incl. risk analysis and risk management (164.308(a)(1))",
+        "Assigned security responsibility (164.308(a)(2))",
+        "Workforce security and information access management (164.308(a)(3)-(4))",
+        "Security awareness and training (164.308(a)(5))",
+        "Security incident procedures (164.308(a)(6))",
+        "Contingency plan (164.308(a)(7))",
+        "Business associate contracts (164.308(b))"
+      ],
+      "sicario_evidence": [
+        ".specify/memory/constitution.md",
+        "docs/security/threat-model.md",
+        "docs/risk/risk-register.md",
+        "docs/security/abuse-cases.md",
+        "docs/compliance/control-applicability.md",
+        "specs/**/plan.md#supply-chain"
+      ],
+      "sicario_presets": [
+        "sicario-compliance",
+        "sicario-enterprise-strict",
+        "sicario-supply-chain"
+      ]
+    },
+    {
+      "safeguard": "Physical safeguards",
+      "regulation": "45 CFR 164.310",
+      "key_standards": [
+        "Facility access controls (164.310(a))",
+        "Workstation use and security (164.310(b)-(c))",
+        "Device and media controls incl. disposal and reuse (164.310(d))"
+      ],
+      "sicario_evidence": [
+        "docs/compliance/control-applicability.md",
+        "docs/compliance/evidence-index.md",
+        "docs/risk/accepted-risk-log.md"
+      ],
+      "sicario_presets": [
+        "sicario-compliance"
+      ]
+    },
+    {
+      "safeguard": "Technical safeguards",
+      "regulation": "45 CFR 164.312",
+      "key_standards": [
+        "Access control incl. unique user ID and emergency access (164.312(a))",
+        "Audit controls (164.312(b))",
+        "Integrity controls (164.312(c))",
+        "Person or entity authentication (164.312(d))",
+        "Transmission security incl. encryption (164.312(e))"
+      ],
+      "sicario_evidence": [
+        "specs/**/plan.md#authn--authz-design",
+        "specs/**/spec.md#audit--logging-requirements",
+        "specs/**/spec.md#secrets--credential-handling",
+        "specs/**/plan.md#data-flow-and-trust-boundaries",
+        "tests",
+        "infra"
+      ],
+      "sicario_presets": [
+        "sicario-appsec",
+        "sicario-cloud-iac",
+        "sicario-security-toolchain"
+      ]
+    }
+  ]
+}

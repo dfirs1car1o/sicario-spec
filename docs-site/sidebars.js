@@ -1,7 +1,7 @@
 // @ts-check
 
 const docSections = [
-  ['Start Here', ['getting-started', 'architecture', 'profiles', 'presets']],
+  ['Start Here', ['getting-started', 'architecture', 'profiles', 'presets', 'rule-engine']],
   [
     'Security Evidence Chain',
     [
@@ -40,7 +40,14 @@ const docSections = [
   ],
   [
     'Project Operations',
-    ['extensions', 'release-process', 'adoption-and-launch', 'architecture/system-context'],
+    [
+      'extensions',
+      'bundle-readiness',
+      'catalog-submission',
+      'release-process',
+      'adoption-and-launch',
+      'architecture/system-context',
+    ],
   ],
 ];
 

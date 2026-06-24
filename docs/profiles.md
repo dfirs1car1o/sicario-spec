@@ -13,7 +13,7 @@ Profiles are install selections for the bootstrap CLI.
 | `supply-chain` | core, docs, supply chain | `ssdf` |
 | `compliance` | core, docs, compliance | `ccm`, `sox`, `iso27001`, `nist-800-53` |
 | `saas` | core, docs, AI system, SaaS | `ccm`, `iso27001`, `ai-rmf` |
-| `enterprise-strict` | core, docs, appsec, AI system, agent fleet, security toolchain, supply chain, compliance, enterprise strict | all 10 |
+| `enterprise-strict` | core, docs, appsec, AI system, agent fleet, security toolchain, supply chain, compliance, enterprise strict | all 11 |
 
 Profiles are composable:
 

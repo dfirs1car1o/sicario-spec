@@ -5,7 +5,7 @@ readiness. These maps are traceability aids, not certification claims.
 
 ## Included Maps
 
-SicarioSpec ships starter maps for 10 frameworks. Each is a coarse traceability
+SicarioSpec ships starter maps for 11 frameworks. Each is a coarse traceability
 aid (theme / domain / family / practice-group / function / requirement / safeguard
 level), not a control-by-control crosswalk and not a certification claim.
 
@@ -21,17 +21,18 @@ level), not a control-by-control crosswalk and not a certification claim.
 | GDPR (+ CPRA parallels) | Principle + duty (Art. 5 + DPIA/rights/breach) | Privacy program evidence | `control_maps/gdpr-cpra-sicario.json` |
 | PCI DSS v4.0 | Requirement-level (12 requirements) | Cardholder-data-environment evidence | `control_maps/pci-dss-v4.0-sicario.json` |
 | HIPAA Security Rule | Safeguard (Administrative/Physical/Technical) | ePHI safeguard evidence | `control_maps/hipaa-security-rule-sicario.json` |
+| OWASP ASVS | Verification area | Application security verification evidence | `control_maps/owasp-asvs-sicario.json` |
 
 Frameworks named in templates and docs but **not yet shipped as a control map**
-(treated as advisory until a map exists): SLSA, OWASP ASVS, OWASP SAMM, and
-OWASP LLM/Agentic AI risks. Contributions adding these maps are welcome — see the
-control-map issue form.
+(treated as advisory until a map exists): SLSA, OWASP SAMM, OWASP LLM/Agentic
+AI risks, NIS2, CRA, DORA, SOC 2, FedRAMP, and BSI C5. Contributions adding
+these maps are welcome - see the control-map issue form.
 
 ## Selecting which frameworks apply (`--frameworks`)
 
-You almost never owe evidence for all 10 frameworks. The **framework selector**
+You almost never owe evidence for all 11 frameworks. The **framework selector**
 lets a project declare the subset it enforces, so `sicario verify` requires a
-control map for exactly those frameworks — not all 10, and not none.
+control map for exactly those frameworks - not all 11, and not none.
 
 ```bash
 # Enforce only ISO 27001 and HIPAA for this project:
@@ -58,11 +59,12 @@ is absent. Unselected frameworks are not required.
 | `gdpr` | GDPR (+ CPRA parallels) | `gdpr-cpra-sicario.json` |
 | `pci-dss` | PCI DSS v4.0 | `pci-dss-v4.0-sicario.json` |
 | `hipaa` | HIPAA Security Rule | `hipaa-security-rule-sicario.json` |
+| `owasp-asvs` | OWASP ASVS | `owasp-asvs-sicario.json` |
 
 **Defaults.** If you omit `--frameworks`, the selection defaults to the
 profile's natural framework set (e.g. `compliance` -> `ccm`, `sox`, `iso27001`,
 `nist-800-53`; `ai-system` -> `ai-rmf`, `eu-ai-act`; `enterprise-strict` -> all
-10). A bare `public-core` carries no compliance obligation, so it writes no
+11). A bare `public-core` carries no compliance obligation, so it writes no
 selector and `verify` keeps its prior coarse control-map check (the single
 `SICARIO-MISSING-CONTROL-MAPS`). Delete `.sicario/frameworks.txt` to return to
 that default behavior at any time.
