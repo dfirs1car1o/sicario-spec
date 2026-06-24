@@ -4,7 +4,7 @@ These maps provide traceability from SicarioSpec evidence to external control
 and audit concerns. They are not certification claims and do not copy full
 control text from third-party frameworks.
 
-Current starter maps (10 frameworks):
+Current starter maps (11 frameworks):
 
 - `ccm-v4.1-sicario.json`: CSA Cloud Controls Matrix v4.1 domain-level map.
 - `sox-404-itgc-sicario.json`: SOX Section 404 / ICFR ITGC evidence map.
@@ -16,6 +16,7 @@ Current starter maps (10 frameworks):
 - `gdpr-cpra-sicario.json`: GDPR principles and duties map, with CPRA/CCPA consumer-rights parallels.
 - `pci-dss-v4.0-sicario.json`: PCI DSS v4.0 12-requirement map.
 - `hipaa-security-rule-sicario.json`: HIPAA Security Rule Administrative/Physical/Technical safeguard map.
+- `owasp-asvs-sicario.json`: OWASP ASVS application security verification evidence map.
 
 Each map is a starter that links SicarioSpec evidence to framework outcomes at a
 coarse level (theme, domain, family, practice group, function, requirement, or

@@ -15,7 +15,7 @@ const proofPoints = [
   },
   {
     title: 'A halting gate plus control maps',
-    body: 'sicario verify blocks merge/release on violation and is wired into CI. Starter evidence maps cover 10 frameworks: CSA CCM v4.1, SOX 404 / ICFR, NIST SSDF, NIST AI RMF, ISO/IEC 27001:2022, NIST SP 800-53 Rev 5, EU AI Act, GDPR (+ CPRA), PCI DSS v4.0, and the HIPAA Security Rule.',
+    body: 'sicario verify blocks merge/release on violation and is wired into CI. Starter evidence maps cover 11 frameworks: CSA CCM v4.1, SOX 404 / ICFR, NIST SSDF, NIST AI RMF, ISO/IEC 27001:2022, NIST SP 800-53 Rev 5, EU AI Act, GDPR (+ CPRA), PCI DSS v4.0, HIPAA Security Rule, and OWASP ASVS.',
   },
   {
     title: 'Security Evidence Chain',
@@ -24,6 +24,51 @@ const proofPoints = [
 ];
 
 const environments = ['Claude Code', 'Codex / GPT', 'GitHub Copilot', 'Generic agents'];
+
+const currentSurface = [
+  {
+    metric: '11',
+    label: 'preset manifests',
+    body: 'Composable Spec Kit profiles for core governance, docs, appsec, AI systems, agent fleets, cloud/IaC, security tooling, supply chain, compliance, SaaS, and enterprise-strict delivery.',
+  },
+  {
+    metric: '16',
+    label: 'shipped verify rules',
+    body: 'Default `.rule.json` gates cover files, sections, keywords, forbidden patterns, required regexes, risk rows, classification, tagging, AI guardrails, and fleet guardrails.',
+  },
+  {
+    metric: '11',
+    label: 'control maps',
+    body: 'Starter maps connect SicarioSpec evidence to CCM, SOX, SSDF, AI RMF, ISO 27001, NIST 800-53, EU AI Act, GDPR/CPRA, PCI DSS, HIPAA, and OWASP ASVS.',
+  },
+  {
+    metric: '8',
+    label: 'guard commands',
+    body: 'Spec Kit extension commands cover init, assess, threat modeling, controls, evidence, verify, review, and apply-findings workflows.',
+  },
+];
+
+const ruleFlow = [
+  'load `.sicario/rules/*.rule.json`',
+  'validate required fields and kind-specific params',
+  'dispatch to fixed evaluator modules',
+  'emit named findings with severity and path',
+  'write gate evidence under `generated/sicario/`',
+  'exit non-zero when required evidence is missing',
+];
+
+const maintainerTracks = [
+  {
+    title: 'Custom rule example',
+    body: 'A contributor-owned issue is reserved for `examples/custom-rules/`, proving external teams can add rules without Python changes.',
+    to: 'https://github.com/dfirs1car1o/sicario-spec/issues/32',
+  },
+  {
+    title: 'Additional control map',
+    body: 'A contributor-owned issue is reserved for SOC 2, FedRAMP, or BSI C5 coverage, expanding the standards evidence surface.',
+    to: 'https://github.com/dfirs1car1o/sicario-spec/issues/31',
+  },
+];
 
 const usePaths = [
   {
@@ -131,6 +176,55 @@ export default function Home() {
         <section className={styles.section}>
           <div className="container">
             <div className={styles.sectionHeader}>
+              <p className={styles.kicker}>Current bundle surface</p>
+              <Heading as="h2">Version 0.5.0 is more than a template pack.</Heading>
+              <p className={styles.readableText}>
+                The bundle now combines Spec Kit presets, a Python CLI, declarative verify
+                rules, framework maps, release assets, Docusaurus documentation, GitHub
+                workflows, and maintainer operations. The open contribution queue is intentionally
+                small: two assigned issues that should arrive as reviewable PRs.
+              </p>
+            </div>
+            <div className={styles.metricGrid}>
+              {currentSurface.map((item) => (
+                <article className={styles.metricCard} key={item.label}>
+                  <strong>{item.metric}</strong>
+                  <span>{item.label}</span>
+                  <p>{item.body}</p>
+                </article>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section className={clsx(styles.section, styles.band)}>
+          <div className="container">
+            <div className={styles.split}>
+              <div>
+                <p className={styles.kicker}>Declarative verification</p>
+                <Heading as="h2">Custom gates are JSON files, not Python forks.</Heading>
+                <p>
+                  SicarioSpec 0.5.0 loads `*.rule.json` files, validates their schema,
+                  and runs fixed evaluator modules. A project can add, override, or disable
+                  a governance gate in `.sicario/rules/` while keeping the same deterministic
+                  pass/fail path in CI.
+                </p>
+                <Link className={styles.inlineLink} to="/docs/rule-engine">
+                  Read the rule engine docs
+                </Link>
+              </div>
+              <ol className={styles.flowList}>
+                {ruleFlow.map((step) => (
+                  <li key={step}>{step}</li>
+                ))}
+              </ol>
+            </div>
+          </div>
+        </section>
+
+        <section className={styles.section}>
+          <div className="container">
+            <div className={styles.sectionHeader}>
               <p className={styles.kicker}>How it differs</p>
               <Heading as="h2">Enforces, not just advises.</Heading>
             </div>
@@ -141,7 +235,7 @@ export default function Home() {
               consider. SicarioSpec operates at a different layer — a mandatory governance contract
               whose pass/fail verdict is owned by deterministic, stdlib-only code with no LLM in the
               decision path, backed by a <strong>halting</strong> verify gate (non-zero exit blocks
-              the merge) and selectable control maps across 10 frameworks. The two are
+              the merge) and selectable control maps across 11 frameworks. The two are
               complementary: keep the advice you like, then gate the result.
             </p>
           </div>
@@ -176,6 +270,30 @@ export default function Home() {
               {environments.map((environment) => (
                 <Link key={environment} className={styles.pill} to="/docs/agent-environments">
                   {environment}
+                </Link>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section className={styles.section}>
+          <div className="container">
+            <div className={styles.sectionHeader}>
+              <p className={styles.kicker}>Maintainer queue</p>
+              <Heading as="h2">Clean enough to wait for contributor PRs.</Heading>
+              <p className={styles.readableText}>
+                The repo should stay in a boring state: green checks, current docs, no stale
+                triage labels, and only scoped community issues waiting for review. These two
+                public tracks are the next bundle-expansion points.
+              </p>
+            </div>
+            <div className={styles.pathGrid}>
+              {maintainerTracks.map((item) => (
+                <Link className={styles.pathCard} to={item.to} key={item.title}>
+                  <span>Open contribution track</span>
+                  <Heading as="h3">{item.title}</Heading>
+                  <p>{item.body}</p>
+                  <code>{item.to.replace('https://github.com/dfirs1car1o/sicario-spec/', '')}</code>
                 </Link>
               ))}
             </div>

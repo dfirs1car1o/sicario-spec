@@ -105,14 +105,14 @@ PROFILE_PRESETS = {
 
 # --- Framework selector (#18) -------------------------------------------------
 #
-# SicarioSpec ships 10 control-map frameworks. By default a project does not
+# SicarioSpec ships 11 control-map frameworks. By default a project does not
 # have to enforce all of them — that would punish a team that only owes evidence
 # for, say, ISO 27001 and HIPAA. The framework selector lets a project declare
 # which subset applies. The declaration lives in a plain-text project config file
 # (`.sicario/frameworks.txt`, one framework key per line). `sicario verify` reads
 # it and, when present, fails if any SELECTED framework's control map is absent
 # (SICARIO-MISSING-FRAMEWORK-MAP) — so a team enforces exactly the frameworks it
-# chose, not all 10 and not none.
+# chose, not all 11 and not none.
 #
 # Backward-compatible by construction: with NO config file, verify behaves
 # exactly as before (the single coarse SICARIO-MISSING-CONTROL-MAPS check).
@@ -137,7 +137,7 @@ FRAMEWORKS_CONFIG = Path(".sicario") / "frameworks.txt"
 
 # Default framework subset per profile. The default = the profile's natural set
 # (`public-core` carries no compliance obligation; compliance-shaped profiles
-# carry the maps they imply). `enterprise-strict` enforces all 10.
+# carry the maps they imply). `enterprise-strict` enforces all 11.
 PROFILE_FRAMEWORKS = {
     "compliance": ["ccm", "sox", "iso27001", "nist-800-53"],
     "saas": ["ccm", "iso27001", "ai-rmf"],

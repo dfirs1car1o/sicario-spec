@@ -295,6 +295,89 @@
   white-space: normal;
 }
 
+.metricGrid {
+  display: grid;
+  gap: 18px;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.metricCard {
+  background: #111b2c;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  border-radius: 8px;
+  color: #f8fafc;
+  min-height: 230px;
+  padding: 24px;
+}
+
+.metricCard strong {
+  color: #fcd116;
+  display: block;
+  font-size: 3rem;
+  line-height: 1;
+  margin-bottom: 12px;
+}
+
+.metricCard span {
+  color: #ffffff;
+  display: block;
+  font-weight: 800;
+  margin-bottom: 12px;
+  text-transform: uppercase;
+}
+
+.metricCard p {
+  color: #cbd5e1;
+  line-height: 1.65;
+  margin: 0;
+}
+
+.flowList {
+  background: #080b12;
+  border: 1px solid rgba(252, 209, 22, 0.32);
+  border-radius: 8px;
+  color: #cbd5e1;
+  counter-reset: rule-step;
+  display: grid;
+  gap: 12px;
+  list-style: none;
+  margin: 0;
+  padding: 24px;
+}
+
+.flowList li {
+  align-items: flex-start;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: 34px 1fr;
+  line-height: 1.5;
+}
+
+.flowList li::before {
+  align-items: center;
+  background: #fcd116;
+  border-radius: 50%;
+  color: #080b12;
+  content: counter(rule-step);
+  counter-increment: rule-step;
+  display: inline-flex;
+  font-weight: 900;
+  height: 34px;
+  justify-content: center;
+  width: 34px;
+}
+
+.inlineLink {
+  color: #fcd116;
+  display: inline-block;
+  font-weight: 800;
+  margin-top: 12px;
+}
+
+.inlineLink:hover {
+  color: #ffffff;
+}
+
 @media (max-width: 996px) {
   .heroInner,
   .split {
@@ -306,6 +389,7 @@
   }
 
   .grid,
+  .metricGrid,
   .pathGrid,
   .pills {
     grid-template-columns: 1fr 1fr;
@@ -342,6 +426,7 @@
   }
 
   .grid,
+  .metricGrid,
   .pathGrid,
   .pills {
     grid-template-columns: 1fr;

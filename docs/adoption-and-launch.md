@@ -41,7 +41,7 @@ Lead with concrete artifacts instead of broad claims:
 - agent-native instructions for Claude Code, Codex/GPT, and Copilot
 - data classification and tagging built into specs, plans, tasks, and docs
 - threat model, abuse cases, evidence index, risk registers, and **selectable**
-  control maps across 10 frameworks (`--frameworks`)
+  control maps across 11 frameworks (`--frameworks`)
 - GitHub Actions verification, CodeQL, Dependabot, OpenSSF Scorecard, and
   release packaging
 - MIT license, security policy, code of conduct, issue forms, and Pages docs

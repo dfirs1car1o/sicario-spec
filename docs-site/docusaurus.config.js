@@ -57,6 +57,7 @@ const config = {
           { to: '/', label: 'Overview', position: 'left' },
           { to: '/docs/getting-started', label: 'Start Here', position: 'left' },
           { to: '/docs/presets', label: 'Presets', position: 'left' },
+          { to: '/docs/rule-engine', label: 'Rule Engine', position: 'left' },
           { to: '/docs/security-model', label: 'Security Model', position: 'left' },
           { to: '/docs/control-maps', label: 'Control Maps', position: 'left' },
           { href: 'https://github.com/dfirs1car1o/sicario-spec', label: 'GitHub', position: 'right' },
@@ -75,8 +76,10 @@ const config = {
             items: [
               { label: 'Getting started', to: '/docs/getting-started' },
               { label: 'Presets', to: '/docs/presets' },
+              { label: 'Rule engine', to: '/docs/rule-engine' },
               { label: 'Security model', to: '/docs/security-model' },
               { label: 'Control maps', to: '/docs/control-maps' },
+              { label: 'Bundle readiness', to: '/docs/bundle-readiness' },
               { label: 'Release process', to: '/docs/release-process' },
             ],
           },
