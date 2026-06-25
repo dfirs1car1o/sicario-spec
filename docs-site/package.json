@@ -4,8 +4,11 @@
   "private": true,
   "description": "Public documentation site for SicarioSpec.",
   "scripts": {
+    "repo-map": "python3 ../scripts/generate_repo_map.py",
+    "prebuild": "npm run repo-map",
     "build": "docusaurus build",
     "clear": "docusaurus clear",
+    "prestart": "npm run repo-map",
     "start": "docusaurus start --host 0.0.0.0",
     "serve": "docusaurus serve --host 0.0.0.0"
   },

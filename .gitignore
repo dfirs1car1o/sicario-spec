@@ -12,4 +12,7 @@ generated/
 node_modules/
 docs-site/.docusaurus/
 docs-site/build/
+/.specify/extensions/.cache/
+/.specify/presets/.cache/
+docs-site/src/generated/
 .DS_Store
