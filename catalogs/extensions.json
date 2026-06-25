@@ -1,0 +1,40 @@
+{
+  "schema_version": "1.0",
+  "updated_at": "2026-06-25T00:00:00Z",
+  "catalog_url": "https://raw.githubusercontent.com/dfirs1car1o/sicario-spec/main/catalogs/extensions.json",
+  "extensions": {
+    "sicario-guard": {
+      "name": "SicarioSpec Guard",
+      "id": "sicario-guard",
+      "description": "Commands and hooks for secure-by-default Spec Kit verification.",
+      "author": "SicarioSpec Contributors",
+      "version": "0.5.1",
+      "download_url": "https://github.com/dfirs1car1o/sicario-spec/releases/download/v0.5.1/sicario-guard-0.5.1.zip",
+      "repository": "https://github.com/dfirs1car1o/sicario-spec",
+      "homepage": "https://dfirs1car1o.github.io/sicario-spec/",
+      "documentation": "https://github.com/dfirs1car1o/sicario-spec/blob/main/extensions/sicario-guard/README.md",
+      "changelog": "https://github.com/dfirs1car1o/sicario-spec/blob/main/CHANGELOG.md",
+      "license": "MIT",
+      "category": "security",
+      "effect": "read-write",
+      "requires": {
+        "speckit_version": ">=0.9.0"
+      },
+      "provides": {
+        "commands": 8,
+        "hooks": 3
+      },
+      "tags": [
+        "security",
+        "governance",
+        "verification",
+        "threat-modeling"
+      ],
+      "verified": false,
+      "downloads": 0,
+      "stars": 0,
+      "created_at": "2026-06-25T00:00:00Z",
+      "updated_at": "2026-06-25T00:00:00Z"
+    }
+  }
+}

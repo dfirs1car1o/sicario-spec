@@ -76,7 +76,7 @@ const usePaths = [
     title: 'Use the preset',
     body: 'Install sicario-core with Spec Kit when you want the smallest upstream-compatible governance layer.',
     command: 'specify preset add --dev /path/to/sicario-core',
-    to: '/docs/getting-started#use-the-spec-kit-preset-only',
+    to: '/docs/getting-started#use-the-full-spec-kit-bundle',
   },
   {
     label: 'Full bundle',

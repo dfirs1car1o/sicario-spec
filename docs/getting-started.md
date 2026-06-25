@@ -2,45 +2,48 @@
 
 Start here if you want to use SicarioSpec in a real project.
 
-SicarioSpec has two paths:
+SicarioSpec has three paths:
 
-1. Use the `sicario-core` Spec Kit preset directly with `specify`.
+1. Install the full `sicario-spec` Spec Kit bundle from Sicario-owned catalogs.
 2. Use the `sicario` CLI when you want the full repo bootstrap: presets, docs,
    risk registers, workflows, docs-site scaffold, control maps, and verification.
+3. Use the `sicario-core` Spec Kit preset directly when you only want the
+   smallest baseline template overlay.
 
-For the upstream Spec Kit catalog, path 1 is the important one. For running this
-as a complete security-governance starter kit, path 2 is faster.
+For native Spec Kit usage, path 1 is the important one. For running this as a
+complete security-governance starter kit with generated project files and
+verification, path 2 is faster.
 
-## Use the Spec Kit Preset Only
+## Use the Full Spec Kit Bundle
 
-Use this when you want the smallest upstream-compatible workflow.
+Use this when you want native Spec Kit to install the complete SicarioSpec
+component set: the guard extension, the core preset, and all profile overlays.
+Because Spec Kit resolves bundles through its primitive catalogs, add the
+Sicario preset, extension, and bundle catalogs first:
 
 From an existing Spec Kit project:
 
 ```bash
-specify preset add --dev /Users/jerieljuarbe/sicario-spec/presets/sicario-core
+specify preset catalog add https://raw.githubusercontent.com/dfirs1car1o/sicario-spec/main/catalogs/presets.json --name sicario --priority 1 --install-allowed
+specify extension catalog add https://raw.githubusercontent.com/dfirs1car1o/sicario-spec/main/catalogs/extensions.json --name sicario --priority 1 --install-allowed
+specify bundle catalog add https://raw.githubusercontent.com/dfirs1car1o/sicario-spec/main/catalogs/bundles.json --id sicario --priority 1 --policy install-allowed
+specify bundle install sicario-spec
 specify preset resolve spec-template
-specify preset info sicario-core
+specify extension info sicario-guard
 ```
 
-After a GitHub release publishes the preset ZIP, install it from the release
-asset instead:
+What this installs:
 
-```bash
-specify preset add --from https://github.com/dfirs1car1o/sicario-spec/releases/download/v0.5.1/sicario-core-0.5.1.zip
-```
+- `sicario-guard`, with 8 commands and hooks for specification, plan, and task
+  checkpoints
+- `sicario-core`, the base secure-by-default template layer
+- 10 appended profile overlays covering docs, AppSec, AI systems, agent fleets,
+  cloud/IaC, supply chain, compliance, SaaS, security toolchains, and enterprise
+  strictness
 
-What this changes:
-
-- feature specs must capture classification, trust boundaries, abuse cases,
-  operational signal paths, and evidence expectations
-- implementation plans must carry threat model, control mapping, rollback, and
-  well-architected review
-- tasks and checklists must turn security, operations, and evidence work into
-  explicit delivery items
-- the constitution sets the baseline governance principles
-
-Use this path when submitting `sicario-core` to the Spec Kit community catalog.
+Use `specify preset resolve spec-template` to confirm the composition chain. It
+should include `sicario-core` as the base and end with
+`sicario-enterprise-strict` as the highest-priority overlay.
 
 ## Use the Full SicarioSpec CLI
 
@@ -62,8 +65,29 @@ That creates a governed project with:
 - GitHub workflow templates
 - deterministic SicarioSpec verification
 
-Use this path when you want the whole operating model, not just the catalog
-preset.
+Use this path when you want the whole operating model, not just the native Spec
+Kit component install.
+
+## Use the Core Preset Only
+
+Use this when you want the smallest upstream-compatible baseline.
+
+From a local checkout during development:
+
+```bash
+specify preset add --dev /Users/jerieljuarbe/sicario-spec/presets/sicario-core
+specify preset resolve spec-template
+specify preset info sicario-core
+```
+
+From a release asset:
+
+```bash
+specify preset add --from https://github.com/dfirs1car1o/sicario-spec/releases/download/v0.5.1/sicario-core-0.5.1.zip
+```
+
+Use this path for community catalog discovery or for projects that only need
+the baseline governance template layer.
 
 ## Pick a Profile
 

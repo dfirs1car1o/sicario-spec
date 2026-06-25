@@ -1,17 +1,59 @@
-id: sicario-compliance
-name: SicarioSpec Compliance
-version: 0.5.1
-description: Evidence readiness profile for regulated and audit-driven environments.
-license: MIT
-tags: [compliance, audit, evidence, controls, risk-acceptance]
-requires:
-  spec-kit: ">=0.9.0"
-extends: [sicario-core]
-focus:
-  - control-applicability
-  - evidence-index
-  - risk-acceptance
-  - control-owner
-  - reviewer
-  - evidence-freshness
+schema_version: "1.0"
 
+preset:
+  id: "sicario-compliance"
+  name: "SicarioSpec Compliance"
+  version: "0.5.1"
+  description: "Evidence readiness profile for regulated and audit-driven environments."
+  author: "SicarioSpec Contributors"
+  repository: "https://github.com/dfirs1car1o/sicario-spec"
+  license: "MIT"
+
+requires:
+  speckit_version: ">=0.9.0"
+
+provides:
+  templates:
+    - type: "template"
+      name: "checklist-template"
+      file: "templates/checklist-template.md"
+      description: "Adds Compliance review checks for specification, planning, implementation, and verification artifacts."
+      strategy: "append"
+    - type: "template"
+      name: "constitution-template"
+      file: "templates/constitution-template.md"
+      description: "Adds Compliance governance principles to the project constitution."
+      strategy: "append"
+    - type: "template"
+      name: "plan-template"
+      file: "templates/plan-template.md"
+      description: "Adds Compliance architecture, control, verification, and rollout guidance to implementation plans."
+      strategy: "append"
+    - type: "template"
+      name: "spec-template"
+      file: "templates/spec-template.md"
+      description: "Adds Compliance requirements, risks, controls, and evidence expectations to feature specifications."
+      strategy: "append"
+    - type: "template"
+      name: "tasks-template"
+      file: "templates/tasks-template.md"
+      description: "Adds Compliance implementation, test, evidence, and review tasks."
+      strategy: "append"
+
+tags:
+  - "compliance"
+  - "audit"
+  - "evidence"
+  - "controls"
+  - "risk-acceptance"
+
+x-sicario:
+  extends:
+    - "sicario-core"
+  focus:
+    - "control-applicability"
+    - "evidence-index"
+    - "risk-acceptance"
+    - "control-owner"
+    - "reviewer"
+    - "evidence-freshness"

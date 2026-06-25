@@ -1,18 +1,64 @@
-id: sicario-security-toolchain
-name: SicarioSpec Security Toolchain
-version: 0.5.1
-description: Security scanning, SBOM, policy-as-code, and CI evidence profile.
-license: MIT
-tags: [security-toolchain, semgrep, trivy, checkov, gitleaks, sbom, sca]
+schema_version: "1.0"
+
+preset:
+  id: "sicario-security-toolchain"
+  name: "SicarioSpec Security Toolchain"
+  version: "0.5.1"
+  description: "Security scanning, SBOM, policy-as-code, and CI evidence profile."
+  author: "SicarioSpec Contributors"
+  repository: "https://github.com/dfirs1car1o/sicario-spec"
+  license: "MIT"
+
 requires:
-  spec-kit: ">=0.9.0"
-extends: [sicario-core, sicario-supply-chain]
-focus:
-  - secret-scanning
-  - sast
-  - sca
-  - sbom
-  - container-scanning
-  - iac-scanning
-  - policy-as-code
-  - evidence-artifacts
+  speckit_version: ">=0.9.0"
+
+provides:
+  templates:
+    - type: "template"
+      name: "checklist-template"
+      file: "templates/checklist-template.md"
+      description: "Adds Security Toolchain review checks for specification, planning, implementation, and verification artifacts."
+      strategy: "append"
+    - type: "template"
+      name: "constitution-template"
+      file: "templates/constitution-template.md"
+      description: "Adds Security Toolchain governance principles to the project constitution."
+      strategy: "append"
+    - type: "template"
+      name: "plan-template"
+      file: "templates/plan-template.md"
+      description: "Adds Security Toolchain architecture, control, verification, and rollout guidance to implementation plans."
+      strategy: "append"
+    - type: "template"
+      name: "spec-template"
+      file: "templates/spec-template.md"
+      description: "Adds Security Toolchain requirements, risks, controls, and evidence expectations to feature specifications."
+      strategy: "append"
+    - type: "template"
+      name: "tasks-template"
+      file: "templates/tasks-template.md"
+      description: "Adds Security Toolchain implementation, test, evidence, and review tasks."
+      strategy: "append"
+
+tags:
+  - "security-toolchain"
+  - "semgrep"
+  - "trivy"
+  - "checkov"
+  - "gitleaks"
+  - "sbom"
+  - "sca"
+
+x-sicario:
+  extends:
+    - "sicario-core"
+    - "sicario-supply-chain"
+  focus:
+    - "secret-scanning"
+    - "sast"
+    - "sca"
+    - "sbom"
+    - "container-scanning"
+    - "iac-scanning"
+    - "policy-as-code"
+    - "evidence-artifacts"

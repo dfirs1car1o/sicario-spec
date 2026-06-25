@@ -1,16 +1,58 @@
-id: sicario-docs
-name: SicarioSpec Docs And Diagrams
-version: 0.5.1
-description: Documentation, diagram, docs-impact, and docs-site governance profile.
-license: MIT
-tags: [documentation, diagrams, docusaurus, docs-as-code, evidence]
-requires:
-  spec-kit: ">=0.9.0"
-extends: [sicario-core]
-focus:
-  - docs-impact
-  - docusaurus
-  - diagram-source-control
-  - generated-docs-drift
-  - architecture-decision-records
+schema_version: "1.0"
 
+preset:
+  id: "sicario-docs"
+  name: "SicarioSpec Docs And Diagrams"
+  version: "0.5.1"
+  description: "Documentation, diagram, docs-impact, and docs-site governance profile."
+  author: "SicarioSpec Contributors"
+  repository: "https://github.com/dfirs1car1o/sicario-spec"
+  license: "MIT"
+
+requires:
+  speckit_version: ">=0.9.0"
+
+provides:
+  templates:
+    - type: "template"
+      name: "checklist-template"
+      file: "templates/checklist-template.md"
+      description: "Adds Docs And Diagrams review checks for specification, planning, implementation, and verification artifacts."
+      strategy: "append"
+    - type: "template"
+      name: "constitution-template"
+      file: "templates/constitution-template.md"
+      description: "Adds Docs And Diagrams governance principles to the project constitution."
+      strategy: "append"
+    - type: "template"
+      name: "plan-template"
+      file: "templates/plan-template.md"
+      description: "Adds Docs And Diagrams architecture, control, verification, and rollout guidance to implementation plans."
+      strategy: "append"
+    - type: "template"
+      name: "spec-template"
+      file: "templates/spec-template.md"
+      description: "Adds Docs And Diagrams requirements, risks, controls, and evidence expectations to feature specifications."
+      strategy: "append"
+    - type: "template"
+      name: "tasks-template"
+      file: "templates/tasks-template.md"
+      description: "Adds Docs And Diagrams implementation, test, evidence, and review tasks."
+      strategy: "append"
+
+tags:
+  - "documentation"
+  - "diagrams"
+  - "docusaurus"
+  - "docs-as-code"
+  - "evidence"
+
+x-sicario:
+  extends:
+    - "sicario-core"
+  focus:
+    - "docs-impact"
+    - "docusaurus"
+    - "diagram-source-control"
+    - "generated-docs-drift"
+    - "architecture-decision-records"

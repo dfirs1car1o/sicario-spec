@@ -1,52 +1,108 @@
-id: sicario-cloud-iac
-name: SicarioSpec Cloud IaC
-version: 0.5.1
-description: Multi-cloud infrastructure-as-code profile for Terraform/OpenTofu, Azure Verified Modules, Azure Bicep, AWS, GCP, Kubernetes, containers, and policy-as-code.
-license: MIT
-tags: [cloud, iac, terraform, opentofu, azure, avm, azure-verified-modules, bicep, aws, gcp, kubernetes, containers, policy-as-code]
+schema_version: "1.0"
+
+preset:
+  id: "sicario-cloud-iac"
+  name: "SicarioSpec Cloud IaC"
+  version: "0.5.1"
+  description: "Multi-cloud infrastructure-as-code profile for Terraform/OpenTofu, Azure Verified Modules, Azure Bicep, AWS, GCP, Kubernetes, containers, and policy-as-code."
+  author: "SicarioSpec Contributors"
+  repository: "https://github.com/dfirs1car1o/sicario-spec"
+  license: "MIT"
+
 requires:
-  spec-kit: ">=0.9.0"
-extends: [sicario-core]
-focus:
-  - provider-selection
-  - iam
-  - network-exposure
-  - encryption
-  - secrets-management
-  - data-residency
-  - cost-guardrails
-  - drift-detection
-  - iac-scanning
-  - container-scanning
-  - compliance-as-code
-  - policy-as-code
-providers:
-  - terraform
-  - opentofu
-  - azure-bicep
-  - azure-verified-modules-bicep
-  - azure-verified-modules-terraform
-  - azure-vm
-  - aws-cloudformation
-  - aws-cdk
-  - gcp-terraform
-  - kubernetes
-  - containers
-starter_templates:
-  - templates/terraform/main.tf
-  - templates/terraform/variables.tf
-  - templates/terraform/outputs.tf
-  - templates/azure-bicep/main.bicep
-  - templates/azure-avm-bicep/main.bicep
-  - templates/azure-avm-terraform/main.tf
-  - templates/azure-avm-terraform/variables.tf
-  - templates/azure-avm-terraform/outputs.tf
-  - templates/aws-cloudformation/template.yaml
-  - templates/gcp/main.tf
-  - templates/kubernetes/namespace.yaml
-  - templates/containers/Dockerfile
-  - templates/policy-as-code/README.md
-  - templates/policy-as-code/checkov.yml
-  - templates/policy-as-code/opa/conftest/iac.rego
-  - templates/policy-as-code/azure-policy/deny-public-storage.json
-  - templates/policy-as-code/kubernetes/kyverno-require-non-root.yaml
+  speckit_version: ">=0.9.0"
+
+provides:
+  templates:
+    - type: "template"
+      name: "checklist-template"
+      file: "templates/checklist-template.md"
+      description: "Adds Cloud IaC review checks for specification, planning, implementation, and verification artifacts."
+      strategy: "append"
+    - type: "template"
+      name: "cloud-risk-template"
+      file: "templates/cloud-risk-template.md"
+      description: "Adds cloud and infrastructure risk register guidance for SicarioSpec Cloud IaC work."
+      strategy: "append"
+    - type: "template"
+      name: "constitution-template"
+      file: "templates/constitution-template.md"
+      description: "Adds Cloud IaC governance principles to the project constitution."
+      strategy: "append"
+    - type: "template"
+      name: "plan-template"
+      file: "templates/plan-template.md"
+      description: "Adds Cloud IaC architecture, control, verification, and rollout guidance to implementation plans."
+      strategy: "append"
+    - type: "template"
+      name: "spec-template"
+      file: "templates/spec-template.md"
+      description: "Adds Cloud IaC requirements, risks, controls, and evidence expectations to feature specifications."
+      strategy: "append"
+    - type: "template"
+      name: "tasks-template"
+      file: "templates/tasks-template.md"
+      description: "Adds Cloud IaC implementation, test, evidence, and review tasks."
+      strategy: "append"
+
+tags:
+  - "cloud"
+  - "iac"
+  - "terraform"
+  - "opentofu"
+  - "azure"
+  - "avm"
+  - "azure-verified-modules"
+  - "bicep"
+  - "aws"
+  - "gcp"
+  - "kubernetes"
+  - "containers"
+  - "policy-as-code"
+
+x-sicario:
+  extends:
+    - "sicario-core"
+  focus:
+    - "provider-selection"
+    - "iam"
+    - "network-exposure"
+    - "encryption"
+    - "secrets-management"
+    - "data-residency"
+    - "cost-guardrails"
+    - "drift-detection"
+    - "iac-scanning"
+    - "container-scanning"
+    - "compliance-as-code"
+    - "policy-as-code"
+  providers:
+    - "terraform"
+    - "opentofu"
+    - "azure-bicep"
+    - "azure-verified-modules-bicep"
+    - "azure-verified-modules-terraform"
+    - "azure-vm"
+    - "aws-cloudformation"
+    - "aws-cdk"
+    - "gcp-terraform"
+    - "kubernetes"
+    - "containers"
+  starter_templates:
+    - "templates/terraform/main.tf"
+    - "templates/terraform/variables.tf"
+    - "templates/terraform/outputs.tf"
+    - "templates/azure-bicep/main.bicep"
+    - "templates/azure-avm-bicep/main.bicep"
+    - "templates/azure-avm-terraform/main.tf"
+    - "templates/azure-avm-terraform/variables.tf"
+    - "templates/azure-avm-terraform/outputs.tf"
+    - "templates/aws-cloudformation/template.yaml"
+    - "templates/gcp/main.tf"
+    - "templates/kubernetes/namespace.yaml"
+    - "templates/containers/Dockerfile"
+    - "templates/policy-as-code/README.md"
+    - "templates/policy-as-code/checkov.yml"
+    - "templates/policy-as-code/opa/conftest/iac.rego"
+    - "templates/policy-as-code/azure-policy/deny-public-storage.json"
+    - "templates/policy-as-code/kubernetes/kyverno-require-non-root.yaml"

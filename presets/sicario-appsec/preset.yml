@@ -1,17 +1,58 @@
-id: sicario-appsec
-name: SicarioSpec AppSec
-version: 0.5.1
-description: Application security profile for apps, APIs, and services.
-license: MIT
-tags: [appsec, asvs, api-security, secure-coding]
-requires:
-  spec-kit: ">=0.9.0"
-extends: [sicario-core]
-focus:
-  - authn-authz
-  - session-token-handling
-  - input-validation
-  - api-security
-  - secure-errors
-  - audit-logging
+schema_version: "1.0"
 
+preset:
+  id: "sicario-appsec"
+  name: "SicarioSpec AppSec"
+  version: "0.5.1"
+  description: "Application security profile for apps, APIs, and services."
+  author: "SicarioSpec Contributors"
+  repository: "https://github.com/dfirs1car1o/sicario-spec"
+  license: "MIT"
+
+requires:
+  speckit_version: ">=0.9.0"
+
+provides:
+  templates:
+    - type: "template"
+      name: "checklist-template"
+      file: "templates/checklist-template.md"
+      description: "Adds AppSec review checks for specification, planning, implementation, and verification artifacts."
+      strategy: "append"
+    - type: "template"
+      name: "constitution-template"
+      file: "templates/constitution-template.md"
+      description: "Adds AppSec governance principles to the project constitution."
+      strategy: "append"
+    - type: "template"
+      name: "plan-template"
+      file: "templates/plan-template.md"
+      description: "Adds AppSec architecture, control, verification, and rollout guidance to implementation plans."
+      strategy: "append"
+    - type: "template"
+      name: "spec-template"
+      file: "templates/spec-template.md"
+      description: "Adds AppSec requirements, risks, controls, and evidence expectations to feature specifications."
+      strategy: "append"
+    - type: "template"
+      name: "tasks-template"
+      file: "templates/tasks-template.md"
+      description: "Adds AppSec implementation, test, evidence, and review tasks."
+      strategy: "append"
+
+tags:
+  - "appsec"
+  - "asvs"
+  - "api-security"
+  - "secure-coding"
+
+x-sicario:
+  extends:
+    - "sicario-core"
+  focus:
+    - "authn-authz"
+    - "session-token-handling"
+    - "input-validation"
+    - "api-security"
+    - "secure-errors"
+    - "audit-logging"

@@ -27,7 +27,10 @@ class ReleaseMetadataTests(unittest.TestCase):
             self.assertRegex(text, rf'version:\s*"?{re.escape(version)}"?', str(preset))
 
         extension = ROOT / "extensions" / "sicario-guard" / "extension.yml"
-        self.assertIn(f"version: {version}", extension.read_text(encoding="utf-8"))
+        self.assertRegex(
+            extension.read_text(encoding="utf-8"),
+            rf'version:\s*"?{re.escape(version)}"?',
+        )
 
         for control_map in sorted((ROOT / "control_maps").glob("*.json")):
             data = json.loads(control_map.read_text(encoding="utf-8"))
@@ -55,6 +58,11 @@ class ReleaseMetadataTests(unittest.TestCase):
             ".github/workflows/publish-pypi.yml",
             ".github/dependabot.yml",
             ".github/release.yml",
+            "catalogs/presets.json",
+            "catalogs/extensions.json",
+            "catalogs/bundles.json",
+            "scripts/build_release_assets.py",
+            "scripts/smoke_bundle_install.sh",
             "docs/release-process.md",
             "docs/openssf.md",
             "docs/repository-settings.md",
@@ -82,8 +90,14 @@ class ReleaseMetadataTests(unittest.TestCase):
         self.assertIn("--require-hashes -r .github/requirements/release-build.txt", workflow)
         self.assertIn("attestations: write", workflow)
         self.assertIn("id-token: write", workflow)
-        self.assertIn("Build Spec Kit preset archives", workflow)
-        self.assertIn('f"sicario-core-{version}.zip"', workflow)
+        self.assertIn("Build Spec Kit release assets", workflow)
+        self.assertIn("Validate Spec Kit release assets", workflow)
+        self.assertIn("Smoke test Spec Kit bundle install", workflow)
+        self.assertIn("scripts/build_release_assets.py", workflow)
+        self.assertIn("scripts/smoke_bundle_install.sh", workflow)
+        self.assertIn('f"sicario-guard-{version}.zip"', workflow)
+        self.assertIn('f"sicario-spec-{version}.zip"', workflow)
+        self.assertIn("catalogs/*.json", workflow)
         self.assertIn(
             "Release $RELEASE_TAG already exists; immutable release assets will not be modified.",
             workflow,

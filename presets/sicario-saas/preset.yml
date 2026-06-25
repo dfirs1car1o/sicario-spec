@@ -1,16 +1,61 @@
-id: sicario-saas
-name: SicarioSpec SaaS
-version: 0.5.1
-description: SaaS-hardened profile - read-only-SaaS, tenant/data-boundary, and mission-supremacy invariants from the saas-assurance origin.
-license: MIT
-tags: [saas, sspm, multi-tenant, read-only, data-boundary, mission-supremacy]
+schema_version: "1.0"
+
+preset:
+  id: "sicario-saas"
+  name: "SicarioSpec SaaS"
+  version: "0.5.1"
+  description: "SaaS-hardened profile - read-only-SaaS, tenant/data-boundary, and mission-supremacy invariants from the saas-assurance origin."
+  author: "SicarioSpec Contributors"
+  repository: "https://github.com/dfirs1car1o/sicario-spec"
+  license: "MIT"
+
 requires:
-  spec-kit: ">=0.9.0"
-extends: [sicario-core, sicario-ai-system]
-focus:
-  - read-only-saas
-  - tenant-isolation
-  - data-boundary
-  - mission-supremacy
-  - oauth-and-integration-risk
-  - no-raw-tenant-evidence
+  speckit_version: ">=0.9.0"
+
+provides:
+  templates:
+    - type: "template"
+      name: "checklist-template"
+      file: "templates/checklist-template.md"
+      description: "Adds SaaS review checks for specification, planning, implementation, and verification artifacts."
+      strategy: "append"
+    - type: "template"
+      name: "constitution-template"
+      file: "templates/constitution-template.md"
+      description: "Adds SaaS governance principles to the project constitution."
+      strategy: "append"
+    - type: "template"
+      name: "plan-template"
+      file: "templates/plan-template.md"
+      description: "Adds SaaS architecture, control, verification, and rollout guidance to implementation plans."
+      strategy: "append"
+    - type: "template"
+      name: "spec-template"
+      file: "templates/spec-template.md"
+      description: "Adds SaaS requirements, risks, controls, and evidence expectations to feature specifications."
+      strategy: "append"
+    - type: "template"
+      name: "tasks-template"
+      file: "templates/tasks-template.md"
+      description: "Adds SaaS implementation, test, evidence, and review tasks."
+      strategy: "append"
+
+tags:
+  - "saas"
+  - "sspm"
+  - "multi-tenant"
+  - "read-only"
+  - "data-boundary"
+  - "mission-supremacy"
+
+x-sicario:
+  extends:
+    - "sicario-core"
+    - "sicario-ai-system"
+  focus:
+    - "read-only-saas"
+    - "tenant-isolation"
+    - "data-boundary"
+    - "mission-supremacy"
+    - "oauth-and-integration-risk"
+    - "no-raw-tenant-evidence"
