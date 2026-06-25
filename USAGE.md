@@ -29,7 +29,7 @@ That is the whole product. Everything below is mechanics.
 python3 -m pip install "git+https://github.com/dfirs1car1o/sicario-spec.git"
 
 # Pin a release:
-python3 -m pip install "git+https://github.com/dfirs1car1o/sicario-spec.git@v0.5.0"
+python3 -m pip install "git+https://github.com/dfirs1car1o/sicario-spec.git@v0.5.1"
 
 # From a local checkout:
 python3 -m pip install -e .

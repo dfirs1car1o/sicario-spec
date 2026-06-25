@@ -27,7 +27,7 @@ After a GitHub release publishes the preset ZIP, install it from the release
 asset instead:
 
 ```bash
-specify preset add --from https://github.com/dfirs1car1o/sicario-spec/releases/download/v0.5.0/sicario-core-0.5.0.zip
+specify preset add --from https://github.com/dfirs1car1o/sicario-spec/releases/download/v0.5.1/sicario-core-0.5.1.zip
 ```
 
 What this changes:

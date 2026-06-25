@@ -1,6 +1,6 @@
 id: sicario-appsec
 name: SicarioSpec AppSec
-version: 0.5.0
+version: 0.5.1
 description: Application security profile for apps, APIs, and services.
 license: MIT
 tags: [appsec, asvs, api-security, secure-coding]

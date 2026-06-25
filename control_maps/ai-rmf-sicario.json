@@ -1,7 +1,7 @@
 {
   "id": "ai-rmf-sicario",
   "name": "NIST AI RMF to SicarioSpec Evidence Map",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "framework": {
     "name": "NIST Artificial Intelligence Risk Management Framework",
     "abbreviation": "NIST AI RMF",

@@ -1,7 +1,7 @@
 {
   "id": "hipaa-security-rule-sicario",
   "name": "HIPAA Security Rule Safeguards to SicarioSpec Evidence Map",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "framework": {
     "name": "HIPAA Security Rule (45 CFR Part 164, Subpart C) \u2014 safeguards for electronic protected health information (ePHI)",
     "abbreviation": "HIPAA Security Rule",

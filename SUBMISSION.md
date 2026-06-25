@@ -5,7 +5,7 @@ GitHub Spec Kit community preset catalog. The outward PR is opened against
 `github/spec-kit`; this repository only holds the prepared entry, cover note,
 and verification checklist.
 
-The current package targets SicarioSpec `0.5.0`.
+The current package targets SicarioSpec `0.5.1`.
 
 ## Catalog Entry
 
@@ -13,11 +13,11 @@ The current package targets SicarioSpec `0.5.0`.
 "sicario-spec": {
   "name": "SicarioSpec",
   "id": "sicario-spec",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "description": "Evidence-first Spec Kit governance with a halting, stdlib-only verify gate. It enforces mandatory governance sections in specs, plans, and tasks, supports declarative .rule.json checks, and ships selectable starter control maps for 11 frameworks.",
   "author": "SicarioSpec Contributors",
   "repository": "https://github.com/dfirs1car1o/sicario-spec",
-  "download_url": "https://github.com/dfirs1car1o/sicario-spec/releases/download/v0.5.0/sicario-core-0.5.0.zip",
+  "download_url": "https://github.com/dfirs1car1o/sicario-spec/releases/download/v0.5.1/sicario-core-0.5.1.zip",
   "homepage": "https://dfirs1car1o.github.io/sicario-spec/",
   "documentation": "https://dfirs1car1o.github.io/sicario-spec/docs/getting-started",
   "license": "MIT",
@@ -62,7 +62,7 @@ python3 -m unittest discover -s tests
 python3 -m sicario_cli.cli verify .
 python3 -m sicario_cli.cli verify . --validate-rules
 (cd docs-site && npm run build)
-specify preset add --from https://github.com/dfirs1car1o/sicario-spec/releases/download/v0.5.0/sicario-core-0.5.0.zip
+specify preset add --from https://github.com/dfirs1car1o/sicario-spec/releases/download/v0.5.1/sicario-core-0.5.1.zip
 specify preset info sicario-core
 ```
 

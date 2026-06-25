@@ -5,7 +5,7 @@ installable, reviewable, demonstrable, and safe for public contributors.
 
 ## Current Bundle Surface
 
-SicarioSpec 0.5.0 ships:
+SicarioSpec 0.5.1 ships:
 
 - 11 Spec Kit preset manifests under `presets/sicario-*/preset.yml`.
 - 8 guard commands in `extensions/sicario-guard/`.
@@ -17,6 +17,32 @@ SicarioSpec 0.5.0 ships:
 - Docusaurus documentation under `docs-site/`, sourcing content from `docs/`.
 - GitHub Actions for tests, CodeQL, Pages build, release packaging, Scorecard,
   Dependabot, and safe issue triage.
+
+## Operational Install State
+
+The operational install path for 0.5.1 is the Python package plus the
+`sicario-core` Spec Kit preset ZIP:
+
+```bash
+pip install sicario-spec
+sicario init ./project --profile appsec,cloud-iac,security-toolchain,compliance
+sicario verify ./project
+```
+
+The release must also publish `sicario-core-0.5.1.zip` so Spec Kit users can
+install the core preset directly from the GitHub release asset:
+
+```bash
+specify preset add --from https://github.com/dfirs1car1o/sicario-spec/releases/download/v0.5.1/sicario-core-0.5.1.zip
+specify preset info sicario-core
+```
+
+The root `bundle.yml` is the intended full SicarioSpec bundle manifest, but it
+is not a one-step fresh-project install until every referenced Sicario preset
+and extension is available through an install-allowed Spec Kit catalog. Spec
+Kit's current bundle resolver does not install arbitrary local preset folders
+embedded next to `bundle.yml`; it resolves bundle components from bundled Spec
+Kit assets, already-installed project components, or active catalogs.
 
 ## Maintainer Operating State
 
@@ -30,6 +56,7 @@ Before calling the repo clean, confirm this state:
 | CI | Test, docs build, CodeQL, and static analysis checks are green. |
 | Docs | Public docs reflect the latest release version, control-map count, and rule-engine behavior. |
 | Release assets | The latest tag has wheel, source distribution, and `sicario-core` preset ZIP assets. |
+| Bundle manifest | `bundle.yml` pins the intended component set and documents any catalog dependencies honestly. |
 
 ## Release Verification Stack
 
@@ -47,10 +74,24 @@ For packaging-sensitive changes, add an installed-wheel smoke test:
 ```bash
 python3 -m build
 python3 -m venv /tmp/sicario-wheel-smoke
-/tmp/sicario-wheel-smoke/bin/pip install dist/sicario_spec-0.5.0-py3-none-any.whl
+/tmp/sicario-wheel-smoke/bin/pip install dist/sicario_spec-0.5.1-py3-none-any.whl
 /tmp/sicario-wheel-smoke/bin/sicario init /tmp/sicario-smoke --profile appsec --force
 /tmp/sicario-wheel-smoke/bin/sicario verify /tmp/sicario-smoke
 ```
+
+For the core Spec Kit preset release asset, validate the ZIP over an HTTP(S)
+URL rather than only from a local file path:
+
+```bash
+python3 -m http.server 8765 --bind 127.0.0.1 --directory dist
+tmpdir="$(mktemp -d)"
+cd "$tmpdir"
+specify init --here --integration codex --ignore-agent-tools --force
+specify preset add --from http://127.0.0.1:8765/sicario-core-0.5.1.zip
+specify preset info sicario-core
+```
+
+Expected result: `specify preset info sicario-core` reports version `0.5.1`.
 
 ## Contributor Review Queue
 

@@ -1,7 +1,7 @@
 {
   "id": "pci-dss-v4.0-sicario",
   "name": "PCI DSS v4.0 Requirements to SicarioSpec Evidence Map",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "framework": {
     "name": "Payment Card Industry Data Security Standard v4.0",
     "abbreviation": "PCI DSS",

@@ -14,11 +14,11 @@ id:
 "sicario-spec": {
   "name": "SicarioSpec",
   "id": "sicario-spec",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "description": "Evidence-first Spec Kit governance with a halting, stdlib-only verify gate. It enforces mandatory governance sections in specs, plans, and tasks, supports declarative .rule.json checks, and ships selectable starter control maps for 11 frameworks.",
   "author": "SicarioSpec Contributors",
   "repository": "https://github.com/dfirs1car1o/sicario-spec",
-  "download_url": "https://github.com/dfirs1car1o/sicario-spec/releases/download/v0.5.0/sicario-core-0.5.0.zip",
+  "download_url": "https://github.com/dfirs1car1o/sicario-spec/releases/download/v0.5.1/sicario-core-0.5.1.zip",
   "homepage": "https://dfirs1car1o.github.io/sicario-spec/",
   "documentation": "https://dfirs1car1o.github.io/sicario-spec/docs/getting-started",
   "license": "MIT",
@@ -69,8 +69,8 @@ finding codes and exits non-zero when required evidence is absent.
 |---|---|---|
 | Public repository | Ready | `https://github.com/dfirs1car1o/sicario-spec` |
 | MIT license | Ready | `LICENSE` |
-| Release tag | Ready | `v0.5.0` |
-| Preset ZIP asset | Ready | `sicario-core-0.5.0.zip` attached to `v0.5.0` |
+| Release tag | Ready | `v0.5.1` |
+| Preset ZIP asset | Ready | `sicario-core-0.5.1.zip` attached to `v0.5.1` |
 | Preset manifests | Ready | 11 `presets/sicario-*/preset.yml` files |
 | Guard commands | Ready | 8 commands in `extensions/sicario-guard/commands/` |
 | Rule engine docs | Ready | [Declarative Rule Engine](./rule-engine.md) |
@@ -80,6 +80,6 @@ Before opening the outward PR, smoke-test the exact ZIP URL with upstream Spec
 Kit tooling and paste the result into the catalog PR body:
 
 ```bash
-specify preset add --from https://github.com/dfirs1car1o/sicario-spec/releases/download/v0.5.0/sicario-core-0.5.0.zip
+specify preset add --from https://github.com/dfirs1car1o/sicario-spec/releases/download/v0.5.1/sicario-core-0.5.1.zip
 specify preset info sicario-core
 ```

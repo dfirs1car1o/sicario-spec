@@ -60,6 +60,39 @@ jobs:
             exit 1
           fi
 
+          python - <<'PY'
+          import json
+          import sys
+          from pathlib import Path
+
+          expected = Path("VERSION").read_text(encoding="utf-8").strip()
+
+          def yaml_version(path: Path) -> str | None:
+              for line in path.read_text(encoding="utf-8").splitlines():
+                  stripped = line.strip()
+                  if stripped.startswith("version:"):
+                      return stripped.split(":", 1)[1].strip().strip("'\"")
+              return None
+
+          checked: list[tuple[Path, str | None]] = []
+          checked.extend((path, yaml_version(path)) for path in sorted(Path("presets").glob("sicario-*/preset.yml")))
+          checked.extend((path, yaml_version(path)) for path in sorted(Path("sicario_cli/assets/presets").glob("sicario-*/preset.yml")))
+          checked.append((Path("extensions/sicario-guard/extension.yml"), yaml_version(Path("extensions/sicario-guard/extension.yml"))))
+          checked.append((Path("sicario_cli/assets/extensions/sicario-guard/extension.yml"), yaml_version(Path("sicario_cli/assets/extensions/sicario-guard/extension.yml"))))
+
+          for base in (Path("docs/compliance/control-maps"), Path("sicario_cli/assets/control_maps")):
+              for path in sorted(base.glob("*.json")):
+                  checked.append((path, str(json.loads(path.read_text(encoding="utf-8")).get("version", ""))))
+
+          mismatches = [(path, value) for path, value in checked if value != expected]
+          if mismatches:
+              print("Release metadata version mismatch:", file=sys.stderr)
+              print(f"  expected: {expected}", file=sys.stderr)
+              for path, value in mismatches:
+                  print(f"  {path}: {value or '<missing>'}", file=sys.stderr)
+              raise SystemExit(1)
+          PY
+
           echo "RELEASE_TAG=$tag" >> "$GITHUB_ENV"
           echo "PACKAGE_VERSION=$version" >> "$GITHUB_ENV"
 
@@ -82,6 +115,24 @@ jobs:
               for path in sorted(preset_dir.rglob("*")):
                   if path.is_file():
                       zf.write(path, path.relative_to(preset_dir))
+          PY
+
+      - name: Validate Spec Kit preset archive
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          from zipfile import ZipFile
+
+          version = Path("VERSION").read_text(encoding="utf-8").strip()
+          archive = Path("dist") / f"sicario-core-{version}.zip"
+          with ZipFile(archive) as zf:
+              preset = zf.read("preset.yml").decode("utf-8")
+
+          expected = f'version: "{version}"'
+          if expected not in preset:
+              raise SystemExit(
+                  f"{archive} preset.yml does not contain {expected!r}"
+              )
           PY
 
       - name: Smoke test wheel

@@ -1,7 +1,7 @@
 {
   "id": "nist-800-53-r5-sicario",
   "name": "NIST SP 800-53 Rev 5 Control Families to SicarioSpec Evidence Map",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "framework": {
     "name": "NIST SP 800-53 Rev 5 Security and Privacy Controls for Information Systems and Organizations",
     "abbreviation": "NIST 800-53 R5",

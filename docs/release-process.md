@@ -110,7 +110,7 @@ Before the first publish:
 To publish:
 
 1. Open **Actions** -> **publish-pypi** -> **Run workflow**.
-2. Enter the release tag, for example `v0.5.0`.
+2. Enter the release tag, for example `v0.5.1`.
 3. Enter `publish` in the confirmation field.
 4. Approve the `pypi` environment gate.
 5. Confirm the PyPI release page, package hashes, and install command.

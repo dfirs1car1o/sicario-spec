@@ -13,7 +13,7 @@ commands, no scripts, and no runtime dependency on the broader SicarioSpec CLI.
 Install the released preset from any Spec Kit project root:
 
 ```bash
-specify preset add --from https://github.com/dfirs1car1o/sicario-spec/releases/download/v0.5.0/sicario-core-0.5.0.zip
+specify preset add --from https://github.com/dfirs1car1o/sicario-spec/releases/download/v0.5.1/sicario-core-0.5.1.zip
 specify preset info sicario-core
 specify preset resolve spec-template
 ```
