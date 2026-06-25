@@ -390,10 +390,9 @@ def build_map() -> Dict[str, object]:
 
 def main() -> None:
     OUTPUT_PATH.parent.mkdir(parents=True, exist_ok=True)
-    OUTPUT_PATH.write_text(
-        json.dumps(build_map(), indent=2, sort_keys=False) + "\n",
-        encoding="utf-8",
-    )
+    with OUTPUT_PATH.open("w", encoding="utf-8") as handle:
+        json.dump(build_map(), handle, indent=2, sort_keys=False)
+        handle.write("\n")
 
 
 if __name__ == "__main__":

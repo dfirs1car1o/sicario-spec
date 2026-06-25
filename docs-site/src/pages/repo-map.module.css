@@ -257,10 +257,10 @@
 
 .branchHeader strong {
   align-items: center;
-  background: rgba(255, 255, 255, 0.08);
-  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: #f7f7f2;
+  border: 1px solid rgba(247, 247, 242, 0.7);
   border-radius: 999px;
-  color: #ffffff;
+  color: #111111;
   display: inline-flex;
   font-size: 0.82rem;
   height: 30px;

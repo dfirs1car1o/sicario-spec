@@ -1,4 +1,5 @@
 import {useMemo, useState} from 'react';
+import PropTypes from 'prop-types';
 import Heading from '@theme/Heading';
 import Layout from '@theme/Layout';
 import Link from '@docusaurus/Link';
@@ -13,8 +14,27 @@ const personaLabels = {
   user: 'Users',
 };
 
+const mapNodeShape = PropTypes.shape({
+  id: PropTypes.string.isRequired,
+  kind: PropTypes.string.isRequired,
+  path: PropTypes.string.isRequired,
+  summary: PropTypes.string.isRequired,
+  tags: PropTypes.arrayOf(PropTypes.string).isRequired,
+  title: PropTypes.string.isRequired,
+});
+
+const mapGroupShape = PropTypes.shape({
+  count: PropTypes.number.isRequired,
+  nodes: PropTypes.arrayOf(mapNodeShape).isRequired,
+  persona: PropTypes.string.isRequired,
+  summary: PropTypes.string.isRequired,
+  title: PropTypes.string.isRequired,
+  tone: PropTypes.string.isRequired,
+});
+
 function githubUrl(path) {
-  const route = /\.[a-z0-9]+$/i.test(path) ? 'blob' : 'tree';
+  const name = path.split('/').pop() ?? path;
+  const route = name.includes('.') ? 'blob' : 'tree';
   return `https://github.com/dfirs1car1o/sicario-spec/${route}/main/${path}`;
 }
 
@@ -49,7 +69,7 @@ function matchesPersona(group, node, persona) {
   );
 }
 
-function Branch({group, selectedId, onSelect}) {
+function Branch({group, selectedId = null, onSelect}) {
   return (
     <section className={styles.branch} data-tone={group.tone}>
       <div className={styles.branchHeader}>
@@ -77,7 +97,13 @@ function Branch({group, selectedId, onSelect}) {
   );
 }
 
-function DetailPanel({node}) {
+Branch.propTypes = {
+  group: mapGroupShape.isRequired,
+  onSelect: PropTypes.func.isRequired,
+  selectedId: PropTypes.string,
+};
+
+function DetailPanel({node = null}) {
   if (!node) {
     return (
       <aside className={styles.detailPanel}>
@@ -107,6 +133,10 @@ function DetailPanel({node}) {
     </aside>
   );
 }
+
+DetailPanel.propTypes = {
+  node: mapNodeShape,
+};
 
 export default function RepoMap() {
   const [activePersona, setActivePersona] = useState('all');
