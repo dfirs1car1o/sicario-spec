@@ -60,6 +60,39 @@ jobs:
             exit 1
           fi
 
+          python - <<'PY'
+          import json
+          import sys
+          from pathlib import Path
+
+          expected = Path("VERSION").read_text(encoding="utf-8").strip()
+
+          def yaml_version(path: Path) -> str | None:
+              for line in path.read_text(encoding="utf-8").splitlines():
+                  stripped = line.strip()
+                  if stripped.startswith("version:"):
+                      return stripped.split(":", 1)[1].strip().strip("'\"")
+              return None
+
+          checked: list[tuple[Path, str | None]] = []
+          checked.extend((path, yaml_version(path)) for path in sorted(Path("presets").glob("sicario-*/preset.yml")))
+          checked.extend((path, yaml_version(path)) for path in sorted(Path("sicario_cli/assets/presets").glob("sicario-*/preset.yml")))
+          checked.append((Path("extensions/sicario-guard/extension.yml"), yaml_version(Path("extensions/sicario-guard/extension.yml"))))
+          checked.append((Path("sicario_cli/assets/extensions/sicario-guard/extension.yml"), yaml_version(Path("sicario_cli/assets/extensions/sicario-guard/extension.yml"))))
+
+          for base in (Path("docs/compliance/control-maps"), Path("sicario_cli/assets/control_maps")):
+              for path in sorted(base.glob("*.json")):
+                  checked.append((path, str(json.loads(path.read_text(encoding="utf-8")).get("version", ""))))
+
+          mismatches = [(path, value) for path, value in checked if value != expected]
+          if mismatches:
+              print("Release metadata version mismatch:", file=sys.stderr)
+              print(f"  expected: {expected}", file=sys.stderr)
+              for path, value in mismatches:
+                  print(f"  {path}: {value or '<missing>'}", file=sys.stderr)
+              raise SystemExit(1)
+          PY
+
           echo "RELEASE_TAG=$tag" >> "$GITHUB_ENV"
           echo "PACKAGE_VERSION=$version" >> "$GITHUB_ENV"
 
@@ -68,21 +101,101 @@ jobs:
           python -m pip install --require-hashes -r .github/requirements/release-build.txt
           python -m build
 
-      - name: Build Spec Kit preset archives
+      - name: Build Spec Kit release assets
+        run: |
+          python scripts/build_release_assets.py \
+            --catalog-base-url "https://github.com/dfirs1car1o/sicario-spec/releases/download/$RELEASE_TAG"
+
+      - name: Validate Spec Kit release assets
         run: |
           python - <<'PY'
+          import json
           from pathlib import Path
-          from zipfile import ZIP_DEFLATED, ZipFile
+          from zipfile import ZipFile
 
           version = Path("VERSION").read_text(encoding="utf-8").strip()
-          preset_dir = Path("presets/sicario-core")
-          archive = Path("dist") / f"sicario-core-{version}.zip"
+          preset_ids = sorted(
+              path.parent.name
+              for path in Path("presets").glob("sicario-*/preset.yml")
+          )
+          expected_archives = [f"{preset_id}-{version}.zip" for preset_id in preset_ids]
+          expected_archives.extend([
+              f"sicario-guard-{version}.zip",
+              f"sicario-spec-{version}.zip",
+          ])
 
-          with ZipFile(archive, "w", ZIP_DEFLATED) as zf:
-              for path in sorted(preset_dir.rglob("*")):
-                  if path.is_file():
-                      zf.write(path, path.relative_to(preset_dir))
+          missing = [name for name in expected_archives if not (Path("dist") / name).is_file()]
+          if missing:
+              raise SystemExit(f"Missing release archives: {', '.join(missing)}")
+
+          for preset_id in preset_ids:
+              archive = Path("dist") / f"{preset_id}-{version}.zip"
+              with ZipFile(archive) as zf:
+                  preset = zf.read("preset.yml").decode("utf-8")
+              if 'schema_version: "1.0"' not in preset:
+                  raise SystemExit(f"{archive} is not a native Spec Kit preset")
+              if f'version: "{version}"' not in preset:
+                  raise SystemExit(f"{archive} preset.yml does not contain version {version}")
+
+          with ZipFile(Path("dist") / f"sicario-guard-{version}.zip") as zf:
+              extension = zf.read("extension.yml").decode("utf-8")
+          if 'schema_version: "1.0"' not in extension:
+              raise SystemExit("sicario-guard archive is not a native Spec Kit extension")
+
+          with ZipFile(Path("dist") / f"sicario-spec-{version}.zip") as zf:
+              bundle = zf.read("bundle.yml").decode("utf-8")
+          if 'id: "sicario-spec"' not in bundle:
+              raise SystemExit("sicario-spec bundle archive does not contain bundle.yml")
+
+          catalogs = {
+              "presets.json": ("presets", preset_ids),
+              "extensions.json": ("extensions", ["sicario-guard"]),
+              "bundles.json": ("bundles", ["sicario-spec"]),
+          }
+          for filename, (section, expected_ids) in catalogs.items():
+              payload = json.loads((Path("catalogs") / filename).read_text(encoding="utf-8"))
+              if payload.get("schema_version") != "1.0":
+                  raise SystemExit(f"{filename} has an unexpected schema_version")
+              actual_ids = sorted(payload.get(section, {}))
+              if actual_ids != sorted(expected_ids):
+                  raise SystemExit(f"{filename} contains {actual_ids}, expected {sorted(expected_ids)}")
           PY
+
+      - name: Smoke test Spec Kit bundle install
+        env:
+          SPEC_KIT_REF: main
+        run: |
+          python -m pip install "git+https://github.com/github/spec-kit.git@$SPEC_KIT_REF"
+
+          smoke_assets="$(mktemp -d)"
+          python scripts/build_release_assets.py \
+            --output-dir "$smoke_assets" \
+            --catalog-dir "$smoke_assets/catalogs" \
+            --catalog-base-url "http://127.0.0.1:8766"
+
+          python -m http.server 8766 --bind 127.0.0.1 --directory "$smoke_assets" \
+            >"$RUNNER_TEMP/sicario-bundle-http.log" 2>&1 &
+          server_pid="$!"
+          cleanup() {
+            kill "$server_pid" >/dev/null 2>&1 || true
+          }
+          trap cleanup EXIT
+
+          ready=0
+          for _ in $(seq 1 20); do
+            if curl -fsS http://127.0.0.1:8766/catalogs/bundles.json >/dev/null; then
+              ready=1
+              break
+            fi
+            sleep 0.5
+          done
+          if [ "$ready" -ne 1 ]; then
+            cat "$RUNNER_TEMP/sicario-bundle-http.log" >&2
+            exit 1
+          fi
+
+          SPECIFY_BIN=specify PYTHON_BIN=python scripts/smoke_bundle_install.sh \
+            http://127.0.0.1:8766/catalogs
 
       - name: Smoke test wheel
         run: |
@@ -96,12 +209,16 @@ jobs:
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: sicario-spec-${{ env.PACKAGE_VERSION }}-dist
-          path: dist/*
+          path: |
+            dist/*
+            catalogs/*.json
           if-no-files-found: error
 
       - uses: actions/attest-build-provenance@a2bbfa25375fe432b6a289bc6b6cd05ecd0c4c32 # v4
         with:
-          subject-path: dist/*
+          subject-path: |
+            dist/*
+            catalogs/*.json
 
       - name: Publish GitHub release assets
         env:
@@ -111,7 +228,7 @@ jobs:
             echo "Release $RELEASE_TAG already exists; immutable release assets will not be modified."
             gh release view "$RELEASE_TAG" --json assets --jq '.assets[].name'
           else
-            gh release create "$RELEASE_TAG" dist/* \
+            gh release create "$RELEASE_TAG" dist/* catalogs/*.json \
               --verify-tag \
               --title "SicarioSpec $RELEASE_TAG" \
               --generate-notes

@@ -1,6 +1,6 @@
 # Declarative Rule Engine
 
-SicarioSpec 0.5.0 moved `sicario verify` from hardcoded Python checks to a
+SicarioSpec 0.5.1 moved `sicario verify` from hardcoded Python checks to a
 declarative rule engine. The pass/fail verdict is still deterministic and owned
 by code, but the checks are now data: `*.rule.json` files validated against a
 schema and dispatched to fixed evaluator kinds.

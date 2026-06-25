@@ -20,7 +20,7 @@ Expected shape:
 
 ```text
 $ sicario --version
-sicario 0.5.0
+sicario 0.5.1
 
 $ sicario verify examples/python-api
 sicario verify passed

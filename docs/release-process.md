@@ -1,8 +1,8 @@
 # Release Process
 
 SicarioSpec releases are GitHub releases backed by signed-off local validation,
-tag-driven packaging, Spec Kit preset archives, and GitHub artifact attestations
-for built distributions.
+tag-driven packaging, full Spec Kit bundle assets, install-allowed catalogs, and
+GitHub artifact attestations for built distributions.
 
 ## Versioning
 
@@ -27,6 +27,8 @@ Run from the repository root:
 ```bash
 python3 -m unittest discover -s tests
 python3 -m sicario_cli.cli verify .
+python3 -m sicario_cli.cli verify . --validate-rules
+python3 scripts/build_release_assets.py
 tmpdir=$(mktemp -d)
 python3 -m pip wheel . -w "$tmpdir/wheelhouse"
 python3 -m venv "$tmpdir/venv"
@@ -44,6 +46,11 @@ Confirm:
 - `README.md` install and badge links are accurate.
 - `presets/sicario-core/README.md` catalog install instructions point to the
   release preset ZIP asset.
+- `catalogs/presets.json`, `catalogs/extensions.json`, and
+  `catalogs/bundles.json` point to the intended release ZIP assets.
+- `bundle.yml` pins `sicario-spec` components to the release version and keeps
+  `sicario-core` as the lower-priority base layer under appended profile
+  overlays.
 - `docs/governance/data-classification.md` and
   `docs/governance/tagging-taxonomy.md` are current.
 - Release notes and assets follow classification and tagging discipline.
@@ -62,9 +69,12 @@ git push origin main "v$version"
 
 The release workflow runs on the pushed tag. It verifies the tag against
 `VERSION`, `pyproject.toml`, and `sicario_cli/version.py`, builds the sdist,
-wheel, and `sicario-core-$version.zip` Spec Kit preset archive, smoke-tests the
-wheel, emits artifact attestations, and creates the GitHub release with assets
-when the release does not already exist.
+wheel, all 11 preset ZIPs, `sicario-guard-$version.zip`,
+`sicario-spec-$version.zip`, and the three catalog JSON files. It then validates
+the release asset set, smoke-tests native `specify bundle install sicario-spec`
+against localhost catalogs, smoke-tests the wheel, emits artifact attestations,
+and creates the GitHub release with assets when the release does not already
+exist.
 
 Existing GitHub releases are treated as immutable. A rerun for an existing tag
 will rebuild, smoke-test, upload the workflow artifact, and emit attestations,
@@ -79,9 +89,31 @@ workflow manually for that tag.
 Curated release notes should include:
 
 - What's included.
-- Install command.
+- Bundle install commands and CLI install command.
 - Validation performed.
 - Known limitations.
+
+## Bundle Asset Smoke Test
+
+Use this local smoke when bundle manifests, catalogs, release packaging, or
+Spec Kit compatibility changes:
+
+```bash
+smoke_assets="$(mktemp -d)"
+python3 scripts/build_release_assets.py \
+  --output-dir "$smoke_assets" \
+  --catalog-dir "$smoke_assets/catalogs" \
+  --catalog-base-url "http://127.0.0.1:8766"
+python3 -m http.server 8766 --bind 127.0.0.1 --directory "$smoke_assets" &
+server_pid="$!"
+trap 'kill "$server_pid"' EXIT
+SPECIFY_BIN=specify scripts/smoke_bundle_install.sh http://127.0.0.1:8766/catalogs
+```
+
+The smoke checks that a fresh Spec Kit project can add the Sicario preset,
+extension, and bundle catalogs; install `sicario-spec`; record all 12 bundle
+components; preserve expected preset priorities; install `sicario-guard`; and
+resolve a composed `spec-template` chain.
 
 ## Post-Release
 
@@ -110,7 +142,7 @@ Before the first publish:
 To publish:
 
 1. Open **Actions** -> **publish-pypi** -> **Run workflow**.
-2. Enter the release tag, for example `v0.5.0`.
+2. Enter the release tag, for example `v0.5.1`.
 3. Enter `publish` in the confirmation field.
 4. Approve the `pypi` environment gate.
 5. Confirm the PyPI release page, package hashes, and install command.

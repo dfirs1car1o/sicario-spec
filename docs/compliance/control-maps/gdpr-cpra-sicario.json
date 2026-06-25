@@ -1,7 +1,7 @@
 {
   "id": "gdpr-cpra-sicario",
   "name": "GDPR (with CPRA parallels) to SicarioSpec Evidence Map",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "framework": {
     "name": "Regulation (EU) 2016/679 General Data Protection Regulation, with California Consumer Privacy Act as amended by the California Privacy Rights Act parallels",
     "abbreviation": "GDPR / CPRA",

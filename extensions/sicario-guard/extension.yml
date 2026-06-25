@@ -1,24 +1,70 @@
-id: sicario-guard
-name: SicarioSpec Guard
-version: 0.5.0
-description: Commands and hooks for secure-by-default Spec Kit verification.
-license: MIT
-requirements:
-  spec-kit: ">=0.9.0"
-commands:
-  - sicario.init
-  - sicario.assess
-  - sicario.threatmodel
-  - sicario.controls
-  - sicario.evidence
-  - sicario.verify
-  - sicario.review
-  - sicario.apply-findings
+schema_version: "1.0"
+
+extension:
+  id: "sicario-guard"
+  name: "SicarioSpec Guard"
+  version: "0.5.1"
+  description: "Commands and hooks for secure-by-default Spec Kit verification."
+  author: "SicarioSpec Contributors"
+  repository: "https://github.com/dfirs1car1o/sicario-spec"
+  license: "MIT"
+  category: "security"
+  effect: "read-write"
+
+requires:
+  speckit_version: ">=0.9.0"
+
+provides:
+  commands:
+    - name: "speckit.sicario-guard.init"
+      file: "commands/sicario.init.md"
+      description: "Initialize SicarioSpec security and governance scaffolding."
+      aliases: ["sicario.init"]
+    - name: "speckit.sicario-guard.assess"
+      file: "commands/sicario.assess.md"
+      description: "Assess a Spec Kit project for SicarioSpec governance readiness."
+      aliases: ["sicario.assess"]
+    - name: "speckit.sicario-guard.threatmodel"
+      file: "commands/sicario.threatmodel.md"
+      description: "Add threat-modeling prompts to specification work."
+      aliases: ["sicario.threatmodel"]
+    - name: "speckit.sicario-guard.controls"
+      file: "commands/sicario.controls.md"
+      description: "Map requirements and risks to applicable controls."
+      aliases: ["sicario.controls"]
+    - name: "speckit.sicario-guard.evidence"
+      file: "commands/sicario.evidence.md"
+      description: "Plan and collect evidence for control verification."
+      aliases: ["sicario.evidence"]
+    - name: "speckit.sicario-guard.verify"
+      file: "commands/sicario.verify.md"
+      description: "Verify SicarioSpec artifacts, controls, and evidence gates."
+      aliases: ["sicario.verify"]
+    - name: "speckit.sicario-guard.review"
+      file: "commands/sicario.review.md"
+      description: "Review SicarioSpec artifacts for release readiness."
+      aliases: ["sicario.review"]
+    - name: "speckit.sicario-guard.apply-findings"
+      file: "commands/sicario.apply-findings.md"
+      description: "Apply review findings back into the Spec Kit artifacts."
+      aliases: ["sicario.apply-findings"]
+
 hooks:
   after_specify:
-    - sicario.threatmodel
+    command: "speckit.sicario-guard.threatmodel"
+    optional: true
+    description: "Prompt for threat-modeling coverage after specification work."
   after_plan:
-    - sicario.review
+    command: "speckit.sicario-guard.review"
+    optional: true
+    description: "Prompt for governance and control review after planning work."
   after_tasks:
-    - sicario.verify
+    command: "speckit.sicario-guard.verify"
+    optional: true
+    description: "Prompt for verification coverage after task generation."
 
+tags:
+  - "security"
+  - "governance"
+  - "verification"
+  - "threat-modeling"

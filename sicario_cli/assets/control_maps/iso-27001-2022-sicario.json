@@ -1,7 +1,7 @@
 {
   "id": "iso-27001-2022-sicario",
   "name": "ISO/IEC 27001:2022 Annex A to SicarioSpec Evidence Map",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "framework": {
     "name": "ISO/IEC 27001:2022 Information security, cybersecurity and privacy protection \u2014 Information security management systems \u2014 Requirements (Annex A controls)",
     "abbreviation": "ISO 27001:2022",

@@ -148,6 +148,18 @@ spec idea
 
 ## Install
 
+Native Spec Kit bundle install:
+
+```bash
+specify preset catalog add https://raw.githubusercontent.com/dfirs1car1o/sicario-spec/main/catalogs/presets.json --name sicario --priority 1 --install-allowed
+specify extension catalog add https://raw.githubusercontent.com/dfirs1car1o/sicario-spec/main/catalogs/extensions.json --name sicario --priority 1 --install-allowed
+specify bundle catalog add https://raw.githubusercontent.com/dfirs1car1o/sicario-spec/main/catalogs/bundles.json --id sicario --priority 1 --policy install-allowed
+specify bundle install sicario-spec
+specify preset resolve spec-template
+```
+
+Python CLI install:
+
 From a local checkout:
 
 ```bash
@@ -163,7 +175,7 @@ python3 -m pip install "git+https://github.com/dfirs1car1o/sicario-spec.git"
 Install a specific release:
 
 ```bash
-python3 -m pip install "git+https://github.com/dfirs1car1o/sicario-spec.git@v0.5.0"
+python3 -m pip install "git+https://github.com/dfirs1car1o/sicario-spec.git@v0.5.1"
 ```
 
 ## Quickstart

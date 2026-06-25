@@ -76,7 +76,7 @@ const usePaths = [
     title: 'Use the preset',
     body: 'Install sicario-core with Spec Kit when you want the smallest upstream-compatible governance layer.',
     command: 'specify preset add --dev /path/to/sicario-core',
-    to: '/docs/getting-started#use-the-spec-kit-preset-only',
+    to: '/docs/getting-started#use-the-full-spec-kit-bundle',
   },
   {
     label: 'Full bundle',
@@ -177,7 +177,7 @@ export default function Home() {
           <div className="container">
             <div className={styles.sectionHeader}>
               <p className={styles.kicker}>Current bundle surface</p>
-              <Heading as="h2">Version 0.5.0 is more than a template pack.</Heading>
+              <Heading as="h2">Version 0.5.1 is more than a template pack.</Heading>
               <p className={styles.readableText}>
                 The bundle now combines Spec Kit presets, a Python CLI, declarative verify
                 rules, framework maps, release assets, Docusaurus documentation, GitHub
@@ -204,7 +204,7 @@ export default function Home() {
                 <p className={styles.kicker}>Declarative verification</p>
                 <Heading as="h2">Custom gates are JSON files, not Python forks.</Heading>
                 <p>
-                  SicarioSpec 0.5.0 loads `*.rule.json` files, validates their schema,
+                  SicarioSpec 0.5.1 loads `*.rule.json` files, validates their schema,
                   and runs fixed evaluator modules. A project can add, override, or disable
                   a governance gate in `.sicario/rules/` while keeping the same deterministic
                   pass/fail path in CI.

@@ -1,18 +1,60 @@
-id: sicario-ai-system
-name: SicarioSpec AI System
-version: 0.5.0
-description: AI, agent, RAG, MCP, LLM, and tool-use security profile.
-license: MIT
-tags: [ai-security, llm, agentic-ai, owasp-llm, nist-ai-rmf]
-requires:
-  spec-kit: ">=0.9.0"
-extends: [sicario-core]
-focus:
-  - prompt-injection
-  - tool-boundaries
-  - model-routing
-  - memory-poisoning
-  - data-leakage
-  - aibom
-  - ai-evals
+schema_version: "1.0"
 
+preset:
+  id: "sicario-ai-system"
+  name: "SicarioSpec AI System"
+  version: "0.5.1"
+  description: "AI, agent, RAG, MCP, LLM, and tool-use security profile."
+  author: "SicarioSpec Contributors"
+  repository: "https://github.com/dfirs1car1o/sicario-spec"
+  license: "MIT"
+
+requires:
+  speckit_version: ">=0.9.0"
+
+provides:
+  templates:
+    - type: "template"
+      name: "checklist-template"
+      file: "templates/checklist-template.md"
+      description: "Adds AI System review checks for specification, planning, implementation, and verification artifacts."
+      strategy: "append"
+    - type: "template"
+      name: "constitution-template"
+      file: "templates/constitution-template.md"
+      description: "Adds AI System governance principles to the project constitution."
+      strategy: "append"
+    - type: "template"
+      name: "plan-template"
+      file: "templates/plan-template.md"
+      description: "Adds AI System architecture, control, verification, and rollout guidance to implementation plans."
+      strategy: "append"
+    - type: "template"
+      name: "spec-template"
+      file: "templates/spec-template.md"
+      description: "Adds AI System requirements, risks, controls, and evidence expectations to feature specifications."
+      strategy: "append"
+    - type: "template"
+      name: "tasks-template"
+      file: "templates/tasks-template.md"
+      description: "Adds AI System implementation, test, evidence, and review tasks."
+      strategy: "append"
+
+tags:
+  - "ai-security"
+  - "llm"
+  - "agentic-ai"
+  - "owasp-llm"
+  - "nist-ai-rmf"
+
+x-sicario:
+  extends:
+    - "sicario-core"
+  focus:
+    - "prompt-injection"
+    - "tool-boundaries"
+    - "model-routing"
+    - "memory-poisoning"
+    - "data-leakage"
+    - "aibom"
+    - "ai-evals"

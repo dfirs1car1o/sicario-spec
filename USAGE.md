@@ -29,7 +29,7 @@ That is the whole product. Everything below is mechanics.
 python3 -m pip install "git+https://github.com/dfirs1car1o/sicario-spec.git"
 
 # Pin a release:
-python3 -m pip install "git+https://github.com/dfirs1car1o/sicario-spec.git@v0.5.0"
+python3 -m pip install "git+https://github.com/dfirs1car1o/sicario-spec.git@v0.5.1"
 
 # From a local checkout:
 python3 -m pip install -e .
@@ -37,6 +37,16 @@ python3 -m pip install -e .
 
 This puts a `sicario` command on your PATH. If it isn't, every command also
 works as `python3 -m sicario_cli.cli <command>`.
+
+If you want native Spec Kit to install the full SicarioSpec bundle instead of
+using the Python bootstrapper, add the Sicario catalogs and install the bundle:
+
+```bash
+specify preset catalog add https://raw.githubusercontent.com/dfirs1car1o/sicario-spec/main/catalogs/presets.json --name sicario --priority 1 --install-allowed
+specify extension catalog add https://raw.githubusercontent.com/dfirs1car1o/sicario-spec/main/catalogs/extensions.json --name sicario --priority 1 --install-allowed
+specify bundle catalog add https://raw.githubusercontent.com/dfirs1car1o/sicario-spec/main/catalogs/bundles.json --id sicario --priority 1 --policy install-allowed
+specify bundle install sicario-spec
+```
 
 ---
 

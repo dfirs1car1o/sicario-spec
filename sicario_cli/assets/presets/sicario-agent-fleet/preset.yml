@@ -1,19 +1,66 @@
-id: sicario-agent-fleet
-name: SicarioSpec Agent Fleet
-version: 0.5.0
-description: Governance for multi-agent, worker, queue, workflow, SOAR, and orchestration systems.
-license: MIT
-tags: [agentic-ai, orchestration, langgraph, temporal, celery, ray, soar, workers]
+schema_version: "1.0"
+
+preset:
+  id: "sicario-agent-fleet"
+  name: "SicarioSpec Agent Fleet"
+  version: "0.5.1"
+  description: "Governance for multi-agent, worker, queue, workflow, SOAR, and orchestration systems."
+  author: "SicarioSpec Contributors"
+  repository: "https://github.com/dfirs1car1o/sicario-spec"
+  license: "MIT"
+
 requires:
-  spec-kit: ">=0.9.0"
-extends: [sicario-core, sicario-ai-system]
-focus:
-  - workflow-state
-  - durable-execution
-  - queue-worker-safety
-  - idempotency
-  - retry-and-dead-letter
-  - distributed-permissions
-  - approval-boundaries
-  - observability
-  - drift-remediation
+  speckit_version: ">=0.9.0"
+
+provides:
+  templates:
+    - type: "template"
+      name: "checklist-template"
+      file: "templates/checklist-template.md"
+      description: "Adds Agent Fleet review checks for specification, planning, implementation, and verification artifacts."
+      strategy: "append"
+    - type: "template"
+      name: "constitution-template"
+      file: "templates/constitution-template.md"
+      description: "Adds Agent Fleet governance principles to the project constitution."
+      strategy: "append"
+    - type: "template"
+      name: "plan-template"
+      file: "templates/plan-template.md"
+      description: "Adds Agent Fleet architecture, control, verification, and rollout guidance to implementation plans."
+      strategy: "append"
+    - type: "template"
+      name: "spec-template"
+      file: "templates/spec-template.md"
+      description: "Adds Agent Fleet requirements, risks, controls, and evidence expectations to feature specifications."
+      strategy: "append"
+    - type: "template"
+      name: "tasks-template"
+      file: "templates/tasks-template.md"
+      description: "Adds Agent Fleet implementation, test, evidence, and review tasks."
+      strategy: "append"
+
+tags:
+  - "agentic-ai"
+  - "orchestration"
+  - "langgraph"
+  - "temporal"
+  - "celery"
+  - "ray"
+  - "soar"
+  - "workers"
+
+x-sicario:
+  extends:
+    - "sicario-core"
+    - "sicario-ai-system"
+  focus:
+    - "workflow-state"
+    - "durable-execution"
+    - "queue-worker-safety"
+    - "idempotency"
+    - "retry-and-dead-letter"
+    - "distributed-permissions"
+    - "approval-boundaries"
+    - "observability"
+    - "drift-remediation"
