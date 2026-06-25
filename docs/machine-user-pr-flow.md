@@ -12,9 +12,9 @@ machine account may still contribute through the fallback path below.
 
 | Role | Responsibility |
 |---|---|
-| `svc-claude-dev` | Machine user for AI-authored commits, branches, and pull requests |
+| Machine user | Dedicated non-human account for AI-authored commits, branches, and pull requests |
 | Maintainer | Reviews scope and gives explicit approval |
-| `SiCar10mw` | Maintainer/admin account that submits approval and merge after human approval |
+| Maintainer/admin account | Non-author account that submits approval and merge after human approval |
 
 ## Rules
 
@@ -48,10 +48,11 @@ changes with unclear ownership.
 
 ## Local Account Setup
 
-This repository expects two GitHub identities to be available locally:
+Maintainers who use the machine-user flow should keep two GitHub identities
+available locally:
 
-- `svc-claude-dev` for code-authoring sessions
-- `SiCar10mw` for maintainer approval and merge
+- a dedicated machine account for code-authoring sessions;
+- a human maintainer account for approval and merge.
 
 Check the active account:
 
@@ -63,8 +64,8 @@ gh api user --jq .login
 Switch identities when both are registered:
 
 ```bash
-gh auth switch --hostname github.com --user svc-claude-dev
-gh auth switch --hostname github.com --user SiCar10mw
+gh auth switch --hostname github.com --user <machine-account>
+gh auth switch --hostname github.com --user <maintainer-account>
 ```
 
 Do not hardcode tokens in files, shell history, docs, or environment examples.

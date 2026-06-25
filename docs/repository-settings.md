@@ -39,8 +39,8 @@ Protect `main` after the initial release:
 - Consider enabling CODEOWNER review requirement after a backup maintainer or
   maintainer team exists.
 - Use the machine-user PR flow by default for AI-authored maintainer changes:
-  `svc-claude-dev` authors branches and pull requests; a non-author maintainer
-  account approves and merges.
+  a dedicated machine account authors branches and pull requests; a non-author
+  maintainer account approves and merges.
 - Allow a documented maintainer fallback when a machine-user identity is not
   available. The fallback may use admin bypass or a temporary review-count
   exception only after required checks pass, with the reason recorded in the PR.
