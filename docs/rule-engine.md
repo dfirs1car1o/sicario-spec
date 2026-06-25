@@ -97,13 +97,16 @@ sicario verify --format json
 sicario verify --format sarif
 ```
 
-## Current Community Queue
+## Example Rule
 
-Two public contribution tracks are intentionally left open for community PRs:
+The `examples/custom-rules/` directory contains a community-facing Terraform
+example:
 
-- Add a custom-rule example under `examples/custom-rules/`.
-- Add another control map, choosing one of SOC 2, FedRAMP, or BSI C5.
+- `terraform-pinned-version.rule.json` uses `regex-required` to require
+  `required_version` in matching `main.tf` files.
+- `README.md` explains how to copy the rule into `.sicario/rules/`, validate it
+  with `sicario verify --validate-rules`, and suppress it only with a documented
+  risk or exception rationale.
 
-Both are good review targets because they exercise the public extension points:
-rule files and control-map JSON. The maintainer should review them for valid
-JSON, clear evidence mapping, correct docs, and passing `sicario verify`.
+Use this shape for future project-owned gates: one small JSON rule, one adjacent
+README, a precise stable rule ID, and a deterministic evaluator kind.

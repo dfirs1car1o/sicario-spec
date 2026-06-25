@@ -1,0 +1,243 @@
+{
+  "id": "bsi-c5-2026-sicario",
+  "name": "BSI C5:2026 Cloud Computing Compliance Criteria to SicarioSpec Evidence Map",
+  "version": "0.5.1",
+  "framework": {
+    "name": "BSI Cloud Computing Compliance Criteria Catalogue",
+    "abbreviation": "BSI C5",
+    "framework_version": "2026",
+    "publication": "C5:2026 Criteria Catalogue Cloud Computing",
+    "criteria_area_count": 17,
+    "official_sources": [
+      "https://www.bsi.bund.de/EN/Themen/Unternehmen-und-Organisationen/Informationen-und-Empfehlungen/Empfehlungen-nach-Angriffszielen/Cloud-Computing/Kriterienkatalog-C5/kriterienkatalog-c5_node.html",
+      "https://www.bsi.bund.de/SharedDocs/Downloads/DE/BSI/CloudComputing/Anforderungskatalog/2026/C5_2026_en.pdf?__blob=publicationFile&v=6",
+      "https://www.bsi.bund.de/SharedDocs/Downloads/EN/BSI/CloudComputing/ComplianceControlsCatalogue/2026/C5_2026.html"
+    ]
+  },
+  "scope_note": "Criteria-area-level starter mapping only. BSI C5 attestation depends on the official C5 catalogue, cloud service system description, independent audit evidence, and scoped customer/infrastructure responsibilities. SicarioSpec evidence can help structure security, operations, supplier, and continuity evidence, but it is not a C5 attestation.",
+  "criteria_area_mappings": [
+    {
+      "criteria_area": "Organization of Information Security",
+      "abbreviation": "OIS",
+      "sicario_evidence": [
+        ".specify/memory/constitution.md",
+        "MAINTAINERS.md",
+        "docs/maintainer-operations.md",
+        "docs/compliance/control-applicability.md"
+      ],
+      "sicario_presets": [
+        "sicario-core",
+        "sicario-compliance",
+        "sicario-enterprise-strict"
+      ]
+    },
+    {
+      "criteria_area": "Security Policies and Instructions",
+      "abbreviation": "SP",
+      "sicario_evidence": [
+        "docs/governance/data-classification.md",
+        "docs/governance/tagging-taxonomy.md",
+        ".specify/memory/constitution.md"
+      ],
+      "sicario_presets": [
+        "sicario-core",
+        "sicario-docs"
+      ]
+    },
+    {
+      "criteria_area": "Asset Management",
+      "abbreviation": "AM",
+      "sicario_evidence": [
+        "docs/architecture/system-context.md",
+        "docs/diagrams/system-context.mmd",
+        "docs/compliance/evidence-index.md"
+      ],
+      "sicario_presets": [
+        "sicario-docs",
+        "sicario-cloud-iac"
+      ]
+    },
+    {
+      "criteria_area": "Personnel",
+      "abbreviation": "HR",
+      "sicario_evidence": [
+        "MAINTAINERS.md",
+        "docs/machine-user-pr-flow.md",
+        "docs/maintainer-operations.md"
+      ],
+      "sicario_presets": [
+        "sicario-compliance",
+        "sicario-enterprise-strict"
+      ]
+    },
+    {
+      "criteria_area": "Physical Security",
+      "abbreviation": "PS",
+      "sicario_evidence": [
+        "docs/compliance/control-applicability.md",
+        "docs/risk/accepted-risk-log.md"
+      ],
+      "sicario_presets": [
+        "sicario-compliance"
+      ]
+    },
+    {
+      "criteria_area": "Regular Operations",
+      "abbreviation": "OPS",
+      "sicario_evidence": [
+        "generated/sicario/gate-summary.json",
+        ".github/workflows/sicario-verify.yml",
+        "docs/risk/risk-register.md"
+      ],
+      "sicario_presets": [
+        "sicario-compliance",
+        "sicario-saas"
+      ]
+    },
+    {
+      "criteria_area": "Identity and Access Management",
+      "abbreviation": "IDM",
+      "sicario_evidence": [
+        "specs/**/plan.md#authn--authz-design",
+        "specs/**/spec.md#secrets--credential-handling",
+        "tests"
+      ],
+      "sicario_presets": [
+        "sicario-appsec",
+        "sicario-cloud-iac"
+      ]
+    },
+    {
+      "criteria_area": "Cryptography and Key Management",
+      "abbreviation": "CRY",
+      "sicario_evidence": [
+        "specs/**/spec.md#secrets--credential-handling",
+        "docs/governance/data-classification.md",
+        "docs/risk/security-exceptions.md"
+      ],
+      "sicario_presets": [
+        "sicario-appsec",
+        "sicario-security-toolchain"
+      ]
+    },
+    {
+      "criteria_area": "Communication Security",
+      "abbreviation": "COS",
+      "sicario_evidence": [
+        "specs/**/plan.md#data-flow-and-trust-boundaries",
+        "docs/architecture/system-context.md",
+        "docs/diagrams/system-context.mmd"
+      ],
+      "sicario_presets": [
+        "sicario-appsec",
+        "sicario-cloud-iac"
+      ]
+    },
+    {
+      "criteria_area": "Portability and Interoperability",
+      "abbreviation": "PI",
+      "sicario_evidence": [
+        "docs/architecture.md",
+        "docs/adoption-and-launch.md",
+        "docs/release-process.md"
+      ],
+      "sicario_presets": [
+        "sicario-docs",
+        "sicario-saas"
+      ]
+    },
+    {
+      "criteria_area": "Procurement, Development, and Modification of Information Systems",
+      "abbreviation": "DEV",
+      "sicario_evidence": [
+        "specs/**/plan.md#supply-chain",
+        "specs/**/tasks.md",
+        "docs/vendor-evaluation.md",
+        ".github/workflows/release.yml"
+      ],
+      "sicario_presets": [
+        "sicario-supply-chain",
+        "sicario-enterprise-strict"
+      ]
+    },
+    {
+      "criteria_area": "Control and Monitoring of Service Providers and Suppliers",
+      "abbreviation": "SSO",
+      "sicario_evidence": [
+        "docs/vendor-evaluation.md",
+        "docs/risk/risk-register.md",
+        "docs/compliance/evidence-index.md"
+      ],
+      "sicario_presets": [
+        "sicario-supply-chain",
+        "sicario-compliance"
+      ]
+    },
+    {
+      "criteria_area": "Security Incident Management",
+      "abbreviation": "SIM",
+      "sicario_evidence": [
+        "docs/security/abuse-cases.md",
+        "docs/risk/risk-register.md",
+        "specs/**/plan.md#rollback"
+      ],
+      "sicario_presets": [
+        "sicario-agent-fleet",
+        "sicario-compliance"
+      ]
+    },
+    {
+      "criteria_area": "Business Continuity Management",
+      "abbreviation": "BCM",
+      "sicario_evidence": [
+        "specs/**/plan.md#rollback",
+        "docs/architecture/system-context.md",
+        "docs/risk/risk-register.md"
+      ],
+      "sicario_presets": [
+        "sicario-cloud-iac",
+        "sicario-saas"
+      ]
+    },
+    {
+      "criteria_area": "Investigation Requests",
+      "abbreviation": "INQ",
+      "sicario_evidence": [
+        "docs/maintainer-operations.md",
+        "docs/governance/data-classification.md",
+        "docs/compliance/evidence-index.md"
+      ],
+      "sicario_presets": [
+        "sicario-compliance",
+        "sicario-enterprise-strict"
+      ]
+    },
+    {
+      "criteria_area": "Product Safety and Security",
+      "abbreviation": "PSS",
+      "sicario_evidence": [
+        "specs/**/plan.md#supply-chain",
+        "security/toolchain",
+        "generated/sicario/gate-summary.json"
+      ],
+      "sicario_presets": [
+        "sicario-security-toolchain",
+        "sicario-supply-chain",
+        "sicario-appsec"
+      ]
+    },
+    {
+      "criteria_area": "Compliance",
+      "abbreviation": "COM",
+      "sicario_evidence": [
+        "docs/compliance/control-applicability.md",
+        "docs/compliance/evidence-index.md",
+        "generated/sicario/spec-run-evidence.json"
+      ],
+      "sicario_presets": [
+        "sicario-compliance",
+        "sicario-enterprise-strict"
+      ]
+    }
+  ]
+}

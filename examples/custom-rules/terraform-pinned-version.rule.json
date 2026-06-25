@@ -1,0 +1,11 @@
+{
+  "id": "SICARIO-TERRAFORM-REQUIRED-VERSION",
+  "severity": "medium",
+  "kind": "regex-required",
+  "path": "**/main.tf",
+  "params": {
+    "pattern": "\\brequired_version\\b"
+  },
+  "message": "Terraform root module main.tf must pin required_version.",
+  "enabled": true
+}

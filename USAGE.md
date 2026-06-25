@@ -79,7 +79,7 @@ sicario init my-service --profile appsec,cloud-iac,compliance
 
 ### Pick which compliance frameworks you enforce
 
-SicarioSpec ships control maps for 11 frameworks, but you rarely owe evidence for
+SicarioSpec ships control maps for 14 frameworks, but you rarely owe evidence for
 all of them. Declare the subset that applies with `--frameworks`:
 
 ```bash
@@ -91,8 +91,9 @@ That writes `.sicario/frameworks.txt`. `sicario verify` then requires a control
 map for each selected framework (`SICARIO-MISSING-FRAMEWORK-MAP` if one is
 missing) and does **not** require the rest. Omit `--frameworks` to default to the
 profile's set; delete the file to fall back to the coarse control-map check.
-Keys (`ccm`, `sox`, `ssdf`, `ai-rmf`, `iso27001`, `nist-800-53`, `eu-ai-act`,
-`gdpr`, `pci-dss`, `hipaa`, `owasp-asvs`, or `all`) and per-profile defaults are in the
+Keys (`ccm`, `sox`, `soc2`, `fedramp`, `bsi-c5`, `ssdf`, `ai-rmf`,
+`iso27001`, `nist-800-53`, `eu-ai-act`, `gdpr`, `pci-dss`, `hipaa`,
+`owasp-asvs`, or `all`) and per-profile defaults are in the
 [control-maps docs](https://dfirs1car1o.github.io/sicario-spec/docs/control-maps).
 
 ### Existing Spec Kit repo (brownfield)

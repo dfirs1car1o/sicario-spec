@@ -63,10 +63,24 @@ class SicarioSpecShapeTests(unittest.TestCase):
         names = {path.name for path in maps}
         self.assertIn("ccm-v4.1-sicario.json", names)
         self.assertIn("sox-404-itgc-sicario.json", names)
+        self.assertIn("soc2-trust-services-sicario.json", names)
+        self.assertIn("fedramp-rev5-sicario.json", names)
+        self.assertIn("bsi-c5-2026-sicario.json", names)
         for path in maps:
             data = json.loads(path.read_text(encoding="utf-8"))
             self.assertIn("id", data)
             self.assertIn("framework", data)
+
+    def test_example_custom_rules_are_valid(self) -> None:
+        from sicario_cli.rules import RuleEngine
+
+        root = Path(__file__).resolve().parents[1]
+        rule_dir = root / "examples" / "custom-rules"
+        rules = sorted(rule_dir.glob("*.rule.json"))
+        self.assertGreaterEqual(len(rules), 1)
+        engine = RuleEngine()
+        loaded = engine.load_rules([rule_dir])
+        self.assertEqual(len(rules), len(loaded))
 
 
 class SicarioCliBehaviorTests(unittest.TestCase):
@@ -474,7 +488,7 @@ class FrameworkSelectorTests(unittest.TestCase):
         self.assertEqual([], _default_frameworks_for_profiles(["public-core"]))
         # compliance carries a concrete default set.
         self.assertEqual(
-            ["ccm", "sox", "iso27001", "nist-800-53"],
+            ["ccm", "sox", "soc2", "iso27001", "nist-800-53"],
             _default_frameworks_for_profiles(["compliance"]),
         )
         # enterprise-strict enforces all shipped frameworks.
@@ -507,7 +521,8 @@ class FrameworkSelectorTests(unittest.TestCase):
             target = Path(tmp) / "project"
             self.assertEqual(0, main(["init", str(target), "--profile", "compliance"]))
             self.assertEqual(
-                ["ccm", "sox", "iso27001", "nist-800-53"], _read_selected_frameworks(target)
+                ["ccm", "sox", "soc2", "iso27001", "nist-800-53"],
+                _read_selected_frameworks(target),
             )
 
     def test_public_core_writes_no_framework_config_and_verifies(self) -> None:

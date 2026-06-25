@@ -1,0 +1,245 @@
+{
+  "id": "fedramp-rev5-sicario",
+  "name": "FedRAMP Rev. 5 Baselines to SicarioSpec Evidence Map",
+  "version": "0.5.1",
+  "framework": {
+    "name": "Federal Risk and Authorization Management Program Rev. 5 Baselines",
+    "abbreviation": "FedRAMP Rev. 5",
+    "framework_version": "Revision 5",
+    "publication": "FedRAMP Rev. 5 Security Controls Baselines",
+    "baseline_count": 4,
+    "control_family_count": 18,
+    "official_sources": [
+      "https://www.fedramp.gov/rev5/",
+      "https://www.fedramp.gov/documents-templates/",
+      "https://automate.fedramp.gov/"
+    ]
+  },
+  "scope_note": "Control-family- and baseline-level starter mapping only. FedRAMP authorization requires the official FedRAMP Rev. 5 baselines, OSCAL or template package artifacts, control implementation statements, assessor evidence, agency authorization review, and continuous monitoring. SicarioSpec can help structure evidence and gating discipline, but it is not an authorization package, 3PAO assessment, or Authority to Operate.",
+  "baseline_mappings": [
+    {
+      "baseline": "Low",
+      "sicario_evidence": [
+        "docs/compliance/control-applicability.md",
+        "docs/compliance/evidence-index.md",
+        "generated/sicario/gate-summary.json"
+      ],
+      "sicario_presets": [
+        "sicario-compliance",
+        "sicario-cloud-iac"
+      ]
+    },
+    {
+      "baseline": "Low-Impact SaaS",
+      "sicario_evidence": [
+        "docs/compliance/control-applicability.md",
+        "docs/docs-impact.md",
+        "docs/risk/risk-register.md"
+      ],
+      "sicario_presets": [
+        "sicario-saas",
+        "sicario-compliance"
+      ]
+    },
+    {
+      "baseline": "Moderate",
+      "sicario_evidence": [
+        "specs/**/plan.md#security-evidence-chain",
+        "docs/security/threat-model.md",
+        "docs/compliance/evidence-index.md",
+        ".github/workflows/sicario-verify.yml"
+      ],
+      "sicario_presets": [
+        "sicario-compliance",
+        "sicario-cloud-iac",
+        "sicario-enterprise-strict"
+      ]
+    },
+    {
+      "baseline": "High",
+      "sicario_evidence": [
+        "specs/**/plan.md#human-approval-points",
+        "docs/risk/accepted-risk-log.md",
+        "docs/risk/security-exceptions.md",
+        "MAINTAINERS.md"
+      ],
+      "sicario_presets": [
+        "sicario-compliance",
+        "sicario-cloud-iac",
+        "sicario-enterprise-strict"
+      ]
+    }
+  ],
+  "control_family_mappings": [
+    {
+      "family": "Access Control",
+      "abbreviation": "AC",
+      "sicario_evidence": [
+        "specs/**/plan.md#authn--authz-design",
+        "infra",
+        "tests"
+      ],
+      "sicario_presets": [
+        "sicario-cloud-iac",
+        "sicario-appsec"
+      ]
+    },
+    {
+      "family": "Audit and Accountability",
+      "abbreviation": "AU",
+      "sicario_evidence": [
+        "specs/**/spec.md#audit--logging-requirements",
+        "generated/sicario/spec-run-evidence.json",
+        "audit.jsonl"
+      ],
+      "sicario_presets": [
+        "sicario-core",
+        "sicario-agent-fleet"
+      ]
+    },
+    {
+      "family": "Assessment, Authorization, and Monitoring",
+      "abbreviation": "CA",
+      "sicario_evidence": [
+        "docs/compliance/evidence-index.md",
+        "generated/sicario/gate-summary.json",
+        ".github/workflows/sicario-verify.yml"
+      ],
+      "sicario_presets": [
+        "sicario-compliance",
+        "sicario-enterprise-strict"
+      ]
+    },
+    {
+      "family": "Configuration Management",
+      "abbreviation": "CM",
+      "sicario_evidence": [
+        "specs/**/plan.md#architecture--security-decision-record",
+        "docs/docs-impact.md",
+        "policy/policy-as-code"
+      ],
+      "sicario_presets": [
+        "sicario-core",
+        "sicario-cloud-iac"
+      ]
+    },
+    {
+      "family": "Contingency Planning",
+      "abbreviation": "CP",
+      "sicario_evidence": [
+        "specs/**/plan.md#rollback",
+        "docs/architecture/system-context.md",
+        "docs/risk/risk-register.md"
+      ],
+      "sicario_presets": [
+        "sicario-core",
+        "sicario-cloud-iac"
+      ]
+    },
+    {
+      "family": "Identification and Authentication",
+      "abbreviation": "IA",
+      "sicario_evidence": [
+        "specs/**/plan.md#authn--authz-design",
+        "specs/**/spec.md#secrets--credential-handling",
+        "tests"
+      ],
+      "sicario_presets": [
+        "sicario-appsec",
+        "sicario-cloud-iac"
+      ]
+    },
+    {
+      "family": "Incident Response",
+      "abbreviation": "IR",
+      "sicario_evidence": [
+        "docs/security/abuse-cases.md",
+        "docs/risk/risk-register.md",
+        "specs/**/plan.md#rollback"
+      ],
+      "sicario_presets": [
+        "sicario-agent-fleet",
+        "sicario-compliance"
+      ]
+    },
+    {
+      "family": "Planning",
+      "abbreviation": "PL",
+      "sicario_evidence": [
+        "specs/**/plan.md#architecture--security-decision-record",
+        "docs/architecture/system-context.md",
+        ".specify/memory/constitution.md"
+      ],
+      "sicario_presets": [
+        "sicario-core",
+        "sicario-docs"
+      ]
+    },
+    {
+      "family": "Risk Assessment",
+      "abbreviation": "RA",
+      "sicario_evidence": [
+        "docs/security/threat-model.md",
+        "docs/risk/risk-register.md",
+        "security/toolchain"
+      ],
+      "sicario_presets": [
+        "sicario-appsec",
+        "sicario-security-toolchain"
+      ]
+    },
+    {
+      "family": "System and Services Acquisition",
+      "abbreviation": "SA",
+      "sicario_evidence": [
+        "specs/**/plan.md#supply-chain",
+        "docs/vendor-evaluation.md",
+        "security/toolchain"
+      ],
+      "sicario_presets": [
+        "sicario-supply-chain",
+        "sicario-security-toolchain"
+      ]
+    },
+    {
+      "family": "System and Communications Protection",
+      "abbreviation": "SC",
+      "sicario_evidence": [
+        "specs/**/plan.md#data-flow-and-trust-boundaries",
+        "docs/diagrams/system-context.mmd",
+        "docs/governance/data-classification.md"
+      ],
+      "sicario_presets": [
+        "sicario-appsec",
+        "sicario-cloud-iac"
+      ]
+    },
+    {
+      "family": "System and Information Integrity",
+      "abbreviation": "SI",
+      "sicario_evidence": [
+        "generated/sicario/gate-summary.json",
+        "security/toolchain",
+        "tests"
+      ],
+      "sicario_presets": [
+        "sicario-security-toolchain",
+        "sicario-appsec"
+      ]
+    },
+    {
+      "family": "Supply Chain Risk Management",
+      "abbreviation": "SR",
+      "sicario_evidence": [
+        "specs/**/plan.md#supply-chain",
+        "docs/vendor-evaluation.md",
+        ".github/dependabot.yml",
+        ".github/workflows/release.yml"
+      ],
+      "sicario_presets": [
+        "sicario-supply-chain",
+        "sicario-enterprise-strict"
+      ]
+    }
+  ]
+}

@@ -80,15 +80,13 @@ structural:
   required governance sections (data classification, tagging, trust boundaries,
   abuse cases, evidence, AI/fleet guardrails). A missing section is a hard fail,
   not a suggestion.
-- **Compliance control maps you can scope.** Starter evidence maps for 11
+- **Compliance control maps you can scope.** Starter evidence maps for 14
   frameworks (CSA CCM v4.1, SOX 404 / ICFR ITGC, NIST SSDF, NIST AI RMF, ISO/IEC
   27001:2022, NIST SP 800-53 Rev 5, EU AI Act, GDPR (+ CPRA), PCI DSS v4.0,
-  HIPAA Security Rule, and OWASP ASVS). A project selects the subset that applies
+  HIPAA Security Rule, OWASP ASVS, SOC 2 Trust Services Criteria, FedRAMP Rev. 5,
+  and BSI C5:2026). A project selects the subset that applies
   (`--frameworks`), and the gate then enforces presence for exactly those. These
-  maps are coarse traceability aids, not certification claims, and SicarioSpec
-  does not yet ship maps for every framework other presets cover (for example
-  SOC 2, FedRAMP, BSI C5, NIS2, CRA, DORA, SLSA supply-chain, OWASP SAMM, or
-  OWASP LLM/Agentic AI risks). Those remain advisory here until a map exists.
+  maps are coarse traceability aids, not certification claims.
 
 In short: advisory presets recommend; SicarioSpec **enforces with a halting,
 code-owned gate**. The two are complementary — adopt the advice you like, then
@@ -120,10 +118,11 @@ SicarioSpec provides:
   generic agent environments.
 - **Guard extension commands** for review, threat modeling, controls, evidence,
   verification, and finding remediation.
-- **Control maps** for 11 frameworks — CSA CCM v4.1, SOX 404 / ICFR ITGC, NIST
+- **Control maps** for 14 frameworks — CSA CCM v4.1, SOX 404 / ICFR ITGC, NIST
   SSDF (SP 800-218), NIST AI RMF (AI 100-1), ISO/IEC 27001:2022, NIST SP 800-53
   Rev 5, EU AI Act, GDPR (+ CPRA), PCI DSS v4.0, HIPAA Security Rule, and OWASP
-  ASVS evidence readiness.
+  ASVS, plus SOC 2 Trust Services Criteria, FedRAMP Rev. 5, and BSI C5:2026
+  evidence readiness.
 - **Policy-as-code starters** for Checkov, OPA/Conftest, Azure Policy, and
   Kubernetes admission policy.
 - **Security toolchain starters** for secrets, SAST, SCA, SBOM, container/IaC
@@ -375,16 +374,21 @@ coarse level (domain, practice group, or function):
 - HIPAA Security Rule — Administrative/Physical/Technical ePHI safeguards
 - OWASP ASVS — application security verification evidence for architecture,
   authentication/session management, and access-control evidence
+- SOC 2 Trust Services Criteria — common criteria plus availability,
+  confidentiality, processing-integrity, and privacy evidence
+- FedRAMP Rev. 5 — baseline and control-family evidence for federal cloud
+  authorization readiness
+- BSI C5:2026 — criteria-area evidence for cloud service provider assurance
 
 These maps are traceability aids. They are not control-by-control crosswalks,
 not certification claims, and do not replace the official framework artifacts,
 auditor judgment, or legal/accounting/regulatory scoping (the EU AI Act, GDPR/CPRA,
 PCI DSS, and HIPAA maps are guidance, not legal advice or a conformity/compliance
 assessment). Frameworks referenced in templates but not yet shipped as a map
-(SLSA, OWASP SAMM, OWASP LLM/Agentic AI risks, NIS2, CRA, DORA, SOC 2, FedRAMP,
-and BSI C5) are advisory until a map exists.
+(SLSA, OWASP SAMM, OWASP LLM/Agentic AI risks, NIS2, CRA, and DORA) are
+advisory until a map exists.
 
-**Pick the frameworks that apply.** You rarely owe evidence for all 11. The
+**Pick the frameworks that apply.** You rarely owe evidence for all 14. The
 framework selector records the subset your project enforces, so `sicario verify`
 requires a control map for exactly those (and only those):
 
@@ -495,6 +499,7 @@ common unsafe paths before merge.
 ## Community
 
 - Usage quickstart: [USAGE.md](USAGE.md)
+- Bundle walkthrough: [docs/bundle-walkthrough.md](docs/bundle-walkthrough.md)
 - Worked example: [examples/python-api](examples/python-api/)
 - Contributing: [CONTRIBUTING.md](CONTRIBUTING.md)
 - Maintainers: [MAINTAINERS.md](MAINTAINERS.md)

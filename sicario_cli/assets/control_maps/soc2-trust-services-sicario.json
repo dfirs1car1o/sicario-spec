@@ -1,0 +1,201 @@
+{
+  "id": "soc2-trust-services-sicario",
+  "name": "SOC 2 Trust Services Criteria to SicarioSpec Evidence Map",
+  "version": "0.5.1",
+  "framework": {
+    "name": "AICPA Trust Services Criteria for Security, Availability, Processing Integrity, Confidentiality, and Privacy",
+    "abbreviation": "SOC 2 TSC",
+    "framework_version": "2022",
+    "publication": "AICPA Trust Services Criteria",
+    "criteria_family_count": 9,
+    "additional_category_count": 4,
+    "official_sources": [
+      "https://www.aicpa-cima.com/resources/download/2017-trust-services-criteria-with-revised-points-of-focus-2022",
+      "https://us.aicpa.org/interestareas/frc/assuranceadvisoryservices/sorhome"
+    ]
+  },
+  "scope_note": "Criteria-family-level starter mapping only. SOC 2 reports are issued by qualified CPA firms under AICPA attestation standards. Use the official Trust Services Criteria, your system description, control design, operating-effectiveness evidence, and auditor guidance for authoritative SOC 2 readiness. SicarioSpec evidence can support scoping, change discipline, risk evidence, and reviewer traceability, but it is not a SOC 2 report.",
+  "common_criteria_mappings": [
+    {
+      "criteria_family": "Control Environment",
+      "abbreviation": "CC1",
+      "sicario_evidence": [
+        ".specify/memory/constitution.md",
+        "MAINTAINERS.md",
+        "docs/maintainer-operations.md",
+        "docs/compliance/control-applicability.md"
+      ],
+      "sicario_presets": [
+        "sicario-core",
+        "sicario-compliance",
+        "sicario-enterprise-strict"
+      ]
+    },
+    {
+      "criteria_family": "Communication and Information",
+      "abbreviation": "CC2",
+      "sicario_evidence": [
+        "docs/compliance/evidence-index.md",
+        "docs/docs-impact.md",
+        "generated/sicario/spec-run-evidence.json"
+      ],
+      "sicario_presets": [
+        "sicario-docs",
+        "sicario-compliance"
+      ]
+    },
+    {
+      "criteria_family": "Risk Assessment",
+      "abbreviation": "CC3",
+      "sicario_evidence": [
+        "docs/security/threat-model.md",
+        "docs/security/abuse-cases.md",
+        "docs/risk/risk-register.md",
+        "specs/**/plan.md#threat-model"
+      ],
+      "sicario_presets": [
+        "sicario-core",
+        "sicario-appsec",
+        "sicario-compliance"
+      ]
+    },
+    {
+      "criteria_family": "Monitoring Activities",
+      "abbreviation": "CC4",
+      "sicario_evidence": [
+        "generated/sicario/gate-summary.json",
+        ".github/workflows/sicario-verify.yml",
+        "docs/compliance/evidence-index.md"
+      ],
+      "sicario_presets": [
+        "sicario-compliance",
+        "sicario-enterprise-strict"
+      ]
+    },
+    {
+      "criteria_family": "Control Activities",
+      "abbreviation": "CC5",
+      "sicario_evidence": [
+        ".github/CODEOWNERS",
+        ".github/workflows",
+        "specs/**/tasks.md",
+        "tests"
+      ],
+      "sicario_presets": [
+        "sicario-core",
+        "sicario-enterprise-strict"
+      ]
+    },
+    {
+      "criteria_family": "Logical and Physical Access Controls",
+      "abbreviation": "CC6",
+      "sicario_evidence": [
+        "specs/**/plan.md#authn--authz-design",
+        "specs/**/spec.md#secrets--credential-handling",
+        "docs/governance/data-classification.md",
+        "docs/governance/tagging-taxonomy.md"
+      ],
+      "sicario_presets": [
+        "sicario-appsec",
+        "sicario-cloud-iac",
+        "sicario-enterprise-strict"
+      ]
+    },
+    {
+      "criteria_family": "System Operations",
+      "abbreviation": "CC7",
+      "sicario_evidence": [
+        "docs/security/abuse-cases.md",
+        "docs/risk/security-exceptions.md",
+        "generated/sicario/gate-summary.json",
+        "security/toolchain"
+      ],
+      "sicario_presets": [
+        "sicario-security-toolchain",
+        "sicario-agent-fleet",
+        "sicario-compliance"
+      ]
+    },
+    {
+      "criteria_family": "Change Management",
+      "abbreviation": "CC8",
+      "sicario_evidence": [
+        "specs/**/plan.md",
+        "specs/**/tasks.md",
+        "docs/docs-impact.md",
+        "pull request checks"
+      ],
+      "sicario_presets": [
+        "sicario-core",
+        "sicario-enterprise-strict"
+      ]
+    },
+    {
+      "criteria_family": "Risk Mitigation",
+      "abbreviation": "CC9",
+      "sicario_evidence": [
+        "docs/risk/risk-register.md",
+        "docs/risk/accepted-risk-log.md",
+        "docs/risk/security-exceptions.md",
+        "specs/**/plan.md#rollback"
+      ],
+      "sicario_presets": [
+        "sicario-compliance",
+        "sicario-enterprise-strict"
+      ]
+    }
+  ],
+  "additional_category_mappings": [
+    {
+      "trust_services_category": "Availability",
+      "sicario_evidence": [
+        "specs/**/plan.md#operational-readiness",
+        "specs/**/plan.md#rollback",
+        "docs/architecture/system-context.md",
+        "docs/risk/risk-register.md"
+      ],
+      "sicario_presets": [
+        "sicario-cloud-iac",
+        "sicario-saas",
+        "sicario-enterprise-strict"
+      ]
+    },
+    {
+      "trust_services_category": "Processing Integrity",
+      "sicario_evidence": [
+        "specs/**/spec.md#acceptance-scenarios",
+        "tests",
+        "generated/sicario/gate-summary.json"
+      ],
+      "sicario_presets": [
+        "sicario-core",
+        "sicario-saas"
+      ]
+    },
+    {
+      "trust_services_category": "Confidentiality",
+      "sicario_evidence": [
+        "docs/governance/data-classification.md",
+        "specs/**/spec.md#secrets--credential-handling",
+        "docs/risk/security-exceptions.md"
+      ],
+      "sicario_presets": [
+        "sicario-core",
+        "sicario-appsec",
+        "sicario-compliance"
+      ]
+    },
+    {
+      "trust_services_category": "Privacy",
+      "sicario_evidence": [
+        "specs/**/spec.md#privacy-requirements",
+        "docs/governance/data-classification.md",
+        "docs/compliance/control-applicability.md"
+      ],
+      "sicario_presets": [
+        "sicario-compliance",
+        "sicario-saas"
+      ]
+    }
+  ]
+}

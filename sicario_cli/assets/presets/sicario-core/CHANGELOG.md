@@ -4,6 +4,10 @@ All notable changes to the SicarioSpec Core preset are tracked here.
 
 ## Unreleased
 
+No unreleased changes yet.
+
+## [0.5.1] - 2026-06-25
+
 ### Changed
 
 - Expanded the preset README into a catalog-ready usage guide with exact

@@ -105,14 +105,14 @@ PROFILE_PRESETS = {
 
 # --- Framework selector (#18) -------------------------------------------------
 #
-# SicarioSpec ships 11 control-map frameworks. By default a project does not
+# SicarioSpec ships 14 control-map frameworks. By default a project does not
 # have to enforce all of them — that would punish a team that only owes evidence
 # for, say, ISO 27001 and HIPAA. The framework selector lets a project declare
 # which subset applies. The declaration lives in a plain-text project config file
 # (`.sicario/frameworks.txt`, one framework key per line). `sicario verify` reads
 # it and, when present, fails if any SELECTED framework's control map is absent
 # (SICARIO-MISSING-FRAMEWORK-MAP) — so a team enforces exactly the frameworks it
-# chose, not all 11 and not none.
+# chose, not all 14 and not none.
 #
 # Backward-compatible by construction: with NO config file, verify behaves
 # exactly as before (the single coarse SICARIO-MISSING-CONTROL-MAPS check).
@@ -121,6 +121,9 @@ PROFILE_PRESETS = {
 FRAMEWORK_IDS = {
     "ccm": "ccm-v4.1-sicario.json",
     "sox": "sox-404-itgc-sicario.json",
+    "soc2": "soc2-trust-services-sicario.json",
+    "fedramp": "fedramp-rev5-sicario.json",
+    "bsi-c5": "bsi-c5-2026-sicario.json",
     "ssdf": "ssdf-800-218-sicario.json",
     "ai-rmf": "ai-rmf-sicario.json",
     "iso27001": "iso-27001-2022-sicario.json",
@@ -137,13 +140,13 @@ FRAMEWORKS_CONFIG = Path(".sicario") / "frameworks.txt"
 
 # Default framework subset per profile. The default = the profile's natural set
 # (`public-core` carries no compliance obligation; compliance-shaped profiles
-# carry the maps they imply). `enterprise-strict` enforces all 11.
+# carry the maps they imply). `enterprise-strict` enforces all 14.
 PROFILE_FRAMEWORKS = {
-    "compliance": ["ccm", "sox", "iso27001", "nist-800-53"],
-    "saas": ["ccm", "iso27001", "ai-rmf"],
+    "compliance": ["ccm", "sox", "soc2", "iso27001", "nist-800-53"],
+    "saas": ["ccm", "soc2", "iso27001", "ai-rmf"],
     "ai-system": ["ai-rmf", "eu-ai-act"],
     "agent-fleet": ["ai-rmf", "eu-ai-act"],
-    "cloud-iac": ["ccm", "nist-800-53"],
+    "cloud-iac": ["ccm", "fedramp", "bsi-c5", "nist-800-53"],
     "supply-chain": ["ssdf"],
     "appsec": ["ssdf", "iso27001", "owasp-asvs"],
     "enterprise-strict": list(FRAMEWORK_IDS),
@@ -740,7 +743,7 @@ decisions can be found and enforced.
 | environment | runtime resources/evidence | dev, test, staging, prod, shared, local | blast-radius context |
 | data-classification | data, resources, evidence | public, internal, confidential, restricted, regulated | handling requirements |
 | retention | data/evidence/logs | duration or policy name | deletion expectations |
-| compliance-scope | scoped artifacts | none, sox, ccm, pci, hipaa, gdpr, ai-rmf, other | control mapping |
+| compliance-scope | scoped artifacts | none, sox, ccm, soc2, fedramp, bsi-c5, pci, hipaa, gdpr, ai-rmf, other | control mapping |
 | cost-center | cloud/resources | org-approved value | cost accountability |
 | source-repo | generated/runtime artifacts | owner/repo | traceability |
 | managed-by | runtime resources | terraform, bicep, cloudformation, kubernetes, manual | drift ownership |

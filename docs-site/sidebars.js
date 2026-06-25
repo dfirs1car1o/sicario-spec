@@ -1,7 +1,10 @@
 // @ts-check
 
 const docSections = [
-  ['Start Here', ['getting-started', 'architecture', 'profiles', 'presets', 'rule-engine']],
+  [
+    'Start Here',
+    ['getting-started', 'bundle-walkthrough', 'architecture', 'profiles', 'presets', 'rule-engine'],
+  ],
   [
     'Security Evidence Chain',
     [

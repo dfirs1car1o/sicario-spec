@@ -16,7 +16,7 @@ SicarioSpec
 │   ├── cli.py           #   thin orchestrator: resolves profiles, delegates to preset classes
 │   └── _render.py       #   shared write/copy/overlay helpers
 ├── workflow_templates/   # CI examples
-├── control_maps/         # CCM/SOX traceability starters
+├── control_maps/         # 14 framework traceability starters
 ├── docs/                 # public project docs (served by Docusaurus)
 ├── examples/             # sample target projects
 ├── specs/                # feature specs (e.g. 001-preset-refactor)

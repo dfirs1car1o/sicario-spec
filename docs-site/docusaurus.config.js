@@ -56,6 +56,7 @@ const config = {
         items: [
           { to: '/', label: 'Overview', position: 'left', exact: true },
           { to: '/docs/getting-started', label: 'Start Here', position: 'left' },
+          { to: '/docs/bundle-walkthrough', label: 'Bundle', position: 'left' },
           { to: '/docs/presets', label: 'Presets', position: 'left' },
           { to: '/docs/rule-engine', label: 'Rule Engine', position: 'left' },
           { to: '/docs/security-model', label: 'Security Model', position: 'left' },
