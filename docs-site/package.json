@@ -4,8 +4,11 @@
   "private": true,
   "description": "Public documentation site for SicarioSpec.",
   "scripts": {
+    "repo-map": "python3 ../scripts/generate_repo_map.py",
+    "prebuild": "npm run repo-map",
     "build": "docusaurus build",
     "clear": "docusaurus clear",
+    "prestart": "npm run repo-map",
     "start": "docusaurus start --host 0.0.0.0",
     "serve": "docusaurus serve --host 0.0.0.0"
   },
@@ -18,6 +21,7 @@
     "@mdx-js/react": "^3.1.0",
     "clsx": "^2.1.1",
     "prism-react-renderer": "^2.4.1",
+    "prop-types": "^15.8.1",
     "react": "^19.1.1",
     "react-dom": "^19.1.1"
   },
@@ -29,6 +33,5 @@
     "js-yaml": "4.2.0",
     "serialize-javascript": "7.0.6",
     "uuid": "14.0.0"
-  },
-  "devDependencies": {}
+  }
 }
