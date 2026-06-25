@@ -17,6 +17,8 @@ REPO_URL = "https://github.com/dfirs1car1o/sicario-spec"
 DOCS_URL = "https://dfirs1car1o.github.io/sicario-spec/"
 CATALOG_BASE_URL = "https://raw.githubusercontent.com/dfirs1car1o/sicario-spec/main/catalogs"
 AUTHOR = "SicarioSpec Contributors"
+BUNDLE_MANIFEST_NAME = "bundle.yml"
+DEFAULT_SPECKIT_VERSION = ">=0.9.0"
 
 
 def main() -> int:
@@ -60,7 +62,7 @@ def main() -> int:
     extension_archive = f"{extension_id}-{version}.zip"
     _zip_directory(extension_dir, out_dir / extension_archive)
 
-    bundle_manifest = _read_bundle_manifest(root / "bundle.yml")
+    bundle_manifest = _read_bundle_manifest(root / BUNDLE_MANIFEST_NAME)
     bundle_id = str(bundle_manifest["id"])
     bundle_archive = f"{bundle_id}-{version}.zip"
     _build_bundle_archive(root, out_dir / bundle_archive)
@@ -139,7 +141,7 @@ def _build_bundle_archive(root: Path, archive_path: Path) -> None:
     with tempfile.TemporaryDirectory() as tmp:
         bundle_dir = Path(tmp) / "sicario-spec-bundle"
         bundle_dir.mkdir()
-        shutil.copy2(root / "bundle.yml", bundle_dir / "bundle.yml")
+        shutil.copy2(root / BUNDLE_MANIFEST_NAME, bundle_dir / BUNDLE_MANIFEST_NAME)
         (bundle_dir / "README.md").write_text(
             "# SicarioSpec Security & Governance Bundle\n\n"
             "Installs the full SicarioSpec Spec Kit component set from the "
@@ -164,7 +166,7 @@ def _read_simple_manifest(path: Path) -> dict[str, object]:
         speckit = _nested_scalar(text, ("requires", "spec-kit"))
     if speckit is None:
         speckit = _nested_scalar(text, ("requirements", "spec-kit"))
-    manifest["speckit_version"] = speckit or ">=0.9.0"
+    manifest["speckit_version"] = speckit or DEFAULT_SPECKIT_VERSION
 
     missing = [key for key in ("id", "name", "version", "description") if key not in manifest]
     if missing:
@@ -182,7 +184,7 @@ def _read_bundle_manifest(path: Path) -> dict[str, object]:
         if value is not None:
             result[key] = value
     result["tags"] = _yaml_list(text, "tags")
-    result["speckit_version"] = _scalar(requires_block, "speckit_version") or ">=0.9.0"
+    result["speckit_version"] = _scalar(requires_block, "speckit_version") or DEFAULT_SPECKIT_VERSION
     result["provides"] = {
         "extensions": len(re.findall(r"^\s{4}- id:", _mapping_block(text, "extensions"), re.MULTILINE)),
         "presets": len(re.findall(r"^\s{4}- id:", _mapping_block(text, "presets"), re.MULTILINE)),
@@ -217,7 +219,7 @@ def _preset_catalog_entry(
         "homepage": DOCS_URL,
         "documentation": f"{REPO_URL}/blob/main/presets/{preset_id}/README.md",
         "license": manifest.get("license", "MIT"),
-        "requires": {"speckit_version": manifest.get("speckit_version", ">=0.9.0")},
+        "requires": {"speckit_version": manifest.get("speckit_version", DEFAULT_SPECKIT_VERSION)},
         "provides": {
             "templates": len(list((preset_dir / "templates").glob("*.md"))),
             "commands": len(list((preset_dir / "commands").glob("*.md"))) if (preset_dir / "commands").exists() else 0,
@@ -248,7 +250,7 @@ def _extension_catalog_entry(
         "license": manifest.get("license", "MIT"),
         "category": manifest.get("category", "security"),
         "effect": manifest.get("effect", "read-write"),
-        "requires": {"speckit_version": manifest.get("speckit_version", ">=0.9.0")},
+        "requires": {"speckit_version": manifest.get("speckit_version", DEFAULT_SPECKIT_VERSION)},
         "provides": {
             "commands": len(manifest.get("commands", [])),
             "hooks": len(manifest.get("hooks", [])),
@@ -277,7 +279,7 @@ def _bundle_catalog_entry(
         "author": manifest.get("author", AUTHOR),
         "license": manifest.get("license", "MIT"),
         "download_url": download_url,
-        "requires": {"speckit_version": manifest.get("speckit_version", ">=0.9.0")},
+        "requires": {"speckit_version": manifest.get("speckit_version", DEFAULT_SPECKIT_VERSION)},
         "provides": manifest["provides"],
         "repository": REPO_URL,
         "tags": manifest.get("tags") or ["security", "governance", "compliance"],
