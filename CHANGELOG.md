@@ -8,8 +8,25 @@ improve the security model.
 
 ## [Unreleased]
 
+No unreleased changes yet.
+
+## [0.5.1] - 2026-06-25
+
 ### Added
 
+- **Full Spec Kit bundle release path.** Added native release assets for all 11
+  presets, `sicario-guard`, the `sicario-spec` bundle, and install-allowed
+  preset, extension, and bundle catalogs.
+- **Bundle walkthrough.** Added a plain-English walkthrough explaining what the
+  bundle is, why it exists, when to use native Spec Kit versus the Python CLI,
+  and how to operate the verify loop.
+- **SOC 2, FedRAMP Rev. 5, and BSI C5:2026 control maps.** Expanded the shipped
+  selectable framework set from 11 to 14 maps.
+- **Custom rule example.** Added `examples/custom-rules/` with a Terraform
+  `regex-required` rule and README showing how project-owned gates work without
+  Python changes.
+- **Interactive repo map.** Added a generated Docusaurus repo map for users,
+  contributors, reviewers, and maintainers.
 - **Declarative rule engine for `sicario verify`.** Replaced 210+ lines of
   hardcoded Python checks with a JSON Schema-driven `RuleEngine` that loads
   `.rule.json` files from `.sicario/rules/`. 10 evaluator kinds cover all
@@ -28,7 +45,7 @@ improve the security model.
 
 ### Changed
 
-- Version bumped to `0.5.0` for the rule-schema feature release.
+- Version synced to `0.5.1` for the full bundle release.
 - **Positioning reframed to a neutral capability statement.** Removed the named
   competitor call-out from the README, docs-site landing page, and supporting
   docs. The differentiator now leads with the survey-validated moat: a *halting*
@@ -37,7 +54,7 @@ improve the security model.
   advisory-append patterns generally. No multi-framework-breadth superiority is
   claimed.
 - **docs-site swept** to reflect current capabilities: turnkey
-  `--apply-to-speckit` wiring, brownfield-safe adoption, the 11 frameworks and
+  `--apply-to-speckit` wiring, brownfield-safe adoption, the 14 frameworks and
   the new selector, the USAGE flow, and the pass+fail worked example.
 - **Spec Kit catalog readiness.** Reworked `sicario-core` around the Security
   Evidence Chain: risk or decision to control, test/gate, evidence path, owner,
@@ -52,11 +69,11 @@ improve the security model.
   added `specs/001-maintainer-operations/` with spec, plan, and tasks for this
   maintainer-ops change.
 - **Framework selector (#18).** `sicario init --frameworks <keys>` records which
-  of the 11 control-map frameworks a project enforces in
+  of the 14 control-map frameworks a project enforces in
   `.sicario/frameworks.txt`. `sicario verify` honors the subset: each selected
   framework's control map must be present (`SICARIO-MISSING-FRAMEWORK-MAP`),
   while unselected frameworks are not required. Default selection follows the
-  profile's framework set; `enterprise-strict` enforces all 11. With no config
+  profile's framework set; `enterprise-strict` enforces all 14. With no config
   file, `verify` keeps its prior coarse control-map behavior unchanged.
 - **Failing worked example** (`examples/python-api-failing/`) — the same governed
   feature as `examples/python-api/` with one required artifact removed, proving

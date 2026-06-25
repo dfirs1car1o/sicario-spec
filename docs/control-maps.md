@@ -5,7 +5,7 @@ readiness. These maps are traceability aids, not certification claims.
 
 ## Included Maps
 
-SicarioSpec ships starter maps for 11 frameworks. Each is a coarse traceability
+SicarioSpec ships starter maps for 14 frameworks. Each is a coarse traceability
 aid (theme / domain / family / practice-group / function / requirement / safeguard
 level), not a control-by-control crosswalk and not a certification claim.
 
@@ -13,6 +13,9 @@ level), not a control-by-control crosswalk and not a certification claim.
 |---|---|---|---|
 | CSA CCM v4.1 | Domain-level (17 domains) | Cloud assurance, shared responsibility, cloud control evidence | `control_maps/ccm-v4.1-sicario.json` |
 | SOX 404 / ICFR ITGC | Control-area | Evidence readiness for financially relevant systems | `control_maps/sox-404-itgc-sicario.json` |
+| SOC 2 Trust Services Criteria | Criteria-family + trust-services category | Security, availability, confidentiality, processing integrity, and privacy evidence readiness | `control_maps/soc2-trust-services-sicario.json` |
+| FedRAMP Rev. 5 | Baseline + control-family | Federal cloud authorization and continuous-monitoring evidence readiness | `control_maps/fedramp-rev5-sicario.json` |
+| BSI C5:2026 | Criteria-area | Cloud service provider assurance evidence readiness | `control_maps/bsi-c5-2026-sicario.json` |
 | NIST SSDF (SP 800-218) | Practice-group (PO/PS/PW/RV) | Secure software development practice evidence | `control_maps/ssdf-800-218-sicario.json` |
 | NIST AI RMF (AI 100-1) | Function-level (Govern/Map/Measure/Manage) | AI risk governance evidence | `control_maps/ai-rmf-sicario.json` |
 | ISO/IEC 27001:2022 | Theme + control-group (4 themes, 93 Annex A controls) | ISMS control evidence | `control_maps/iso-27001-2022-sicario.json` |
@@ -25,14 +28,14 @@ level), not a control-by-control crosswalk and not a certification claim.
 
 Frameworks named in templates and docs but **not yet shipped as a control map**
 (treated as advisory until a map exists): SLSA, OWASP SAMM, OWASP LLM/Agentic
-AI risks, NIS2, CRA, DORA, SOC 2, FedRAMP, and BSI C5. Contributions adding
-these maps are welcome - see the control-map issue form.
+AI risks, NIS2, CRA, and DORA. Contributions adding these maps are welcome -
+see the control-map issue form.
 
 ## Selecting which frameworks apply (`--frameworks`)
 
-You almost never owe evidence for all 11 frameworks. The **framework selector**
+You almost never owe evidence for all 14 frameworks. The **framework selector**
 lets a project declare the subset it enforces, so `sicario verify` requires a
-control map for exactly those frameworks - not all 11, and not none.
+control map for exactly those frameworks - not all 14, and not none.
 
 ```bash
 # Enforce only ISO 27001 and HIPAA for this project:
@@ -51,6 +54,9 @@ is absent. Unselected frameworks are not required.
 |---|---|---|
 | `ccm` | CSA CCM v4.1 | `ccm-v4.1-sicario.json` |
 | `sox` | SOX 404 / ICFR ITGC | `sox-404-itgc-sicario.json` |
+| `soc2` | SOC 2 Trust Services Criteria | `soc2-trust-services-sicario.json` |
+| `fedramp` | FedRAMP Rev. 5 | `fedramp-rev5-sicario.json` |
+| `bsi-c5` | BSI C5:2026 | `bsi-c5-2026-sicario.json` |
 | `ssdf` | NIST SSDF (SP 800-218) | `ssdf-800-218-sicario.json` |
 | `ai-rmf` | NIST AI RMF (AI 100-1) | `ai-rmf-sicario.json` |
 | `iso27001` | ISO/IEC 27001:2022 | `iso-27001-2022-sicario.json` |
@@ -62,9 +68,10 @@ is absent. Unselected frameworks are not required.
 | `owasp-asvs` | OWASP ASVS | `owasp-asvs-sicario.json` |
 
 **Defaults.** If you omit `--frameworks`, the selection defaults to the
-profile's natural framework set (e.g. `compliance` -> `ccm`, `sox`, `iso27001`,
-`nist-800-53`; `ai-system` -> `ai-rmf`, `eu-ai-act`; `enterprise-strict` -> all
-11). A bare `public-core` carries no compliance obligation, so it writes no
+profile's natural framework set (e.g. `compliance` -> `ccm`, `sox`, `soc2`,
+`iso27001`, `nist-800-53`; `cloud-iac` -> `ccm`, `fedramp`, `bsi-c5`,
+`nist-800-53`; `ai-system` -> `ai-rmf`, `eu-ai-act`; `enterprise-strict` ->
+all 14). A bare `public-core` carries no compliance obligation, so it writes no
 selector and `verify` keeps its prior coarse control-map check (the single
 `SICARIO-MISSING-CONTROL-MAPS`). Delete `.sicario/frameworks.txt` to return to
 that default behavior at any time.
@@ -88,6 +95,17 @@ that default behavior at any time.
   control over financial reporting, so final scoping must be performed with the
   finance, audit, and legal stakeholders for systems that affect financial
   reporting.
+- SOC 2 mappings are Trust Services Criteria readiness starters. SOC 2 reports
+  are attestation reports issued by qualified CPA firms; use the official AICPA
+  criteria, your system description, control design, operating-effectiveness
+  evidence, and auditor guidance.
+- FedRAMP mappings are Rev. 5 baseline and control-family starters. A real
+  package requires official FedRAMP templates or OSCAL artifacts, control
+  implementation statements, assessor evidence, agency authorization review,
+  and continuous monitoring.
+- BSI C5 mappings are cloud criteria-area starters. A real attestation depends
+  on the official BSI C5 catalogue, the scoped cloud service description,
+  independent audit evidence, and provider/customer responsibility boundaries.
 - ISO/IEC 27001 and NIST SP 800-53 maps are theme-/family-level. Authoritative
   control text lives in ISO/IEC 27002:2022 and NIST SP 800-53 Rev 5; selection
   and tailoring (Statement of Applicability, 800-53B baselines) are yours.

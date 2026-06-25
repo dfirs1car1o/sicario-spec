@@ -4,10 +4,13 @@ These maps provide traceability from SicarioSpec evidence to external control
 and audit concerns. They are not certification claims and do not copy full
 control text from third-party frameworks.
 
-Current starter maps (11 frameworks):
+Current starter maps (14 frameworks):
 
 - `ccm-v4.1-sicario.json`: CSA Cloud Controls Matrix v4.1 domain-level map.
 - `sox-404-itgc-sicario.json`: SOX Section 404 / ICFR ITGC evidence map.
+- `soc2-trust-services-sicario.json`: SOC 2 Trust Services Criteria evidence map.
+- `fedramp-rev5-sicario.json`: FedRAMP Rev. 5 baseline and control-family evidence map.
+- `bsi-c5-2026-sicario.json`: BSI C5:2026 cloud service criteria-area evidence map.
 - `ssdf-800-218-sicario.json`: NIST SSDF (SP 800-218) practice-group evidence map.
 - `ai-rmf-sicario.json`: NIST AI RMF (AI 100-1) Govern/Map/Measure/Manage evidence map.
 - `iso-27001-2022-sicario.json`: ISO/IEC 27001:2022 Annex A theme + control-group map (4 themes, 93 controls).

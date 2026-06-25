@@ -12,7 +12,7 @@ SicarioSpec 0.5.1 ships:
 - A Python CLI entry point, `sicario`, backed by `sicario_cli.cli`.
 - A declarative `sicario verify` rule engine with 10 evaluator kinds.
 - Shipped default rules in `presets/sicario-core/rules/*.rule.json`.
-- 11 starter control maps under `control_maps/` and
+- 14 starter control maps under `control_maps/` and
   `docs/compliance/control-maps/`.
 - Docusaurus documentation under `docs-site/`, sourcing content from `docs/`.
 - GitHub Actions for tests, CodeQL, Pages build, release packaging, Scorecard,
@@ -118,19 +118,20 @@ Expected result: `scripts/smoke_bundle_install.sh` reports
 
 ## Contributor Review Queue
 
-The current public issue queue is intentionally small. The maintainer should be
-waiting for contributor PRs that:
+The initial public contribution queue is now folded into the 0.5.1 release:
 
-- add a custom rule example and README for `.sicario/rules/`;
-- add one new high-quality control map from the requested framework set.
+- `examples/custom-rules/` demonstrates project-owned `.rule.json` gates.
+- SOC 2, FedRAMP Rev. 5, and BSI C5:2026 starter maps expand the selectable
+  framework set.
 
-Review those PRs for:
+Future contributor PRs should follow the same review shape:
 
 - no invalid JSON comments;
 - valid `*.rule.json` or control-map JSON;
 - clear README or docs updates;
 - no generated artifacts committed accidentally;
-- passing `sicario verify`, tests, and docs build.
+- passing `sicario verify`, tests, docs build, release asset validation, and
+  bundle smoke tests.
 
 ## Branch Cleanup Rules
 

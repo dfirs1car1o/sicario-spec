@@ -15,7 +15,7 @@ const proofPoints = [
   },
   {
     title: 'A halting gate plus control maps',
-    body: 'sicario verify blocks merge/release on violation and is wired into CI. Starter evidence maps cover 11 frameworks: CSA CCM v4.1, SOX 404 / ICFR, NIST SSDF, NIST AI RMF, ISO/IEC 27001:2022, NIST SP 800-53 Rev 5, EU AI Act, GDPR (+ CPRA), PCI DSS v4.0, HIPAA Security Rule, and OWASP ASVS.',
+    body: 'sicario verify blocks merge/release on violation and is wired into CI. Starter evidence maps cover 14 frameworks: CSA CCM v4.1, SOX 404 / ICFR, SOC 2, FedRAMP Rev. 5, BSI C5, NIST SSDF, NIST AI RMF, ISO/IEC 27001:2022, NIST SP 800-53 Rev 5, EU AI Act, GDPR (+ CPRA), PCI DSS v4.0, HIPAA Security Rule, and OWASP ASVS.',
   },
   {
     title: 'Security Evidence Chain',
@@ -37,9 +37,9 @@ const currentSurface = [
     body: 'Default `.rule.json` gates cover files, sections, keywords, forbidden patterns, required regexes, risk rows, classification, tagging, AI guardrails, and fleet guardrails.',
   },
   {
-    metric: '11',
+    metric: '14',
     label: 'control maps',
-    body: 'Starter maps connect SicarioSpec evidence to CCM, SOX, SSDF, AI RMF, ISO 27001, NIST 800-53, EU AI Act, GDPR/CPRA, PCI DSS, HIPAA, and OWASP ASVS.',
+    body: 'Starter maps connect SicarioSpec evidence to CCM, SOX, SOC 2, FedRAMP, BSI C5, SSDF, AI RMF, ISO 27001, NIST 800-53, EU AI Act, GDPR/CPRA, PCI DSS, HIPAA, and OWASP ASVS.',
   },
   {
     metric: '8',
@@ -57,16 +57,16 @@ const ruleFlow = [
   'exit non-zero when required evidence is missing',
 ];
 
-const maintainerTracks = [
+const releaseTracks = [
   {
     title: 'Custom rule example',
-    body: 'A contributor-owned issue is reserved for `examples/custom-rules/`, proving external teams can add rules without Python changes.',
-    to: 'https://github.com/dfirs1car1o/sicario-spec/issues/32',
+    body: '`examples/custom-rules/` shows how an external team adds a deterministic JSON gate without forking Python.',
+    to: '/docs/rule-engine#example-rule',
   },
   {
-    title: 'Additional control map',
-    body: 'A contributor-owned issue is reserved for SOC 2, FedRAMP, or BSI C5 coverage, expanding the standards evidence surface.',
-    to: 'https://github.com/dfirs1car1o/sicario-spec/issues/31',
+    title: 'Expanded standards evidence',
+    body: 'SOC 2, FedRAMP Rev. 5, and BSI C5 maps are part of the selectable framework set for 0.5.1.',
+    to: '/docs/control-maps',
   },
 ];
 
@@ -84,6 +84,13 @@ const usePaths = [
     body: 'Use the SicarioSpec CLI when you want docs, risk registers, workflows, control maps, and verification.',
     command: 'sicario init my-project --integration all --profile public-core',
     to: '/docs/getting-started#use-the-full-sicariospec-cli',
+  },
+  {
+    label: 'Walkthrough',
+    title: 'Understand the bundle',
+    body: 'Read the plain-English walkthrough before cutting a release or showing the bundle to another user.',
+    command: 'docs/bundle-walkthrough',
+    to: '/docs/bundle-walkthrough',
   },
   {
     label: 'Review loop',
@@ -181,8 +188,8 @@ export default function Home() {
               <p className={styles.readableText}>
                 The bundle now combines Spec Kit presets, a Python CLI, declarative verify
                 rules, framework maps, release assets, Docusaurus documentation, GitHub
-                workflows, and maintainer operations. The open contribution queue is intentionally
-                small: two assigned issues that should arrive as reviewable PRs.
+                workflows, maintainer operations, a custom-rule example, and expanded SOC 2,
+                FedRAMP, and BSI C5 control-map coverage.
               </p>
             </div>
             <div className={styles.metricGrid}>
@@ -235,7 +242,7 @@ export default function Home() {
               consider. SicarioSpec operates at a different layer — a mandatory governance contract
               whose pass/fail verdict is owned by deterministic, stdlib-only code with no LLM in the
               decision path, backed by a <strong>halting</strong> verify gate (non-zero exit blocks
-              the merge) and selectable control maps across 11 frameworks. The two are
+              the merge) and selectable control maps across 14 frameworks. The two are
               complementary: keep the advice you like, then gate the result.
             </p>
           </div>
@@ -279,21 +286,21 @@ export default function Home() {
         <section className={styles.section}>
           <div className="container">
             <div className={styles.sectionHeader}>
-              <p className={styles.kicker}>Maintainer queue</p>
-              <Heading as="h2">Clean enough to wait for contributor PRs.</Heading>
+              <p className={styles.kicker}>Release closure</p>
+              <Heading as="h2">The starter issues are folded into the bundle.</Heading>
               <p className={styles.readableText}>
                 The repo should stay in a boring state: green checks, current docs, no stale
-                triage labels, and only scoped community issues waiting for review. These two
-                public tracks are the next bundle-expansion points.
+                triage labels, and a release that demonstrates both public extension points:
+                rule files and control-map JSON.
               </p>
             </div>
             <div className={styles.pathGrid}>
-              {maintainerTracks.map((item) => (
+              {releaseTracks.map((item) => (
                 <Link className={styles.pathCard} to={item.to} key={item.title}>
-                  <span>Open contribution track</span>
+                  <span>0.5.1 release track</span>
                   <Heading as="h3">{item.title}</Heading>
                   <p>{item.body}</p>
-                  <code>{item.to.replace('https://github.com/dfirs1car1o/sicario-spec/', '')}</code>
+                  <code>{item.to}</code>
                 </Link>
               ))}
             </div>

@@ -118,6 +118,7 @@ def docs_nodes() -> List[Dict[str, object]]:
     ]
     priority = [
         "docs/getting-started.md",
+        "docs/bundle-walkthrough.md",
         "docs/security-model.md",
         "docs/rule-engine.md",
         "docs/control-maps.md",

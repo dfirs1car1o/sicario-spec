@@ -41,7 +41,7 @@ Lead with concrete artifacts instead of broad claims:
 - agent-native instructions for Claude Code, Codex/GPT, and Copilot
 - data classification and tagging built into specs, plans, tasks, and docs
 - threat model, abuse cases, evidence index, risk registers, and **selectable**
-  control maps across 11 frameworks (`--frameworks`)
+  control maps across 14 frameworks (`--frameworks`)
 - GitHub Actions verification, CodeQL, Dependabot, OpenSSF Scorecard, and
   release packaging
 - MIT license, security policy, code of conduct, issue forms, and Pages docs
@@ -58,7 +58,8 @@ Before announcing:
 - publish the GitHub Pages docs site
 - cut a tagged release with attached distributions and attestations
 - confirm CI, CodeQL, Scorecard, release, and Pages badges resolve
-- open one or two starter issues that invite useful community contribution
+- keep only genuinely open starter issues after folding release-ready examples
+  into the tagged bundle
 - add repository topics such as `spec-kit`, `appsec`, `ai-security`,
   `devsecops`, `governance`, `openssf`, and `compliance`
 - pin the release and docs link in the repository sidebar

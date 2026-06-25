@@ -21,7 +21,7 @@ artifact, validator, CI gate, and evidence output.
 | Untagged cloud/resource ownership | Tagging Plan | tagging taxonomy, IaC tags | policy-as-code / review | IaC scan | evidence index |
 | Cost runaway risk | Cloud / IaC Risk | cloud risk template | plan review | Sicario review | evidence index |
 | Missing audit evidence | Evidence Outputs | evidence-index.md | `sicario verify` | Sicario verify | evidence index |
-| Missing CCM/SOX traceability | Compliance / Control Applicability | control maps | `sicario verify` | Sicario verify | evidence index |
+| Missing selected-framework traceability | Compliance / Control Applicability | control maps | `sicario verify` | Sicario verify | evidence index |
 | Unbounded security exception | Risk register | exception register | `sicario verify` | Sicario verify | risk evidence |
 | Model/tool overreach | AI / Tool Boundary | AI risk evidence | AI-system profile | Sicario verify | spec-run evidence |
 | Unbounded orchestration | Fleet / Orchestration Risk | workflow/state graph | `sicario verify` | Sicario verify | spec-run evidence |

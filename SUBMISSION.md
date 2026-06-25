@@ -10,11 +10,11 @@ The current package targets SicarioSpec `0.5.1`.
 ## Catalog Entry
 
 ```json
-"sicario-spec": {
-  "name": "SicarioSpec",
-  "id": "sicario-spec",
+"sicario-core": {
+  "name": "SicarioSpec Core",
+  "id": "sicario-core",
   "version": "0.5.1",
-  "description": "Evidence-first Spec Kit governance with a halting, stdlib-only verify gate. It enforces mandatory governance sections in specs, plans, and tasks, supports declarative .rule.json checks, and ships selectable starter control maps for 11 frameworks.",
+  "description": "Evidence-first Spec Kit governance baseline with mandatory security, risk, control, and evidence sections for specs, plans, tasks, checklists, and constitutions.",
   "author": "SicarioSpec Contributors",
   "repository": "https://github.com/dfirs1car1o/sicario-spec",
   "download_url": "https://github.com/dfirs1car1o/sicario-spec/releases/download/v0.5.1/sicario-core-0.5.1.zip",
@@ -25,8 +25,8 @@ The current package targets SicarioSpec `0.5.1`.
     "speckit_version": ">=0.9.0"
   },
   "provides": {
-    "templates": 11,
-    "commands": 8
+    "templates": 5,
+    "commands": 0
   },
   "tags": [
     "security",
@@ -37,8 +37,8 @@ The current package targets SicarioSpec `0.5.1`.
     "compliance",
     "ai-security"
   ],
-  "created_at": "2026-06-23T00:00:00Z",
-  "updated_at": "2026-06-23T00:00:00Z"
+  "created_at": "2026-06-25T00:00:00Z",
+  "updated_at": "2026-06-25T00:00:00Z"
 }
 ```
 
@@ -49,9 +49,10 @@ distinguishing claim is narrow: `sicario verify` is a halting, code-owned gate.
 It emits finding codes, exits non-zero on missing governance evidence, and has no
 LLM in the decision path.
 
-The bundle also includes declarative `.rule.json` checks, agent instructions,
-risk registers, Docusaurus docs scaffolding, GitHub workflows, and 11 starter
-control maps. Those maps are traceability aids, not certification claims.
+The broader SicarioSpec bundle also includes declarative `.rule.json` checks,
+agent instructions, risk registers, Docusaurus docs scaffolding, GitHub
+workflows, and 14 starter control maps. Those maps are traceability aids, not
+certification claims.
 
 ## Pre-Submission Checks
 

@@ -12,7 +12,7 @@ compliance, evidence, risk, and exception decisions discoverable and enforceable
 | environment | runtime resources/evidence | dev, test, staging, prod, shared, local | blast-radius context |
 | data-classification | data, resources, evidence | public, internal, confidential, restricted, regulated | handling requirements |
 | retention | data/evidence/logs | duration or policy name | deletion expectations |
-| compliance-scope | scoped artifacts | none, sox, ccm, pci, hipaa, gdpr, ai-rmf, other | control mapping |
+| compliance-scope | scoped artifacts | none, sox, soc2, ccm, fedramp, bsi-c5, pci, hipaa, gdpr, ai-rmf, other | control mapping |
 | cost-center | cloud/resources | org-approved value | cost accountability |
 | source-repo | generated/runtime artifacts | owner/repo | traceability |
 | managed-by | runtime resources | terraform, bicep, cloudformation, kubernetes, manual | drift ownership |
