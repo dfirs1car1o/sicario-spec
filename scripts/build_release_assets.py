@@ -316,32 +316,38 @@ def _yaml_list(text: str, key: str) -> list[str]:
     block = _mapping_block(text, key)
     if not block:
         return []
-    values: list[str] = []
-    for match in re.finditer(r"^\s*-\s*(.+?)\s*$", block, re.MULTILINE):
-        value = match.group(1).strip().strip("'\"")
-        if value:
-            values.append(value)
-    return values
+    return _block_items(block)
 
 
 def _block_list(text: str, key: str) -> list[str]:
     block = _mapping_block(text, key)
     if not block:
         return []
-    return [
-        match.group(1).strip().strip("'\"")
-        for match in re.finditer(r"^\s*-\s*(.+?)\s*$", block, re.MULTILINE)
-    ]
+    return _block_items(block)
 
 
 def _block_keys(text: str, key: str) -> list[str]:
     block = _mapping_block(text, key)
     if not block:
         return []
-    return [
-        match.group(1).strip().strip("'\"")
-        for match in re.finditer(r"^\s{2}([A-Za-z0-9_.-]+):\s*$", block, re.MULTILINE)
-    ]
+    keys: list[str] = []
+    for line in block.splitlines():
+        stripped = line.strip()
+        if stripped.endswith(":") and not stripped.startswith("-"):
+            keys.append(stripped[:-1].strip().strip("'\""))
+    return keys
+
+
+def _block_items(block: str) -> list[str]:
+    values: list[str] = []
+    for line in block.splitlines():
+        stripped = line.strip()
+        if not stripped.startswith("- "):
+            continue
+        value = stripped[2:].strip().strip("'\"")
+        if value:
+            values.append(value)
+    return values
 
 
 def _mapping_block(text: str, key: str) -> str:
