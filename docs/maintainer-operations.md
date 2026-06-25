@@ -75,8 +75,9 @@ points. This is how the repo proves it uses the same operating model it ships.
 Agent-assisted changes are allowed only through pull requests. The expected flow
 is documented in `docs/machine-user-pr-flow.md`:
 
-- `svc-claude-dev` authors the branch and pull request when available;
-- `SiCar10mw` reviews and merges as the non-author maintainer account;
+- a dedicated machine account authors the branch and pull request when
+  available;
+- a human maintainer reviews and merges as the non-author account;
 - failed checks, unresolved comments, unclear ownership, or missing evidence
   block merge; and
 - release tags are never moved after publication.
