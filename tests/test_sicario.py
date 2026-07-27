@@ -5,7 +5,12 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from sicario_cli._render import SICARIO_OVERLAY_BEGIN
+from sicario_cli._render import (
+    BACKUP_IGNORE_PATTERN,
+    SICARIO_OVERLAY_BEGIN,
+    _backup_rule_is_effective,
+    _ensure_gitignore_rule,
+)
 from sicario_cli.cli import (
     CONTROL_MAPS_ROOT,
     EXPERIMENTAL_FRAMEWORKS,
@@ -594,6 +599,44 @@ class FrameworkSelectorTests(unittest.TestCase):
             # The key line itself stays bare so the parser is unaffected.
             self.assertEqual(["pci-dss"], _read_selected_frameworks(target))
 
+    def test_rerun_reports_preserved_selection_not_recomputed_defaults(self) -> None:
+        """A preserved selector is what is enforced, so it is what must be reported.
+
+        A project that selected an experimental framework before tiering keeps
+        enforcing it on an ordinary re-run, because the existing
+        .sicario/frameworks.txt is preserved rather than clobbered. Printing the
+        newly-computed defaults would tell the user the opposite of the truth.
+        """
+        import contextlib
+        import io
+
+        with tempfile.TemporaryDirectory() as tmp:
+            target = Path(tmp) / "project"
+            self.assertEqual(
+                0,
+                main(
+                    [
+                        "init",
+                        str(target),
+                        "--profile",
+                        "appsec",
+                        "--frameworks",
+                        "ssdf,owasp-asvs",
+                    ]
+                ),
+            )
+
+            buffer = io.StringIO()
+            with contextlib.redirect_stdout(buffer):
+                self.assertEqual(0, main(["init", str(target), "--profile", "appsec"]))
+            output = buffer.getvalue()
+
+            # The stale experimental selection is still enforced...
+            self.assertIn("owasp-asvs", _read_selected_frameworks(target))
+            # ...so the run must say so, and must flag the divergence.
+            self.assertIn("owasp-asvs (experimental)", output)
+            self.assertIn("preserved", output)
+
     def test_public_core_writes_no_framework_config_and_verifies(self) -> None:
         # Default behavior is unchanged: bare public-core writes no selector and
         # verify keeps the legacy coarse control-map check (which passes since
@@ -900,6 +943,87 @@ class BrownfieldSafeAdoptionTests(unittest.TestCase):
                 ),
             )
             self.assertFalse((target / ".gitignore").exists())
+
+    def test_gitignore_rule_effectiveness_accounts_for_negations(self) -> None:
+        """Presence is not protection: git applies the LAST matching pattern."""
+        p = BACKUP_IGNORE_PATTERN
+        self.assertTrue(_backup_rule_is_effective(f"{p}\n", p))
+        # A negation AFTER the rule re-includes backups, so the rule is not effective.
+        self.assertFalse(_backup_rule_is_effective(f"{p}\n!keep.sicario-bak.20260101\n", p))
+        # A negation BEFORE the rule is overridden by it.
+        self.assertTrue(_backup_rule_is_effective(f"!keep.sicario-bak.20260101\n{p}\n", p))
+        # Comments and blank lines are not rules.
+        self.assertTrue(_backup_rule_is_effective(f"# !{p}\n\n{p}\n", p))
+
+    def test_ensure_gitignore_reasserts_rule_after_a_negation(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            target = Path(tmp)
+            gitignore = target / ".gitignore"
+            gitignore.write_text(
+                f"{BACKUP_IGNORE_PATTERN}\n!keep.sicario-bak.20260101T000000Z\n",
+                encoding="utf-8",
+            )
+            actions: list = []
+            _ensure_gitignore_rule(target, dry_run=False, actions=actions)
+
+            lines = [
+                ln.strip()
+                for ln in gitignore.read_text(encoding="utf-8").splitlines()
+                if ln.strip()
+            ]
+            # Our rule must now be the last decisive rule, so it wins.
+            self.assertEqual(BACKUP_IGNORE_PATTERN, lines[-1])
+            self.assertTrue(
+                _backup_rule_is_effective(
+                    gitignore.read_text(encoding="utf-8"), BACKUP_IGNORE_PATTERN
+                )
+            )
+            # And a second run is a no-op now that the rule is effective.
+            before = gitignore.read_text(encoding="utf-8")
+            _ensure_gitignore_rule(target, dry_run=False, actions=actions)
+            self.assertEqual(before, gitignore.read_text(encoding="utf-8"))
+
+    def test_ensure_gitignore_preserves_crlf_line_endings(self) -> None:
+        """Appending one rule must not rewrite every existing line."""
+        with tempfile.TemporaryDirectory() as tmp:
+            target = Path(tmp)
+            gitignore = target / ".gitignore"
+            gitignore.write_bytes(b"node_modules/\r\n*.env\r\n")
+            _ensure_gitignore_rule(target, dry_run=False, actions=[])
+
+            raw = gitignore.read_bytes()
+            # Original lines survive byte-for-byte with their CRLF endings.
+            self.assertIn(b"node_modules/\r\n", raw)
+            self.assertIn(b"*.env\r\n", raw)
+            # The appended rule uses the file's own ending, not a bare LF.
+            self.assertIn(BACKUP_IGNORE_PATTERN.encode() + b"\r\n", raw)
+            self.assertNotIn(b"\r\r", raw)
+
+    def test_ensure_gitignore_preserves_lf_line_endings(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            target = Path(tmp)
+            gitignore = target / ".gitignore"
+            gitignore.write_bytes(b"node_modules/\n")
+            _ensure_gitignore_rule(target, dry_run=False, actions=[])
+            raw = gitignore.read_bytes()
+            self.assertNotIn(b"\r", raw)
+            self.assertIn(BACKUP_IGNORE_PATTERN.encode() + b"\n", raw)
+
+    def test_ensure_gitignore_refuses_to_write_through_a_symlink(self) -> None:
+        """A symlinked .gitignore points outside the project; never write through it."""
+        with tempfile.TemporaryDirectory() as tmp:
+            base = Path(tmp)
+            outside = base / "outside.txt"
+            outside.write_text("ORIGINAL\n", encoding="utf-8")
+            project = base / "project"
+            project.mkdir()
+            (project / ".gitignore").symlink_to(outside)
+
+            actions: list = []
+            _ensure_gitignore_rule(project, dry_run=False, actions=actions)
+
+            self.assertEqual("ORIGINAL\n", outside.read_text(encoding="utf-8"))
+            self.assertTrue(any("symlink" in a for a in actions))
 
     def test_generated_files_contain_no_placeholder_secrets(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

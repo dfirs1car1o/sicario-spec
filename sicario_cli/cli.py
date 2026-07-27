@@ -609,7 +609,19 @@ def init_project(args: argparse.Namespace) -> int:
     else:
         selected_frameworks = _default_frameworks_for_profiles(_parse_profile_names(args.profile))
     if selected_frameworks:
-        actions.append(f"frameworks {', '.join(_framework_label(k) for k in selected_frameworks)}")
+        # An existing selector is preserved rather than clobbered (brownfield-safe),
+        # so on a re-run the set we just computed may NOT be the set that is
+        # enforced. Report what will actually be enforced — a project that selected
+        # an experimental framework before it was tiered keeps enforcing it, and
+        # printing the computed defaults instead would state the opposite.
+        existing_selection = _read_selected_frameworks(target) if not args.force else None
+        effective = existing_selection if existing_selection is not None else selected_frameworks
+        actions.append(f"frameworks {', '.join(_framework_label(k) for k in effective)}")
+        if existing_selection is not None and set(existing_selection) != set(selected_frameworks):
+            actions.append(
+                "frameworks: existing .sicario/frameworks.txt preserved; it differs from this "
+                "profile's defaults. Re-run with --force or edit the file to adopt them."
+            )
         _write_text(
             target / FRAMEWORKS_CONFIG,
             _frameworks_config_content(selected_frameworks),

@@ -90,8 +90,12 @@ a concept.
 - **Tier 2 (Advisory).** Model-generated, explanation-only, addressed to a named
   human approver at the merge gate. Never touches the exit code. Never gates.
   Never blocks. Never fails a build. Its absence is never a pass. Its presence is
-  never an approval. `sicario.threatmodel` and `sicario.review` are already
-  Tier 2; the advisory quality signal specified here joins them.
+  never an approval. `sicario.threatmodel` and `sicario.review` already sit on the
+  non-authoritative side of this boundary: the runner reports them rather than
+  executing them, so neither can reach `exit_code`. They are not, however,
+  explanation-only — `sicario.threatmodel` creates or updates
+  `docs/security/threat-model.md`. The advisory signal specified here is
+  deliberately narrower than they are: it writes nothing at all.
 
 ### Non-Goals
 
@@ -361,7 +365,9 @@ than granted and constrained.
 **No model in the verdict.** Restating the invariant so it cannot be lost in
 this section: `sicario verify` remains the sole authority on pass/fail, and it
 neither calls nor imports anything in this feature. The advisory tier is
-explanation-only, exactly as the AI-guidance hooks already are.
+explanation-only. It shares the non-authoritative property of the existing
+AI-guidance hooks, and goes further than they do: those hooks may write
+repository artifacts, whereas the advisory tier writes nothing.
 
 ## Fleet Guardrails
 

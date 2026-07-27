@@ -64,6 +64,31 @@ def _backup_file(path: Path, *, dry_run: bool) -> Optional[Path]:
     return backup
 
 
+def _backup_rule_is_effective(text: str, pattern: str) -> bool:
+    """Is ``pattern`` the rule that actually decides backup files in this .gitignore?
+
+    Presence is not protection. Git applies the LAST matching pattern, so a file
+    that lists ``*.sicario-bak.*`` and then a negation such as
+    ``!keep.sicario-bak.20260101T000000Z`` re-includes backups despite the rule
+    being present. Scanning for mere presence would report that file as safe.
+
+    Any negation mentioning the backup marker is treated as re-including, which is
+    deliberately conservative: reimplementing gitignore matching would be worse than
+    occasionally appending a rule that was already sufficient.
+    """
+    marker = pattern.strip("*.")
+    decisive = False
+    for raw in text.splitlines():
+        line = raw.strip()
+        if not line or line.startswith("#"):
+            continue
+        if line == pattern:
+            decisive = True
+        elif line.startswith("!") and marker in line:
+            decisive = False
+    return decisive
+
+
 def _ensure_gitignore_rule(
     target: Path,
     *,
@@ -73,7 +98,7 @@ def _ensure_gitignore_rule(
     actions: List[str],
     reports: Optional[List[FileReport]] = None,
 ) -> None:
-    """Idempotently ensure ``pattern`` is ignored in the target repo's .gitignore.
+    """Idempotently ensure ``pattern`` actually ignores backups in the target repo.
 
     Backups taken by ``sicario init`` are verbatim copies of the adopting repo's
     pre-existing constitution, instruction files, and Spec Kit templates. They can
@@ -81,28 +106,63 @@ def _ensure_gitignore_rule(
     committed. This rule is written BEFORE the first backup is taken so the
     protection exists before the risk does.
 
-    Never clobbers: an existing .gitignore is read and appended to only when the
-    pattern is absent, so re-running ``init`` is a no-op.
+    Never clobbers. An existing .gitignore is only appended to, and only when the
+    rule is not already the effective one, so re-running ``init`` is a no-op. The
+    original bytes are preserved verbatim, including line endings.
+
+    Known limitation: a nested ``.gitignore`` in a subdirectory can negate this rule
+    for that subtree, and this function only manages the target's root .gitignore.
+    Detecting that would mean walking the whole tree on every init for an
+    adversarial case; it is documented rather than defended against.
     """
     gitignore = target / ".gitignore"
     block = f"{comment}\n{pattern}\n"
 
+    # Writing through a symlink would modify a file outside the project being
+    # initialized. Refuse and say so rather than silently editing someone else's file.
+    if gitignore.is_symlink():
+        actions.append(f"skip {gitignore}: is a symlink; refusing to write through it")
+        if reports is not None:
+            _record(
+                reports,
+                gitignore,
+                OUTCOME_SKIPPED,
+                f"symlink; add '{pattern}' manually to protect backups",
+            )
+        return
+
     if gitignore.exists():
-        existing = gitignore.read_text(encoding="utf-8")
-        # Compare on stripped lines so an existing rule is recognised regardless of
-        # surrounding whitespace — this is what makes re-runs idempotent.
-        if any(line.strip() == pattern for line in existing.splitlines()):
+        # Read bytes, not text: text mode normalizes CRLF, which would silently
+        # rewrite every line of a CRLF file just to append one rule.
+        raw = gitignore.read_bytes()
+        existing = raw.decode("utf-8")
+        newline = "\r\n" if b"\r\n" in raw else "\n"
+
+        if _backup_rule_is_effective(existing, pattern):
             actions.append(f"gitignore already ignores {pattern}")
             if reports is not None:
                 _record(reports, gitignore, OUTCOME_PRESERVED, f"already ignores {pattern}")
             return
+
+        marker = pattern.strip("*.")
+        negated = any(
+            line.strip().startswith("!") and marker in line for line in existing.splitlines()
+        )
+        detail = (
+            f"appended ignore rule {pattern} after a negation that re-included backups"
+            if negated
+            else f"appended ignore rule {pattern}"
+        )
         actions.append(f"append ignore rule {pattern} to {gitignore}")
         if reports is not None:
-            _record(reports, gitignore, OUTCOME_MERGED, f"appended ignore rule {pattern}")
+            _record(reports, gitignore, OUTCOME_MERGED, detail)
         if dry_run:
             return
+        # Build with "\n" then convert once, so a CRLF file stays CRLF and an LF file
+        # stays LF without rewriting any pre-existing line.
         separator = "" if existing.endswith("\n") else "\n"
-        gitignore.write_text(existing + separator + "\n" + block, encoding="utf-8")
+        addition = (separator + "\n" + block).replace("\n", newline)
+        gitignore.write_bytes(raw + addition.encode("utf-8"))
         return
 
     actions.append(f"write {gitignore}")

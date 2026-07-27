@@ -24,6 +24,19 @@ improve the security model.
 
 ### Fixed
 
+- **Backup ignore rule is now verified as effective, not merely present.** Git
+  applies the last matching pattern, so a `.gitignore` containing
+  `*.sicario-bak.*` followed by a negation re-included backups while a
+  presence-only check reported them protected. `init` now re-asserts the rule so
+  it is the deciding one, preserves CRLF line endings instead of rewriting every
+  line, and refuses to write through a symlinked `.gitignore` (which would edit a
+  file outside the project). A nested `.gitignore` negating the rule for a
+  subtree remains a documented limitation.
+- **`init` now reports the framework set it actually enforces.** On a re-run the
+  existing `.sicario/frameworks.txt` is preserved, so the recomputed profile
+  defaults may not be what is enforced; printing them stated the opposite of the
+  truth. The preserved set is reported and any divergence is flagged.
+
 - **Broken control-map evidence anchors.** Five references pointed at headings
   that exist in no shipped template. All 19 distinct anchors across all maps
   now resolve.

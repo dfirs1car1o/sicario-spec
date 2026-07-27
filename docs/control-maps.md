@@ -55,6 +55,14 @@ What "experimental" changes - and what it does not:
   previously defaulted to all 14 and now defaults to the 11 supported maps.
 - CLI output labels experimental selections, e.g. `owasp-asvs (experimental)`.
 
+Upgrade note: a project initialized before tiering keeps whatever
+`.sicario/frameworks.txt` already records, because `sicario init` preserves an
+existing selector rather than clobbering it. If that file lists an experimental
+key it stays enforced on an ordinary re-run. `init` reports the preserved set
+rather than the recomputed defaults and flags the difference, so the output
+always states what is actually enforced. Re-run with `--force`, or edit the file,
+to adopt the new defaults.
+
 Why these three are experimental:
 
 - `pci-dss`: about 29% of its evidence references resolve to bare directory
