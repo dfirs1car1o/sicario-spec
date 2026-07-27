@@ -1,0 +1,21 @@
+name: SicarioSpec CodeQL config
+
+# Test code is excluded from code scanning, not because it is unimportant, but
+# because this repository's test suite necessarily contains secret-shaped
+# strings: it exercises a secret scanner, and proving detection works means
+# writing credential-shaped fixtures to a temporary directory. CodeQL's
+# py/clear-text-storage-sensitive-data query flags those writes, correctly in
+# general and wrongly here.
+#
+# The narrower fixes were considered and rejected. Inline `# codeql[...]`
+# comments are LGTM syntax and are not honoured by GitHub code scanning — they
+# read as suppressions while doing nothing, which is worse than no comment.
+# Excluding the query repository-wide would hide a genuine clear-text-storage
+# defect in sicario_cli/, which is unacceptable in a security tool.
+#
+# Test code is not shipped: `[tool.setuptools.packages.find]` in pyproject.toml
+# includes only sicario_cli* and presets*. The repository's own gate,
+# `sicario verify`, still scans tests/ and is what enforces that no real
+# credential is committed there.
+paths-ignore:
+  - tests

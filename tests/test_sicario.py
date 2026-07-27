@@ -1209,15 +1209,12 @@ def _secret_assignment(value: str = "z" * 20) -> str:
     ``sicario verify .`` scans, so a literal here would fail the repository's
     own gate.
 
-    The call sites that write these fixtures to disk carry
-    ``# codeql[py/clear-text-storage-sensitive-data]``. That alert is correct in
-    general and wrong here by construction: a secret scanner cannot be tested
-    without writing secret-shaped strings, and proving detection works is the
-    entire point of those tests. The values are synthetic, are generated at
-    runtime rather than stored, and live only in a temporary directory that is
-    removed when the test exits. The suppression is per-call-site rather than a
-    path exclusion for ``tests/``, so a genuine clear-text-storage defect
-    elsewhere in the suite is still reported.
+    CodeQL's ``py/clear-text-storage-sensitive-data`` query flags the call sites
+    that write these fixtures. The alert is correct in general and wrong here by
+    construction: a secret scanner cannot be tested without writing
+    secret-shaped strings. ``tests/`` is excluded from code scanning in
+    .github/codeql/codeql-config.yml for that reason; the repository's own gate
+    still scans this file, which is why the value is built at runtime above.
     """
     return "api" + "_key = " + '"' + value + '"'
 
@@ -1287,7 +1284,7 @@ class RegexForbiddenCompletenessTests(unittest.TestCase):
         """FR-003: one line is one remediation action."""
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
-            (root / "a.txt").write_text(  # codeql[py/clear-text-storage-sensitive-data]
+            (root / "a.txt").write_text(
                 f"{_secret_assignment()}; {_secret_assignment('y' * 20)}\n", encoding="utf-8"
             )
             findings, coverage = self._evaluate(root)
@@ -1303,9 +1300,7 @@ class RegexForbiddenCompletenessTests(unittest.TestCase):
             _write_matches_on(root / "a.txt", [1])
             _write_matches_on(root / "b.txt", [42])
             # Final line, no trailing newline.
-            (root / "c.txt").write_text(  # codeql[py/clear-text-storage-sensitive-data]
-                f"x\ny\n{_secret_assignment()}", encoding="utf-8"
-            )
+            (root / "c.txt").write_text(f"x\ny\n{_secret_assignment()}", encoding="utf-8")
             findings, _ = self._evaluate(root)
             self.assertEqual(
                 [("a.txt", 1), ("b.txt", 42), ("c.txt", 3)],
@@ -1534,7 +1529,7 @@ class RegexForbiddenCompletenessTests(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as tmp:
             rule_dir = Path(tmp)
-            (rule_dir / "bad.rule.json").write_text(  # codeql[py/clear-text-storage-sensitive-data]
+            (rule_dir / "bad.rule.json").write_text(
                 json.dumps(_forbidden_rule(max_findings_per_rule=0)), encoding="utf-8"
             )
             engine = RuleEngine()
@@ -1675,9 +1670,7 @@ class RegexForbiddenCompletenessTests(unittest.TestCase):
             rule_dir.mkdir()
             rule = _forbidden_rule()
             rule["enabled"] = False
-            (rule_dir / "off.rule.json").write_text(  # codeql[py/clear-text-storage-sensitive-data]
-                json.dumps(rule), encoding="utf-8"
-            )
+            (rule_dir / "off.rule.json").write_text(json.dumps(rule), encoding="utf-8")
             report = RuleEngine().run_detailed(Path(tmp), rule_dirs=[rule_dir])
             self.assertEqual([], report.findings)
             self.assertEqual(
