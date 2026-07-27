@@ -145,9 +145,11 @@ def _apply_to_speckit(
     presets_root: Path,
     speckit_template_files: Sequence[str],
 ) -> None:
-    from sicario_cli._render import FileReport, _overlay_text
+    from sicario_cli._render import _overlay_text
 
-    template_sources = _resolve_speckit_template_sources(presets, presets_root, speckit_template_files)
+    template_sources = _resolve_speckit_template_sources(
+        presets, presets_root, speckit_template_files
+    )
     for template, src in sorted(template_sources.items()):
         _overlay_text(
             target / ".specify" / "templates" / template,
@@ -501,7 +503,7 @@ def _write_agent_integrations(
     actions: List[str],
     reports: List,
 ) -> None:
-    from sicario_cli._render import FileReport, _overlay_text, _write_text
+    from sicario_cli._render import _overlay_text, _write_text
 
     if integration in {"claude", "all"}:
         _overlay_text(
