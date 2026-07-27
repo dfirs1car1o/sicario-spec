@@ -163,7 +163,7 @@
     {
       "trust_services_category": "Processing Integrity",
       "sicario_evidence": [
-        "specs/**/spec.md#acceptance-scenarios",
+        "specs/**/spec.md#security-acceptance-criteria",
         "tests",
         "generated/sicario/gate-summary.json"
       ],

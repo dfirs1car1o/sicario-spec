@@ -8,7 +8,7 @@
     "framework_version": "Revision 5",
     "publication": "FedRAMP Rev. 5 Security Controls Baselines",
     "baseline_count": 4,
-    "control_family_count": 18,
+    "control_family_count": 13,
     "official_sources": [
       "https://www.fedramp.gov/rev5/",
       "https://www.fedramp.gov/documents-templates/",
