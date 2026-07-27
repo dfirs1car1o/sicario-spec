@@ -8,6 +8,32 @@ improve the security model.
 
 ## [Unreleased]
 
+### Changed
+
+- **Control maps are now tiered supported vs experimental.** The 14 shipped
+  maps no longer present as peers. `pci-dss`, `ai-rmf`, and `owasp-asvs` are
+  labeled EXPERIMENTAL: PCI DSS resolves roughly 29% of its evidence to bare
+  directory names and covers 12 requirements against ~300 sub-requirements;
+  AI RMF's `example_categories` are function labels rather than real
+  subcategory identifiers; OWASP ASVS ships 3 entries covering about a fifth
+  of the standard. Experimental maps remain fully installable and are still
+  enforced by `sicario verify` when named explicitly on `--frameworks` — the
+  only behavioral change is that they are excluded from every per-profile
+  default, including `enterprise-strict`, which now defaults to the 11
+  supported maps rather than all 14.
+
+### Fixed
+
+- **Broken control-map evidence anchors.** Five references pointed at headings
+  that exist in no shipped template. All 19 distinct anchors across all maps
+  now resolve.
+- **`fedramp-rev5` `control_family_count`** claimed 18 while shipping 13.
+- **`ccm-v4.1` domain 12** was "Infrastructure Security" / "I&S"; the official
+  CCM v4 domain is "Infrastructure and Virtualization Security" / "IVS".
+- **`owasp-asvs` scope note** was the only map claiming to trace controls
+  "directly" with no disclaimer; it now carries the same starter-mapping hedge
+  as the other 13.
+
 ### Security
 
 - **Backups are no longer committable.** `sicario init` now adds

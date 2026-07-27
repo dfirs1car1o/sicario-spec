@@ -136,6 +136,29 @@ FRAMEWORK_IDS = {
     "owasp-asvs": "owasp-asvs-sicario.json",
 }
 
+# Framework maturity tiers.
+#
+# All 14 maps are coarse traceability aids, not certification artifacts. But they
+# are not equally substantial, and presenting them as peers means the weakest map
+# sets the credibility of the whole set. These three fall measurably short of the
+# rest — PCI DSS resolves ~29% of its evidence to bare directory names and covers
+# 12 requirements against ~300 sub-requirements; NIST AI RMF's "GOVERN 1" labels
+# are function names rather than real subcategory IDs; OWASP ASVS ships 3 entries
+# and 7 evidence references covering roughly a fifth of the standard.
+#
+# EXPERIMENTAL maps remain fully installable and are still enforced by
+# `sicario verify` when explicitly selected via `--frameworks`. The only
+# behavioral difference is that they are never selected implicitly: they are
+# excluded from per-profile defaults, so a team opts into them deliberately.
+EXPERIMENTAL_FRAMEWORKS = {"pci-dss", "ai-rmf", "owasp-asvs"}
+SUPPORTED_FRAMEWORKS = [k for k in FRAMEWORK_IDS if k not in EXPERIMENTAL_FRAMEWORKS]
+
+
+def _framework_label(key: str) -> str:
+    """Render a framework key with its tier, so experimental never passes silently."""
+    return f"{key} (experimental)" if key in EXPERIMENTAL_FRAMEWORKS else key
+
+
 # The project config file that records the selected subset (one key per line).
 FRAMEWORKS_CONFIG = Path(".sicario") / "frameworks.txt"
 
@@ -169,18 +192,30 @@ def _parse_frameworks(value: str) -> List[str]:
                     selected.append(key)
             continue
         if name not in FRAMEWORK_IDS:
-            known = ", ".join(sorted(FRAMEWORK_IDS))
-            raise SystemExit(f"Unknown framework(s): {name}. Known frameworks: {known}")
+            supported = ", ".join(sorted(SUPPORTED_FRAMEWORKS))
+            experimental = ", ".join(sorted(EXPERIMENTAL_FRAMEWORKS))
+            raise SystemExit(
+                f"Unknown framework(s): {name}. "
+                f"Supported: {supported}. Experimental: {experimental}."
+            )
         if name not in selected:
             selected.append(name)
     return selected
 
 
 def _default_frameworks_for_profiles(profile_names: Sequence[str]) -> List[str]:
-    """Compute the default framework subset from the selected profile name(s)."""
+    """Compute the default framework subset from the selected profile name(s).
+
+    EXPERIMENTAL maps are filtered out here rather than being removed from
+    ``PROFILE_FRAMEWORKS``: the table keeps stating which frameworks a profile is
+    *about*, and this single choke point guarantees none of them can be enforced
+    without someone naming it explicitly on ``--frameworks``.
+    """
     selected: List[str] = []
     for name in profile_names:
         for key in PROFILE_FRAMEWORKS.get(name, []):
+            if key in EXPERIMENTAL_FRAMEWORKS:
+                continue
             if key not in selected:
                 selected.append(key)
     return selected
@@ -192,8 +227,17 @@ def _frameworks_config_content(frameworks: Sequence[str]) -> str:
         "# One framework key per line. `sicario verify` requires a control map\n"
         "# for each key listed here (SICARIO-MISSING-FRAMEWORK-MAP if absent).\n"
         "# Remove this file to fall back to the default coarse control-map check.\n"
-        f"# Known keys: {', '.join(sorted(FRAMEWORK_IDS))}\n"
+        f"# Supported keys: {', '.join(sorted(SUPPORTED_FRAMEWORKS))}\n"
+        f"# Experimental keys: {', '.join(sorted(EXPERIMENTAL_FRAMEWORKS))}\n"
+        "#   Experimental maps are thinner than the supported set. They are\n"
+        "#   enforced exactly like any other key when listed here, but are never\n"
+        "#   selected by a profile default -- only by explicit --frameworks.\n"
     )
+    # Key lines stay bare so the reader stays a plain one-key-per-line parse; the
+    # experimental call-out belongs in the header, not appended to a key.
+    experimental = [k for k in frameworks if k in EXPERIMENTAL_FRAMEWORKS]
+    if experimental:
+        header += f"# This project explicitly enforces experimental: {', '.join(experimental)}\n"
     body = "\n".join(frameworks)
     return header + (body + "\n" if body else "")
 
@@ -565,7 +609,7 @@ def init_project(args: argparse.Namespace) -> int:
     else:
         selected_frameworks = _default_frameworks_for_profiles(_parse_profile_names(args.profile))
     if selected_frameworks:
-        actions.append(f"frameworks {', '.join(selected_frameworks)}")
+        actions.append(f"frameworks {', '.join(_framework_label(k) for k in selected_frameworks)}")
         _write_text(
             target / FRAMEWORKS_CONFIG,
             _frameworks_config_content(selected_frameworks),
@@ -1357,9 +1401,12 @@ def build_parser() -> argparse.ArgumentParser:
         "--frameworks",
         default=None,
         help="Comma-separated control-map frameworks this project enforces "
-        f"(known: {', '.join(sorted(FRAMEWORK_IDS))}; or 'all'). Writes "
-        ".sicario/frameworks.txt, which `sicario verify` honors so you enforce "
-        "only the frameworks you chose. Default: the profile's framework set.",
+        f"(supported: {', '.join(sorted(SUPPORTED_FRAMEWORKS))}; "
+        f"experimental: {', '.join(sorted(EXPERIMENTAL_FRAMEWORKS))}; or 'all'). "
+        "Experimental maps are thinner and are never chosen by a profile default, "
+        "but are enforced normally when named here. Writes .sicario/frameworks.txt, "
+        "which `sicario verify` honors so you enforce only the frameworks you "
+        "chose. Default: the profile's supported framework set.",
     )
     speckit_group = init.add_mutually_exclusive_group()
     speckit_group.add_argument(

@@ -8,10 +8,12 @@ from pathlib import Path
 from sicario_cli._render import SICARIO_OVERLAY_BEGIN
 from sicario_cli.cli import (
     CONTROL_MAPS_ROOT,
+    EXPERIMENTAL_FRAMEWORKS,
     FRAMEWORK_IDS,
     FRAMEWORKS_CONFIG,
     PRESETS_ROOT,
     REQUIRED_TEMPLATES,
+    SUPPORTED_FRAMEWORKS,
     _default_frameworks_for_profiles,
     _parse_frameworks,
     _read_selected_frameworks,
@@ -491,9 +493,11 @@ class FrameworkSelectorTests(unittest.TestCase):
             ["ccm", "sox", "soc2", "iso27001", "nist-800-53"],
             _default_frameworks_for_profiles(["compliance"]),
         )
-        # enterprise-strict enforces all shipped frameworks.
+        # enterprise-strict enforces every SUPPORTED framework. Experimental maps
+        # are excluded from every profile default, including this one — enforcing
+        # them requires naming them explicitly on --frameworks.
         self.assertEqual(
-            list(FRAMEWORK_IDS), _default_frameworks_for_profiles(["enterprise-strict"])
+            SUPPORTED_FRAMEWORKS, _default_frameworks_for_profiles(["enterprise-strict"])
         )
 
     def test_init_explicit_frameworks_writes_config(self) -> None:
@@ -524,6 +528,71 @@ class FrameworkSelectorTests(unittest.TestCase):
                 ["ccm", "sox", "soc2", "iso27001", "nist-800-53"],
                 _read_selected_frameworks(target),
             )
+
+    def test_tiers_partition_every_shipped_framework(self) -> None:
+        self.assertEqual(
+            set(FRAMEWORK_IDS),
+            set(SUPPORTED_FRAMEWORKS) | EXPERIMENTAL_FRAMEWORKS,
+            "every shipped framework must be assigned exactly one tier",
+        )
+        self.assertFalse(set(SUPPORTED_FRAMEWORKS) & EXPERIMENTAL_FRAMEWORKS)
+        self.assertEqual({"pci-dss", "ai-rmf", "owasp-asvs"}, EXPERIMENTAL_FRAMEWORKS)
+
+    def test_experimental_frameworks_never_appear_in_profile_defaults(self) -> None:
+        """Experimental maps must require an explicit opt-in, never a profile default."""
+        from sicario_cli.cli import PROFILE_FRAMEWORKS
+
+        for profile in PROFILE_FRAMEWORKS:
+            defaults = _default_frameworks_for_profiles([profile])
+            leaked = set(defaults) & EXPERIMENTAL_FRAMEWORKS
+            self.assertFalse(leaked, f"profile {profile} defaults leak experimental {leaked}")
+
+    def test_appsec_default_drops_experimental_but_keeps_supported(self) -> None:
+        # appsec is the sharpest case: its table entry names owasp-asvs, which is
+        # experimental, so the supported entries must survive and it must not.
+        defaults = _default_frameworks_for_profiles(["appsec"])
+        self.assertIn("ssdf", defaults)
+        self.assertIn("iso27001", defaults)
+        self.assertNotIn("owasp-asvs", defaults)
+
+    def test_experimental_framework_still_enforced_when_explicitly_selected(self) -> None:
+        """Experimental stays installable and stays gated — it just is not implicit."""
+        with tempfile.TemporaryDirectory() as tmp:
+            target = Path(tmp) / "project"
+            self.assertEqual(
+                0,
+                main(
+                    [
+                        "init",
+                        str(target),
+                        "--profile",
+                        "appsec",
+                        "--frameworks",
+                        "owasp-asvs,pci-dss",
+                    ]
+                ),
+            )
+            self.assertEqual(["owasp-asvs", "pci-dss"], _read_selected_frameworks(target))
+            # Selected experimental maps are enforced exactly like supported ones.
+            self.assertEqual([], verify_project(target, write=False))
+
+            # Removing a selected experimental map must still be a finding.
+            (target / "docs" / "compliance" / "control-maps" / FRAMEWORK_IDS["owasp-asvs"]).unlink()
+            codes = [f.code for f in verify_project(target, write=False)]
+            self.assertIn("SICARIO-MISSING-FRAMEWORK-MAP", codes)
+
+    def test_frameworks_config_header_flags_experimental_selection(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            target = Path(tmp) / "project"
+            self.assertEqual(
+                0,
+                main(["init", str(target), "--profile", "appsec", "--frameworks", "pci-dss"]),
+            )
+            content = (target / FRAMEWORKS_CONFIG).read_text(encoding="utf-8")
+            self.assertIn("Experimental keys:", content)
+            self.assertIn("explicitly enforces experimental: pci-dss", content)
+            # The key line itself stays bare so the parser is unaffected.
+            self.assertEqual(["pci-dss"], _read_selected_frameworks(target))
 
     def test_public_core_writes_no_framework_config_and_verifies(self) -> None:
         # Default behavior is unchanged: bare public-core writes no selector and

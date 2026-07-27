@@ -11,7 +11,7 @@
       "https://owasp.org/www-project-application-security-verification-standard/"
     ]
   },
-  "scope_note": "A mapping designed to trace OWASP ASVS Level 1/2 controls directly to Spec-Driven Development artifacts, verification gates, and proof generation paths.",
+  "scope_note": "Chapter-level starter mapping only, covering a subset of the ASVS v4.0.3 verification chapters. ASVS verification depends on the official standard, the chosen verification level, and application-specific testing evidence. SicarioSpec evidence can help structure architecture, authentication, and access-control evidence, but it is not an ASVS verification.",
   "function_mappings": [
     {
       "function": "Architecture, Design and Threat Modeling",
