@@ -378,14 +378,34 @@ class Finding:
     code: str
     message: str
     path: str = ""
+    #: One-based line of the occurrence, when the producing rule kind has a
+    #: line concept. Kinds with no line concept leave it unset and the finding
+    #: is a file-scoped location (FR-006). The line is a distinct value and is
+    #: never packed into ``path``, so ``path`` stays a resolvable file
+    #: reference for SARIF consumers (FR-005).
+    line: Optional[int] = None
+
+    @property
+    def location(self) -> str:
+        """Human-readable location in the repository's ``path:line`` convention.
+
+        For human output only (FR-007). Machine formats carry the path and the
+        line as separate values.
+        """
+        if self.line is None or not self.path:
+            return self.path
+        return f"{self.path}:{self.line}"
 
     def as_dict(self) -> dict:
-        return {
+        data: dict = {
             "severity": self.severity,
             "code": self.code,
             "message": self.message,
             "path": self.path,
         }
+        if self.line is not None:
+            data["line"] = self.line
+        return data
 
 
 def _now() -> str:
@@ -968,9 +988,26 @@ def verify_project(path: Path, *, write: bool = True) -> List[Finding]:
         rule_dirs.append(shipped)
 
     engine = RuleEngine()
-    rule_results = engine.run(root, rule_dirs=rule_dirs)
-    for r in rule_results:
-        findings.append(Finding(r["severity"], r["code"], r["message"], r["path"]))
+    rule_report = engine.run_detailed(root, rule_dirs=rule_dirs)
+
+    # A rule that could not be loaded did not run, so the verdict below covers
+    # less than it appears to. Surface it as a critical finding rather than
+    # letting the run report "pass" over checks that never executed: a cap of 0
+    # on the secret-scan rule would otherwise drop it silently and turn a
+    # repository full of live credentials into a clean gate result.
+    for err in rule_report.load_errors:
+        named = err.get("rule_id") or err["file"]
+        findings.append(
+            Finding(
+                "critical",
+                err["code"],
+                f"Rule '{named}' did not run: {'; '.join(err['errors'])}",
+                f".sicario/rules/{err['file']}",
+            )
+        )
+
+    for r in rule_report.findings:
+        findings.append(Finding(r["severity"], r["code"], r["message"], r["path"], r.get("line")))
 
     selected_frameworks = _read_selected_frameworks(root)
     if selected_frameworks is not None:
@@ -990,9 +1027,25 @@ def verify_project(path: Path, *, write: bool = True) -> List[Finding]:
                 )
 
     if write:
-        _write_evidence(root, findings)
+        _write_evidence(root, findings, scan_coverage=_scan_coverage(rule_report))
 
     return findings
+
+
+def _scan_coverage(rule_report) -> dict:
+    """Build the coverage record written into gate evidence.
+
+    Records per-rule scan coverage and truncation counts (FR-020), the
+    effective skipped-path set (FR-021, SEC-010), and rules loaded but
+    disabled (FR-022). Evidence only: nothing here feeds the verdict.
+    """
+    from sicario_cli.rules.kinds.regex_forbidden import SKIPPED_DIR_NAMES
+
+    return {
+        "skipped_path_set": sorted(SKIPPED_DIR_NAMES),
+        "rules": rule_report.coverage,
+        "disabled_rules": rule_report.disabled_rules,
+    }
 
 
 def _validate_active_risk_rows(root: Path, path: Path) -> List[Finding]:
@@ -1063,15 +1116,23 @@ def _validate_spec_classification_and_tags(root: Path, path: Path, text: str) ->
     return findings
 
 
-def _write_evidence(root: Path, findings: Sequence[Finding]) -> None:
+def _write_evidence(
+    root: Path, findings: Sequence[Finding], scan_coverage: Optional[dict] = None
+) -> None:
     out_dir = root / "generated" / "sicario"
     out_dir.mkdir(parents=True, exist_ok=True)
+    # Additions here are additive only: `status`, `finding_count`, and
+    # `findings` keep their names, types, and meanings. `finding_count` still
+    # means "number of findings" — it is simply larger now that every
+    # occurrence is reported (FR-023, FR-024).
     summary = {
         "generated_at_utc": _now(),
         "status": "pass" if not findings else "fail",
         "finding_count": len(findings),
         "findings": [finding.as_dict() for finding in findings],
     }
+    if scan_coverage is not None:
+        summary["scan_coverage"] = scan_coverage
     (out_dir / "gate-summary.json").write_text(
         json.dumps(summary, indent=2) + "\n", encoding="utf-8"
     )
@@ -1097,6 +1158,31 @@ def _write_evidence(root: Path, findings: Sequence[Finding]) -> None:
     )
 
 
+def _finding_line(finding: Finding) -> str:
+    """Render one finding for human output.
+
+    Located findings read in the repository's existing ``path:line``
+    convention (FR-007). A finding with no path — the overflow finding is the
+    only one — omits the location segment rather than leaving a gap.
+    """
+    location = finding.location
+    where = f" {location}" if location else ""
+    return f"{finding.severity.upper()} {finding.code}{where}: {finding.message}"
+
+
+def _physical_location(finding: Finding) -> dict:
+    """SARIF physicalLocation for a finding.
+
+    The artifact location is the clean repository-relative path with no
+    positional suffix, so a code-scanning platform can resolve it; the line
+    goes in the region's start line (FR-008).
+    """
+    location: dict = {"artifactLocation": {"uri": finding.path}}
+    if finding.line is not None:
+        location["region"] = {"startLine": finding.line}
+    return location
+
+
 def _sarif_output(findings: List[Finding]) -> str:
     """Convert findings to SARIF 2.1.0 format."""
     sarif_runs = {
@@ -1116,13 +1202,7 @@ def _sarif_output(findings: List[Finding]) -> str:
                         "ruleId": f.code,
                         "level": "error" if f.severity == "critical" else "warning",
                         "message": {"text": f.message},
-                        "locations": [
-                            {
-                                "physicalLocation": {
-                                    "artifactLocation": {"uri": f.path},
-                                }
-                            }
-                        ]
+                        "locations": [{"physicalLocation": _physical_location(f)}]
                         if f.path
                         else [],
                     }
@@ -1137,29 +1217,39 @@ def _sarif_output(findings: List[Finding]) -> str:
 def verify_command(args: argparse.Namespace) -> int:
     root = Path(args.path).expanduser().resolve()
 
-    from sicario_cli.rules import RuleEngine, RuleValidationError
-
     rule_dirs = [root / ".sicario" / "rules"]
 
     if getattr(args, "validate_rules", False):
-        engine = RuleEngine()
+        # This previously called `engine._load_rule_file(...)`, but
+        # `_load_rule_file` is a module-level function in rules.engine, not a
+        # method — so every rule file raised AttributeError and reported as an
+        # error, valid or not, and `_validate_rule` was never reached. The one
+        # control that catches a malformed rule before a run was inert.
+        from sicario_cli.rules.engine import _load_rule_file, _validate_rule
+
+        shipped_rules = PRESETS_ROOT / "sicario-core" / "rules"
+        if shipped_rules.is_dir():
+            rule_dirs.append(shipped_rules)
+
         errors: List[str] = []
+        checked = 0
         for rule_dir in rule_dirs:
             if not rule_dir.is_dir():
                 continue
             for rule_file in sorted(rule_dir.rglob("*.rule.json")):
-                try:
-                    engine._load_rule_file(rule_file)
-                except RuleValidationError as e:
-                    errors.append(f"{rule_file}: {e}")
-                except Exception as e:
-                    errors.append(f"{rule_file}: unexpected error: {e}")
+                checked += 1
+                data = _load_rule_file(rule_file)
+                if data is None:
+                    errors.append(f"{rule_file}: not readable, decodable, or a JSON object")
+                    continue
+                for message in _validate_rule(data):
+                    errors.append(f"{rule_file}: {message}")
         if errors:
             for e in errors:
                 print(e)
-            print(f"rule validation failed with {len(errors)} error(s)")
+            print(f"rule validation failed with {len(errors)} error(s) across {checked} file(s)")
             return 1
-        print("all rules valid")
+        print(f"all rules valid ({checked} file(s))")
         return 0
 
     findings = verify_project(root, write=True)
@@ -1171,7 +1261,7 @@ def verify_command(args: argparse.Namespace) -> int:
         print(_sarif_output(findings))
     else:
         for finding in findings:
-            print(f"{finding.severity.upper()} {finding.code} {finding.path}: {finding.message}")
+            print(_finding_line(finding))
     if findings:
         print(f"sicario verify failed with {len(findings)} finding(s)")
         return 1
@@ -1189,7 +1279,7 @@ def assess_command(args: argparse.Namespace) -> int:
         lines.append("")
         for finding in findings:
             lines.append(
-                f"- **{finding.severity.upper()} {finding.code}** `{finding.path}` - {finding.message}"
+                f"- **{finding.severity.upper()} {finding.code}** `{finding.location}` - {finding.message}"
             )
     else:
         lines.append("Status: PASS")
@@ -1256,7 +1346,7 @@ def _run_deterministic_hook(command: str, root: Path) -> int:
     if command == "sicario.verify":
         findings = verify_project(root, write=True)
         for finding in findings:
-            print(f"  {finding.severity.upper()} {finding.code} {finding.path}: {finding.message}")
+            print(f"  {_finding_line(finding)}")
         return 1 if findings else 0
     if command in {"sicario.assess", "sicario.evidence"}:
         ns = argparse.Namespace(path=str(root))

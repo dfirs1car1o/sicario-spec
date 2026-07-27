@@ -66,6 +66,18 @@
           "minimum": 1,
           "description": "Minimum file matches for file-glob"
         },
+        "max_findings_per_file": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 20,
+          "description": "Maximum findings reported from a single file for regex-forbidden. Positive integer; applied before max_findings_per_rule. Any suppression emits an overflow finding."
+        },
+        "max_findings_per_rule": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 200,
+          "description": "Maximum findings reported by a regex-forbidden rule across all files. Positive integer; applied after max_findings_per_file. Any suppression emits an overflow finding."
+        },
         "required_columns": {
           "type": "array",
           "items": { "type": "string" },
