@@ -120,7 +120,7 @@ existing constitution, Spec Kit templates, or agent-instruction files.
   writing, and merges/overlays instead of skipping or clobbering:
   - **Constitution:** appends a clearly-marked ADDITIVE SicarioSpec overlay that
     explicitly DEFERS to the project's own principles and any `mission.md`
-    (mirrors saas-assurance's brownfield overlay that yields to `mission.md`).
+    (a brownfield overlay that yields to `mission.md`).
     The existing constitution is never replaced.
   - **Templates:** appends the SicarioSpec governance-impact gate block to an
     existing `spec/plan/tasks` template — idempotently (no double-append on
@@ -171,7 +171,7 @@ a SaaS-hardened profile.
   (AI 100-1) function-level map, alongside the existing CSA CCM v4.1 and SOX 404
   maps.
 - New `sicario-saas` preset and `--profile saas`: read-only-SaaS, tenant/data
-  boundary, and mission-supremacy invariants from the saas-assurance origin.
+  boundary, and mission-supremacy invariants.
 
 ### Changed
 

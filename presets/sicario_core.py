@@ -20,9 +20,8 @@ from typing import List, Optional, Sequence
 def _constitution_overlay(presets: Sequence[str], deferrals: Sequence[str]) -> str:
     """Build the additive constitution overlay that DEFERS to existing authority.
 
-    Mirrors saas-assurance's pattern of adding governance as a brownfield overlay
-    (e.g. "Principle VIII as an overlay that yields to mission.md") rather than
-    replacing the host project's constitution.
+    Adds governance as a brownfield overlay (e.g. an overlay principle that
+    yields to mission.md) rather than replacing the host project's constitution.
     """
     from sicario_cli._render import SICARIO_OVERLAY_BEGIN, SICARIO_OVERLAY_END
 

@@ -92,8 +92,7 @@ audit trail.
 ## sicario-saas
 
 For systems that connect to SaaS tenants (Salesforce, Workday, ServiceNow,
-M365, and similar) — the battle-tested guardrails from the `saas-assurance`
-origin. Extends `sicario-core` and `sicario-ai-system` and adds non-negotiable
+M365, and similar). Extends `sicario-core` and `sicario-ai-system` and adds non-negotiable
 SaaS invariants to the constitution: read-only SaaS by default (no tenant writes
 without recorded human approval), tenant isolation and data boundary (no
 cross-tenant context; no raw tenant evidence in views/logs/prompts), mission

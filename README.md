@@ -214,7 +214,7 @@ sicario init my-audit-ready-build --profile appsec,cloud-iac,security-toolchain,
 | `security-toolchain` | Secret scanning, SAST, SCA, SBOM, container/IaC scans, policy-as-code, and scan evidence. |
 | `supply-chain` | SBOM, SCA, provenance, pinned dependencies, pinned actions/images, and release integrity. |
 | `compliance` | Control applicability, CCM/SOX maps, evidence index, exceptions, and accepted risk. |
-| `saas` | SaaS-tenant work (Salesforce/Workday/ServiceNow/M365): read-only-SaaS, tenant/data-boundary, and mission-supremacy invariants from the saas-assurance origin. |
+| `saas` | SaaS-tenant work (Salesforce/Workday/ServiceNow/M365): read-only-SaaS, tenant/data-boundary, and mission-supremacy invariants. |
 | `enterprise-strict` | High-assurance review, approval, release controls, CODEOWNERS, and exception discipline. |
 
 Profiles are composable:

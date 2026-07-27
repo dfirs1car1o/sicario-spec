@@ -239,7 +239,7 @@
       "name": "SicarioSpec SaaS",
       "id": "sicario-saas",
       "version": "0.5.1",
-      "description": "SaaS-hardened profile - read-only-SaaS, tenant/data-boundary, and mission-supremacy invariants from the saas-assurance origin.",
+      "description": "SaaS-hardened profile - read-only-SaaS, tenant/data-boundary, and mission-supremacy invariants for systems that connect to SaaS tenants.",
       "author": "SicarioSpec Contributors",
       "download_url": "https://github.com/dfirs1car1o/sicario-spec/releases/download/v0.5.1/sicario-saas-0.5.1.zip",
       "repository": "https://github.com/dfirs1car1o/sicario-spec",

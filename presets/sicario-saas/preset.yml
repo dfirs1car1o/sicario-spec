@@ -4,7 +4,7 @@ preset:
   id: "sicario-saas"
   name: "SicarioSpec SaaS"
   version: "0.5.1"
-  description: "SaaS-hardened profile - read-only-SaaS, tenant/data-boundary, and mission-supremacy invariants from the saas-assurance origin."
+  description: "SaaS-hardened profile - read-only-SaaS, tenant/data-boundary, and mission-supremacy invariants for systems that connect to SaaS tenants."
   author: "SicarioSpec Contributors"
   repository: "https://github.com/dfirs1car1o/sicario-spec"
   license: "MIT"
