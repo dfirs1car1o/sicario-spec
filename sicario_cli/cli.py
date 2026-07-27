@@ -10,7 +10,6 @@ from __future__ import annotations
 import argparse
 import json
 import os
-import re
 import shutil
 import subprocess
 import sysconfig
@@ -281,19 +280,13 @@ TEXT_SUFFIXES = {
 
 DATA_CLASSIFICATION_VALUES = {"public", "internal", "confidential", "restricted", "regulated"}
 
-SECRET_PATTERNS = [
-    re.compile(r"(?i)\b(api[_-]?key|secret|token|password)\b\s*[:=]\s*['\"][^'\"]{12,}['\"]"),
-    re.compile(r"AKIA[0-9A-Z]{16}"),
-    re.compile(r"sk-[A-Za-z0-9_-]{20,}"),
-    re.compile(r"-----BEGIN (RSA |EC |OPENSSH |)PRIVATE KEY-----"),
-]
-
-AI_KEYWORDS = re.compile(r"\b(ai|llm|rag|agent|mcp|model|prompt|tool use|tool-call)\b", re.I)
-FLEET_KEYWORDS = re.compile(
-    r"\b(langgraph|temporal|ray|celery|queue|worker|orchestrator|orchestration|"
-    r"durable workflow|sub-agent|subagent|agent fleet|multi-agent|soar|playbook)\b",
-    re.I,
-)
+# NOTE: SECRET_PATTERNS, AI_KEYWORDS and FLEET_KEYWORDS used to live here. The
+# 0.5.0 rule-engine migration moved every check into declarative `.rule.json`
+# files, but left these constants behind with no remaining reference. Three of
+# the four secret patterns (AWS access key ids, `sk-` provider tokens, and
+# private key blocks) were therefore enforced by nothing while the docs still
+# claimed coverage. They now ship as rules 041-043 in
+# presets/sicario-core/rules/, which is the only place a check should live.
 
 SEMGREQ_SEVERITIES = {"error", "high", "critical"}
 SARIF_ERROR_LEVELS = {"error"}

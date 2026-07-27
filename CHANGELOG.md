@@ -49,6 +49,18 @@ improve the security model.
 
 ### Security
 
+- **Three documented secret patterns were enforced by nothing.** The 0.5.0
+  rule-engine migration moved every check into declarative `.rule.json` files
+  but left `SECRET_PATTERNS` behind in `cli.py` with no remaining reference.
+  Only the assignment pattern shipped as a rule, so bare AWS access key ids
+  (`AKIA…`), provider tokens (`sk-…`), and private key blocks were detected by
+  nothing — while `USAGE.md` documented `SICARIO-HARDCODED-SECRET` as covering
+  all four. They now ship as rules 041-043 with their own finding codes
+  (`SICARIO-HARDCODED-AWS-KEY`, `SICARIO-HARDCODED-PROVIDER-TOKEN`,
+  `SICARIO-PRIVATE-KEY-MATERIAL`), verified by a regression test that plants one
+  of each. The dead constants are removed and `USAGE.md` now lists what is
+  actually enforced.
+
 - **Backups are no longer committable.** `sicario init` now adds
   `*.sicario-bak.*` to the target repository's `.gitignore` before taking the
   first backup. Backups are verbatim copies of the adopting repo's existing

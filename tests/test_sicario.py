@@ -1025,6 +1025,40 @@ class BrownfieldSafeAdoptionTests(unittest.TestCase):
             self.assertEqual("ORIGINAL\n", outside.read_text(encoding="utf-8"))
             self.assertTrue(any("symlink" in a for a in actions))
 
+    def test_secret_scan_detects_all_four_documented_patterns(self) -> None:
+        """The three patterns that were dead code must actually be enforced.
+
+        Until rules 041-043 shipped, only the assignment pattern was enforced.
+        `SECRET_PATTERNS` in cli.py still listed AWS key ids, `sk-` provider
+        tokens and private key blocks, but nothing referenced it, so those three
+        were detected by nothing while USAGE.md claimed coverage. This test is the
+        regression guard: it plants one of each and asserts each is caught.
+        """
+        with tempfile.TemporaryDirectory() as tmp:
+            target = Path(tmp) / "project"
+            self.assertEqual(0, main(["init", str(target), "--profile", "appsec"]))
+
+            # Built at runtime so this test file never itself contains a secret.
+            (target / "leak_assign.txt").write_text(
+                "api_key = " + '"' + "z" * 20 + '"' + "\n", encoding="utf-8"
+            )
+            (target / "leak_aws.txt").write_text(
+                "AKIA" + "A1B2C3D4E5F6G7H8" + "\n", encoding="utf-8"
+            )
+            (target / "leak_token.txt").write_text("sk-" + "a" * 30 + "\n", encoding="utf-8")
+            (target / "leak_key.pem").write_text(
+                "-----BEGIN RSA PRIVATE" + " KEY-----\n", encoding="utf-8"
+            )
+
+            codes = {f.code for f in verify_project(target, write=False)}
+            for expected in (
+                "SICARIO-HARDCODED-SECRET",
+                "SICARIO-HARDCODED-AWS-KEY",
+                "SICARIO-HARDCODED-PROVIDER-TOKEN",
+                "SICARIO-PRIVATE-KEY-MATERIAL",
+            ):
+                self.assertIn(expected, codes, f"{expected} did not fire on a planted secret")
+
     def test_generated_files_contain_no_placeholder_secrets(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             target = Path(tmp) / "project"
@@ -1040,14 +1074,29 @@ class BrownfieldSafeAdoptionTests(unittest.TestCase):
             ]
             secret_patterns = ["".join(p).lower() for p in parts]
             for path in target.rglob("*"):
-                if path.is_file() and path.suffix in (".md", ".yml", ".yaml", ".json", ".txt"):
-                    content = path.read_text(encoding="utf-8", errors="ignore").lower()
-                    for pattern in secret_patterns:
-                        self.assertNotIn(
-                            pattern,
-                            content,
-                            f"Potential leaked pattern '{pattern}' found in {path}",
-                        )
+                if not path.is_file() or path.suffix not in (
+                    ".md",
+                    ".yml",
+                    ".yaml",
+                    ".json",
+                    ".txt",
+                ):
+                    continue
+                # Detection rules necessarily contain the patterns they detect —
+                # `041-secret-aws-access-key.rule.json` holds the AWS key regex as
+                # its own data. Scanning them for those strings is a guaranteed
+                # false positive. Rule files are copied to more than one location
+                # (`.sicario/rules/` and `.specify/presets/*/rules/`), so key off
+                # the file itself rather than any one directory prefix.
+                if path.name.endswith(".rule.json"):
+                    continue
+                content = path.read_text(encoding="utf-8", errors="ignore").lower()
+                for pattern in secret_patterns:
+                    self.assertNotIn(
+                        pattern,
+                        content,
+                        f"Potential leaked pattern '{pattern}' found in {path}",
+                    )
 
 
 if __name__ == "__main__":
