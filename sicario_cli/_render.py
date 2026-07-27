@@ -25,6 +25,11 @@ OUTCOME_SKIPPED = "skipped"
 SICARIO_OVERLAY_BEGIN = "<!-- BEGIN SICARIO-SPEC OVERLAY (additive; do not edit by hand) -->"
 SICARIO_OVERLAY_END = "<!-- END SICARIO-SPEC OVERLAY -->"
 
+# Timestamped backups are verbatim copies of the adopting repo's own files, so
+# they can carry secrets or internal content. They must never become committable.
+BACKUP_IGNORE_PATTERN = "*.sicario-bak.*"
+BACKUP_IGNORE_COMMENT = "# SicarioSpec timestamped backups (may contain pre-existing secrets)"
+
 
 @dataclass
 class FileReport:
@@ -57,6 +62,56 @@ def _backup_file(path: Path, *, dry_run: bool) -> Optional[Path]:
     backup = _backup_path(path)
     shutil.copy2(path, backup)
     return backup
+
+
+def _ensure_gitignore_rule(
+    target: Path,
+    *,
+    pattern: str = BACKUP_IGNORE_PATTERN,
+    comment: str = BACKUP_IGNORE_COMMENT,
+    dry_run: bool,
+    actions: List[str],
+    reports: Optional[List[FileReport]] = None,
+) -> None:
+    """Idempotently ensure ``pattern`` is ignored in the target repo's .gitignore.
+
+    Backups taken by ``sicario init`` are verbatim copies of the adopting repo's
+    pre-existing constitution, instruction files, and Spec Kit templates. They can
+    therefore contain secrets or internal content that was never meant to be
+    committed. This rule is written BEFORE the first backup is taken so the
+    protection exists before the risk does.
+
+    Never clobbers: an existing .gitignore is read and appended to only when the
+    pattern is absent, so re-running ``init`` is a no-op.
+    """
+    gitignore = target / ".gitignore"
+    block = f"{comment}\n{pattern}\n"
+
+    if gitignore.exists():
+        existing = gitignore.read_text(encoding="utf-8")
+        # Compare on stripped lines so an existing rule is recognised regardless of
+        # surrounding whitespace — this is what makes re-runs idempotent.
+        if any(line.strip() == pattern for line in existing.splitlines()):
+            actions.append(f"gitignore already ignores {pattern}")
+            if reports is not None:
+                _record(reports, gitignore, OUTCOME_PRESERVED, f"already ignores {pattern}")
+            return
+        actions.append(f"append ignore rule {pattern} to {gitignore}")
+        if reports is not None:
+            _record(reports, gitignore, OUTCOME_MERGED, f"appended ignore rule {pattern}")
+        if dry_run:
+            return
+        separator = "" if existing.endswith("\n") else "\n"
+        gitignore.write_text(existing + separator + "\n" + block, encoding="utf-8")
+        return
+
+    actions.append(f"write {gitignore}")
+    if reports is not None:
+        _record(reports, gitignore, OUTCOME_CREATED, f"ignore rule {pattern}")
+    if dry_run:
+        return
+    gitignore.parent.mkdir(parents=True, exist_ok=True)
+    gitignore.write_text(block, encoding="utf-8")
 
 
 def _copy_tree(

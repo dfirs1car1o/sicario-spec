@@ -23,6 +23,7 @@ from typing import Iterable, List, Optional, Sequence
 from sicario_cli._render import (
     FileReport,
     _copy_tree,
+    _ensure_gitignore_rule,
     _print_report,
     _write_text,
 )
@@ -513,6 +514,16 @@ def init_project(args: argparse.Namespace) -> int:
 
     if not args.dry_run:
         target.mkdir(parents=True, exist_ok=True)
+
+    # Ensure backups are unstageable BEFORE the first one is written. Brownfield
+    # adoption backs up the target's own constitution/instructions/templates, which
+    # may contain secrets; the ignore rule must land ahead of that, not after.
+    _ensure_gitignore_rule(
+        target,
+        dry_run=args.dry_run,
+        actions=actions,
+        reports=reports,
+    )
 
     for preset in selected_presets:
         _copy_tree(

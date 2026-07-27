@@ -295,7 +295,9 @@ Then, per file:
 
 Always:
 
-- Every modified file is **backed up first** to `*.sicario-bak.<UTC-timestamp>`.
+- Every modified file is **backed up first** to `*.sicario-bak.<UTC-timestamp>`,
+  and `*.sicario-bak.*` is added to the target repo's `.gitignore` so backups
+  (which may contain pre-existing secrets) can never be committed.
 - A per-file **adoption report** prints at the end: `created` /
   `merged-overlaid` / `preserved` / `overwritten`, plus a summary line.
 

@@ -8,7 +8,15 @@ improve the security model.
 
 ## [Unreleased]
 
-No unreleased changes yet.
+### Security
+
+- **Backups are no longer committable.** `sicario init` now adds
+  `*.sicario-bak.*` to the target repository's `.gitignore` before taking the
+  first backup. Backups are verbatim copies of the adopting repo's existing
+  constitution, instruction files, and Spec Kit templates, so they can carry
+  secrets or internal content that was never meant to be committed. The rule is
+  written idempotently and never clobbers an existing `.gitignore`. The same
+  pattern was added to this repository's own `.gitignore`.
 
 ## [0.5.1] - 2026-06-25
 

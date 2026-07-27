@@ -748,6 +748,90 @@ class BrownfieldSafeAdoptionTests(unittest.TestCase):
             self.assertTrue(backups)
             self.assertEqual(original, backups[0].read_text(encoding="utf-8"))
 
+    def test_init_ignores_backups_in_target_gitignore(self) -> None:
+        """Backups are verbatim copies of the target's files, so they must be unstageable."""
+        import fnmatch
+
+        with tempfile.TemporaryDirectory() as tmp:
+            target = Path(tmp) / "project"
+            target.mkdir()
+            self._seed_brownfield(target)
+            self.assertEqual(
+                0, main(["init", str(target), "--profile", "appsec", "--integration", "claude"])
+            )
+
+            gitignore = target / ".gitignore"
+            self.assertTrue(gitignore.exists())
+            rules = [line.strip() for line in gitignore.read_text(encoding="utf-8").splitlines()]
+            self.assertIn("*.sicario-bak.*", rules)
+
+            # The rule must actually match the backups this run produced — a pattern
+            # that is present but non-matching would be worse than none at all.
+            backups = list(target.glob("*.sicario-bak.*")) + list(
+                target.glob(".specify/memory/*.sicario-bak.*")
+            )
+            self.assertTrue(backups, "expected brownfield init to create backups")
+            for backup in backups:
+                self.assertTrue(
+                    fnmatch.fnmatch(backup.name, "*.sicario-bak.*"),
+                    f"ignore rule does not match real backup {backup.name}",
+                )
+
+    def test_init_preserves_existing_target_gitignore(self) -> None:
+        """An existing .gitignore is appended to, never clobbered."""
+        with tempfile.TemporaryDirectory() as tmp:
+            target = Path(tmp) / "project"
+            target.mkdir()
+            self._seed_brownfield(target)
+            gitignore = target / ".gitignore"
+            gitignore.write_text("node_modules/\n*.env\n", encoding="utf-8")
+
+            self.assertEqual(
+                0, main(["init", str(target), "--profile", "appsec", "--integration", "claude"])
+            )
+
+            content = gitignore.read_text(encoding="utf-8")
+            self.assertIn("node_modules/", content)
+            self.assertIn("*.env", content)
+            self.assertIn("*.sicario-bak.*", content)
+
+    def test_init_gitignore_rule_is_idempotent(self) -> None:
+        """Re-running init must not append the ignore rule twice."""
+        with tempfile.TemporaryDirectory() as tmp:
+            target = Path(tmp) / "project"
+            target.mkdir()
+            self._seed_brownfield(target)
+            args = ["init", str(target), "--profile", "appsec", "--integration", "claude"]
+
+            self.assertEqual(0, main(args))
+            first = (target / ".gitignore").read_text(encoding="utf-8")
+            self.assertEqual(0, main(args))
+            second = (target / ".gitignore").read_text(encoding="utf-8")
+
+            self.assertEqual(first, second)
+            self.assertEqual(1, second.count("*.sicario-bak.*"))
+
+    def test_init_dry_run_writes_no_gitignore(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            target = Path(tmp) / "project"
+            target.mkdir()
+            self._seed_brownfield(target)
+            self.assertEqual(
+                0,
+                main(
+                    [
+                        "init",
+                        str(target),
+                        "--profile",
+                        "appsec",
+                        "--integration",
+                        "claude",
+                        "--dry-run",
+                    ]
+                ),
+            )
+            self.assertFalse((target / ".gitignore").exists())
+
     def test_generated_files_contain_no_placeholder_secrets(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             target = Path(tmp) / "project"

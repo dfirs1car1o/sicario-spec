@@ -110,7 +110,9 @@ This is **brownfield-safe by default**: it *overlays*, it never clobbers.
   appended **idempotently** (re-running does not double-append).
 - Existing `CLAUDE.md` / `AGENTS.md` → a delimited SicarioSpec section is
   appended; your content is never overwritten.
-- Every modified file is backed up first to `*.sicario-bak.<UTC-timestamp>`.
+- Every modified file is backed up first to `*.sicario-bak.<UTC-timestamp>`, and
+  `*.sicario-bak.*` is added to the target repo's `.gitignore` so backups (which
+  may contain pre-existing secrets) can never be committed.
 
 Preview or override:
 
