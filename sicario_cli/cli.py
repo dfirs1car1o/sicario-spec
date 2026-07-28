@@ -115,8 +115,15 @@ PROFILE_PRESETS = {
 # (SICARIO-MISSING-FRAMEWORK-MAP) — so a team enforces exactly the frameworks it
 # chose, not all 14 and not none.
 #
-# Backward-compatible by construction: with NO config file, verify behaves
-# exactly as before (the single coarse SICARIO-MISSING-CONTROL-MAPS check).
+# Backward-compatible by construction: with NO config file, no framework is
+# selected and SICARIO-MISSING-FRAMEWORK-MAP cannot fire.
+#
+# SICARIO-MISSING-CONTROL-MAPS is a DIFFERENT check and is not conditional on
+# any of this — it is shipped rule 020, a file-glob over
+# docs/compliance/control-maps/*, and it runs on every project regardless of the
+# selector. An earlier version of this comment implied the selector governed it,
+# and that error propagated into USAGE.md and README, where it told readers the
+# gate would accept a `control_maps/` layout it in fact rejects.
 
 # Short, stable selector key -> shipped control-map filename.
 FRAMEWORK_IDS = {
