@@ -1,6 +1,9 @@
 from __future__ import annotations
 
+import importlib
 import json
+import os
+import shutil
 import tempfile
 import unittest
 from pathlib import Path
@@ -2737,6 +2740,618 @@ class RulePrecedenceAndOverrideEvidenceTests(unittest.TestCase):
             self.assertEqual(0, rc)
             self.assertIn("sicario verify passed", buf.getvalue())
             self.assertEqual([], _gate_summary(target)["scan_coverage"]["overrides"])
+
+
+# --- Override evidence anchoring (anti-gaming) --------------------------------
+#
+# An override's `impact` string and the severity shown in `disabled_rules` are
+# anchored to the ORIGINAL definition of the rule id — the first one loaded,
+# which is the shipped definition whenever a shipped rule exists. Without the
+# anchor both defences were gameable by splitting an edit across rule files:
+#
+#   * `impact` compared only the two ADJACENT definitions, so demoting a
+#     critical rule to `low` in one file and disabling it in a later file
+#     produced `disables-low-severity-rule` — the grep-able string
+#     `disables-critical-severity-rule` never appeared anywhere.
+#   * `sicario init` copies every shipped rule verbatim into `.sicario/rules/`;
+#     that no-op collision was exempt from RECORDING but still re-anchored
+#     provenance, so `superseded_origin` read "project" instead of "shipped" in
+#     every normally-initialised project and a CI filter on
+#     `superseded_origin == "shipped"` matched nothing, ever.
+#
+# The invariant these tests pin: a chain of N overriding files yields the same
+# ultimate evidence as making the whole change in one file.
+
+
+class OverrideEvidenceAnchoringTests(unittest.TestCase):
+    def _write_chain_file(self, target: Path, filename: str, **changes) -> None:
+        rule = _shipped_rule_file("040-secret-scan.rule.json")
+        rule.update(changes)
+        _write_project_rule(target, filename, rule)
+
+    def test_two_file_demote_then_disable_chain_still_reads_disables_critical(self) -> None:
+        """The verified attack: split the demotion and the disable across files.
+
+        zy-chain-a demotes critical -> low (still enabled); zz-chain-b, sorting
+        later and therefore winning, disables the rule at `low`. The final
+        record must carry the anchored grep signal, not `disables-low-...`.
+        """
+        with tempfile.TemporaryDirectory() as tmp:
+            target = Path(tmp) / "project"
+            self.assertEqual(0, main(["init", str(target), "--profile", "appsec"]))
+            self._write_chain_file(target, "zy-chain-a.rule.json", severity="low")
+            self._write_chain_file(target, "zz-chain-b.rule.json", severity="low", enabled=False)
+
+            verify_project(target, write=True)
+            overrides = _gate_summary(target)["scan_coverage"]["overrides"]
+            records = [o for o in overrides if o["rule_id"] == "SICARIO-HARDCODED-SECRET"]
+            self.assertEqual(2, len(records))
+
+            final = records[-1]
+            self.assertEqual("zz-chain-b.rule.json", final["winning_file"])
+            self.assertTrue(final["disables_rule"])
+            self.assertEqual("critical", final["original_severity"])
+            self.assertEqual("disables-critical-severity-rule", final["impact"])
+
+            # Every step of the chain is anchored, so the intermediate demotion
+            # is also ranked against the shipped severity.
+            self.assertEqual("modifies-critical-severity-rule", records[0]["impact"])
+            self.assertEqual("critical", records[0]["original_severity"])
+
+    def test_three_file_stepwise_demotion_chain_is_still_anchored_to_critical(self) -> None:
+        """critical->high, high->medium, medium->disabled across three files."""
+        from sicario_cli.rules import RuleEngine
+
+        with tempfile.TemporaryDirectory() as tmp:
+            shipped = Path(tmp) / "shipped"
+            project = Path(tmp) / "project"
+            shipped.mkdir()
+            project.mkdir()
+
+            original = _shipped_rule_file("040-secret-scan.rule.json")
+            (shipped / "040-secret-scan.rule.json").write_text(
+                json.dumps(original), encoding="utf-8"
+            )
+            for filename, changes in (
+                ("100-step.rule.json", {"severity": "high"}),
+                ("200-step.rule.json", {"severity": "medium"}),
+                ("300-step.rule.json", {"severity": "medium", "enabled": False}),
+            ):
+                step = dict(original)
+                step.update(changes)
+                (project / filename).write_text(json.dumps(step), encoding="utf-8")
+
+            engine = RuleEngine()
+            engine.load_rules([shipped, project], origins=["shipped", "project"])
+            self.assertEqual(3, len(engine.overrides))
+            self.assertEqual(
+                ["critical", "critical", "critical"],
+                [o["original_severity"] for o in engine.overrides],
+            )
+            self.assertEqual(
+                [
+                    "modifies-critical-severity-rule",
+                    "modifies-critical-severity-rule",
+                    "disables-critical-severity-rule",
+                ],
+                [o["impact"] for o in engine.overrides],
+            )
+            # Adjacent from/to are still reported truthfully alongside the anchor.
+            self.assertEqual({"from": "medium", "to": "medium"}, engine.overrides[-1]["severity"])
+
+    def test_single_file_disable_evidence_is_unchanged_by_the_anchoring(self) -> None:
+        """The already-working path: one project file disables the shipped rule."""
+        with tempfile.TemporaryDirectory() as tmp:
+            target = Path(tmp) / "project"
+            self.assertEqual(0, main(["init", str(target), "--profile", "appsec"]))
+            off = _shipped_rule_file("040-secret-scan.rule.json")
+            off["enabled"] = False
+            _write_project_rule(target, "040-secret-scan.rule.json", off)
+
+            verify_project(target, write=True)
+            overrides = _gate_summary(target)["scan_coverage"]["overrides"]
+            [record] = [o for o in overrides if o["rule_id"] == "SICARIO-HARDCODED-SECRET"]
+            self.assertEqual("disables-critical-severity-rule", record["impact"])
+            self.assertEqual("critical", record["original_severity"])
+            self.assertEqual("shipped", record["superseded_origin"])
+            self.assertEqual({"from": True, "to": False}, record["enabled"])
+            self.assertEqual(["enabled"], record["changed"])
+
+    def test_init_verbatim_copy_does_not_reanchor_provenance_away_from_shipped(self) -> None:
+        """`init` leaves a byte-identical project copy of every shipped rule.
+
+        That copy changes nothing, so a later REAL override in another file
+        still supersedes the shipped definition: `superseded_origin` must read
+        "shipped", the documented value a reviewer or CI filter greps for.
+        """
+        with tempfile.TemporaryDirectory() as tmp:
+            target = Path(tmp) / "project"
+            self.assertEqual(0, main(["init", str(target), "--profile", "appsec"]))
+            # Premise check: the verbatim init copy is present and untouched.
+            self.assertTrue(
+                (target / ".sicario" / "rules" / "040-secret-scan.rule.json").exists(),
+                "init no longer copies the shipped rules; this test's premise is stale",
+            )
+            self._write_chain_file(target, "zzz-real-override.rule.json", enabled=False)
+
+            verify_project(target, write=True)
+            overrides = _gate_summary(target)["scan_coverage"]["overrides"]
+            [record] = [o for o in overrides if o["rule_id"] == "SICARIO-HARDCODED-SECRET"]
+            self.assertEqual("shipped", record["superseded_origin"])
+            self.assertEqual("040-secret-scan.rule.json", record["superseded_file"])
+            self.assertEqual("zzz-real-override.rule.json", record["winning_file"])
+            self.assertEqual("disables-critical-severity-rule", record["impact"])
+
+    def test_project_only_rule_is_anchored_to_its_first_project_definition(self) -> None:
+        """No shipped rule involved: the anchor is the first project definition."""
+        from sicario_cli.rules import RuleEngine
+
+        with tempfile.TemporaryDirectory() as tmp:
+            rule_dir = Path(tmp) / "rules"
+            rule_dir.mkdir()
+            first = {
+                "id": "PROJ-ONLY-RULE",
+                "severity": "high",
+                "kind": "file-exists",
+                "path": "README.md",
+                "message": "readme must exist",
+            }
+            second = dict(first)
+            second["severity"] = "low"
+            second["enabled"] = False
+            (rule_dir / "100-first.rule.json").write_text(json.dumps(first), encoding="utf-8")
+            (rule_dir / "200-second.rule.json").write_text(json.dumps(second), encoding="utf-8")
+
+            engine = RuleEngine()
+            engine.load_rules([rule_dir], origins=["project"])
+            [record] = engine.overrides
+            self.assertEqual("high", record["original_severity"])
+            self.assertEqual("disables-high-severity-rule", record["impact"])
+            # No shipped definition ever existed for this id, so "shipped" must
+            # not appear anywhere in the record's provenance.
+            self.assertEqual("project", record["superseded_origin"])
+            self.assertEqual("project", record["winning_origin"])
+            self.assertEqual("100-first.rule.json", record["superseded_file"])
+
+    def test_disabled_rules_severity_reflects_the_original_shipped_severity(self) -> None:
+        """The chain demotes then disables; `disabled_rules` must say critical."""
+        with tempfile.TemporaryDirectory() as tmp:
+            target = Path(tmp) / "project"
+            self.assertEqual(0, main(["init", str(target), "--profile", "appsec"]))
+            self._write_chain_file(target, "zy-chain-a.rule.json", severity="low")
+            self._write_chain_file(target, "zz-chain-b.rule.json", severity="low", enabled=False)
+
+            verify_project(target, write=True)
+            self.assertIn(
+                {
+                    "id": "SICARIO-HARDCODED-SECRET",
+                    "severity": "critical",
+                    "kind": "regex-forbidden",
+                },
+                _gate_summary(target)["scan_coverage"]["disabled_rules"],
+            )
+
+    def test_override_evidence_is_byte_identical_across_repeated_runs(self) -> None:
+        """Anchoring adds no nondeterminism: repeated runs serialize identically."""
+        from sicario_cli.rules import RuleEngine
+
+        with tempfile.TemporaryDirectory() as tmp:
+            target = Path(tmp) / "project"
+            self.assertEqual(0, main(["init", str(target), "--profile", "appsec"]))
+            self._write_chain_file(target, "zy-chain-a.rule.json", severity="low")
+            self._write_chain_file(target, "zz-chain-b.rule.json", severity="low", enabled=False)
+
+            from sicario_cli.cli import _rule_sources
+
+            rule_dirs, origins = _rule_sources(target)
+            serialized = set()
+            for _ in range(5):
+                report = RuleEngine().run_detailed(target, rule_dirs=rule_dirs, origins=origins)
+                serialized.add(
+                    json.dumps(
+                        {"overrides": report.overrides, "disabled_rules": report.disabled_rules}
+                    )
+                )
+            self.assertEqual(1, len(serialized), "override evidence varied across runs")
+
+
+# --- Override details: the actual change, not just its field names ------------
+#
+# Verified round-2 attack: edit the init-placed project copy of
+# 040-secret-scan.rule.json and set params.pattern to `(?!x)x`, a regex that
+# matches nothing. The gate goes green by design — an override is a documented,
+# legitimate action — but the record said only `changed: ["params"]` with
+# `impact: modifies-critical-severity-rule`, and coverage read
+# `files_matched: 0`: indistinguishable from a clean repository without diffing
+# rule files by hand. The gate cannot decide whether a pattern change narrows
+# or neuters (that is regex containment, not a call a deterministic gate should
+# pretend to make); what it can do is put the actual from/to values in front of
+# the reviewer. `details` does exactly that, additively, for `path`, `kind`,
+# and each changed key inside `params`.
+
+
+class OverrideDetailEvidenceTests(unittest.TestCase):
+    def test_neutered_secret_pattern_shows_from_and_to_in_details(self) -> None:
+        """The verified attack now leaves the neutering regex in the evidence."""
+        with tempfile.TemporaryDirectory() as tmp:
+            target = Path(tmp) / "project"
+            self.assertEqual(0, main(["init", str(target), "--profile", "appsec"]))
+            _write_matches_on(target / "leak.txt", [1])
+
+            original = _shipped_rule_file("040-secret-scan.rule.json")
+            neutered = _shipped_rule_file("040-secret-scan.rule.json")
+            neutered["params"] = dict(neutered["params"])
+            neutered["params"]["pattern"] = "(?!x)x"
+            _write_project_rule(target, "040-secret-scan.rule.json", neutered)
+
+            findings = verify_project(target, write=True)
+            summary = _gate_summary(target)
+            # A green gate is the design: visibility, not prohibition.
+            self.assertEqual([], findings)
+            self.assertEqual("pass", summary["status"])
+
+            overrides = summary["scan_coverage"]["overrides"]
+            [record] = [o for o in overrides if o["rule_id"] == "SICARIO-HARDCODED-SECRET"]
+            self.assertEqual(["params"], record["changed"])
+            self.assertEqual("modifies-critical-severity-rule", record["impact"])
+            self.assertEqual(
+                {"pattern": {"from": original["params"]["pattern"], "to": "(?!x)x"}},
+                record["details"]["params"],
+            )
+
+    def test_path_change_details_carry_both_globs(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            target = Path(tmp) / "project"
+            self.assertEqual(0, main(["init", str(target), "--profile", "appsec"]))
+            narrowed = _shipped_rule_file("040-secret-scan.rule.json")
+            original_path = narrowed["path"]
+            narrowed["path"] = "docs/**"
+            _write_project_rule(target, "040-secret-scan.rule.json", narrowed)
+
+            verify_project(target, write=True)
+            overrides = _gate_summary(target)["scan_coverage"]["overrides"]
+            [record] = [o for o in overrides if o["rule_id"] == "SICARIO-HARDCODED-SECRET"]
+            self.assertEqual(["path"], record["changed"])
+            self.assertEqual({"path": {"from": original_path, "to": "docs/**"}}, record["details"])
+
+    def test_kind_change_is_detailed_and_message_change_is_not(self) -> None:
+        from sicario_cli.rules import RuleEngine
+
+        with tempfile.TemporaryDirectory() as tmp:
+            shipped = Path(tmp) / "shipped"
+            project = Path(tmp) / "project"
+            shipped.mkdir()
+            project.mkdir()
+            base = {
+                "id": "PROJ-KIND-RULE",
+                "severity": "medium",
+                "kind": "file-exists",
+                "path": "README.md",
+                "message": "readme must exist",
+            }
+            changed = dict(base)
+            changed["kind"] = "file-glob"
+            changed["message"] = "reworded"
+            (shipped / "100-base.rule.json").write_text(json.dumps(base), encoding="utf-8")
+            (project / "100-base.rule.json").write_text(json.dumps(changed), encoding="utf-8")
+
+            engine = RuleEngine()
+            engine.load_rules([shipped, project], origins=["shipped", "project"])
+            [record] = engine.overrides
+            self.assertEqual(["kind", "message"], record["changed"])
+            # `message` is cosmetic: named in `changed`, absent from `details`.
+            self.assertEqual(
+                {"kind": {"from": "file-exists", "to": "file-glob"}}, record["details"]
+            )
+
+    def test_message_only_override_has_empty_details(self) -> None:
+        from sicario_cli.rules import RuleEngine
+
+        with tempfile.TemporaryDirectory() as tmp:
+            shipped = Path(tmp) / "shipped"
+            project = Path(tmp) / "project"
+            shipped.mkdir()
+            project.mkdir()
+            base = {
+                "id": "PROJ-MSG-RULE",
+                "severity": "medium",
+                "kind": "file-exists",
+                "path": "README.md",
+                "message": "readme must exist",
+            }
+            reworded = dict(base)
+            reworded["message"] = "a README is required"
+            (shipped / "100-base.rule.json").write_text(json.dumps(base), encoding="utf-8")
+            (project / "100-base.rule.json").write_text(json.dumps(reworded), encoding="utf-8")
+
+            engine = RuleEngine()
+            engine.load_rules([shipped, project], origins=["shipped", "project"])
+            [record] = engine.overrides
+            self.assertEqual(["message"], record["changed"])
+            self.assertFalse(record["material"])
+            self.assertEqual({}, record["details"])
+
+    def test_pathological_detail_values_are_truncated_with_a_visible_marker(self) -> None:
+        """Rule-file content only ever reaches details, so there is nothing to
+        redact — but a pathological rule must not bloat the evidence artifact."""
+        from sicario_cli.rules import RuleEngine
+
+        with tempfile.TemporaryDirectory() as tmp:
+            shipped = Path(tmp) / "shipped"
+            project = Path(tmp) / "project"
+            shipped.mkdir()
+            project.mkdir()
+            original = _shipped_rule_file("040-secret-scan.rule.json")
+            (shipped / "040-secret-scan.rule.json").write_text(
+                json.dumps(original), encoding="utf-8"
+            )
+            huge = dict(original)
+            huge["params"] = dict(original["params"])
+            huge["params"]["pattern"] = "a" * 600
+            (project / "040-secret-scan.rule.json").write_text(json.dumps(huge), encoding="utf-8")
+
+            engine = RuleEngine()
+            engine.load_rules([shipped, project], origins=["shipped", "project"])
+            [record] = engine.overrides
+            detail = record["details"]["params"]["pattern"]
+            # The short side is intact; the long side is capped and SAYS so.
+            self.assertEqual(original["params"]["pattern"], detail["from"])
+            self.assertEqual("a" * 500 + " (truncated)", detail["to"])
+
+    def test_details_are_byte_identical_across_repeated_runs(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            target = Path(tmp) / "project"
+            self.assertEqual(0, main(["init", str(target), "--profile", "appsec"]))
+            edited = _shipped_rule_file("040-secret-scan.rule.json")
+            edited["path"] = "docs/**"
+            edited["params"] = dict(edited["params"])
+            edited["params"]["pattern"] = "(?!x)x"
+            _write_project_rule(target, "040-secret-scan.rule.json", edited)
+
+            serialized = set()
+            for _ in range(5):
+                verify_project(target, write=True)
+                overrides = _gate_summary(target)["scan_coverage"]["overrides"]
+                serialized.add(json.dumps(overrides))
+            self.assertEqual(1, len(serialized), "override details varied across runs")
+
+
+class RuleIdValidationTests(unittest.TestCase):
+    def test_rule_id_with_trailing_newline_is_rejected(self) -> None:
+        """`re.match` with `$` accepts "SICARIO-X\\n" — it renders identically
+        to the real id in evidence, a grep-poisoning primitive. fullmatch does
+        not."""
+        from sicario_cli.rules.engine import _validate_rule
+
+        rule = {
+            "id": "SICARIO-X\n",
+            "severity": "medium",
+            "kind": "file-exists",
+            "path": "README.md",
+            "message": "readme must exist",
+        }
+        errors = _validate_rule(rule)
+        self.assertTrue(
+            any("must match" in error for error in errors),
+            f"trailing-newline id validated: {errors}",
+        )
+        # The same id without the newline remains valid.
+        rule["id"] = "SICARIO-X"
+        self.assertEqual([], _validate_rule(rule))
+
+
+# --- Asset-root resolution evidence ------------------------------------------
+#
+# `SICARIO_ASSET_ROOT` legitimately relocates the asset root, but a decoy
+# directory carrying presets/ and extensions/ with no sicario-core/rules/ wins
+# the candidate race and silently drops every shipped rule — and with a PARTIAL
+# rule set the SICARIO-NO-RULES-LOADED fail-closed check cannot see it. The
+# control is visibility, not prohibition: `scan_coverage.asset_root` records
+# where rules came from on every run, and SICARIO-ASSET-ROOT-OVERRIDE fires
+# whenever the env var actually changed which root was used.
+#
+# ASSET_ROOT is resolved at import time as a module global, so these tests do
+# not poke the global directly: they reload sicario_cli.cli under a controlled
+# environment, which re-runs the exact import-time resolution production uses.
+# Cleanup restores the environment and reloads once more, so every other test
+# (whose functions share the reloaded module's globals dict) sees the original
+# resolution again.
+
+
+class AssetRootEvidenceTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self._saved_env = os.environ.get("SICARIO_ASSET_ROOT")
+        self.addCleanup(self._restore_cli)
+
+    def _restore_cli(self) -> None:
+        if self._saved_env is None:
+            os.environ.pop("SICARIO_ASSET_ROOT", None)
+        else:
+            os.environ["SICARIO_ASSET_ROOT"] = self._saved_env
+        import sicario_cli.cli as cli_module
+
+        importlib.reload(cli_module)
+
+    def _cli_with_asset_root(self, env_value: "str | None"):
+        """Reload sicario_cli.cli with SICARIO_ASSET_ROOT set (or unset)."""
+        if env_value is None:
+            os.environ.pop("SICARIO_ASSET_ROOT", None)
+        else:
+            os.environ["SICARIO_ASSET_ROOT"] = env_value
+        import sicario_cli.cli as cli_module
+
+        return importlib.reload(cli_module)
+
+    def test_scan_coverage_records_asset_root_on_a_normal_run(self) -> None:
+        cli = self._cli_with_asset_root(None)
+        with tempfile.TemporaryDirectory() as tmp:
+            target = Path(tmp) / "project"
+            self.assertEqual(0, cli.main(["init", str(target), "--profile", "public-core"]))
+            findings = cli.verify_project(target, write=True)
+            self.assertNotIn("SICARIO-ASSET-ROOT-OVERRIDE", {f.code for f in findings})
+
+            record = _gate_summary(target)["scan_coverage"]["asset_root"]
+            self.assertEqual(str(cli.ASSET_ROOT_RESOLUTION.resolved_root), record["path"])
+            self.assertTrue(Path(record["path"]).is_absolute())
+            self.assertIsNone(record["env_value"])
+            self.assertFalse(record["env_override_set"])
+            self.assertFalse(record["env_override_honored"])
+            self.assertFalse(record["redirected_by_env"])
+
+            shipped = cli.PRESETS_ROOT / "sicario-core" / "rules"
+            self.assertEqual(str(shipped), record["shipped_rules_dir"])
+            expected_count = len(list(shipped.glob("*.rule.json")))
+            self.assertGreater(expected_count, 0)
+            self.assertEqual(expected_count, record["shipped_rule_file_count"])
+
+    def test_decoy_asset_root_fires_redirect_and_no_rules_findings(self) -> None:
+        """A decoy with presets/+extensions/ but no rules must not pass quietly."""
+        with tempfile.TemporaryDirectory() as tmp:
+            decoy = Path(tmp) / "decoy"
+            (decoy / "presets").mkdir(parents=True)
+            (decoy / "extensions").mkdir(parents=True)
+            self.assertFalse((decoy / "presets" / "sicario-core" / "rules").exists())
+
+            cli = self._cli_with_asset_root(str(decoy))
+            self.assertEqual(decoy, cli.ASSET_ROOT)
+
+            target = Path(tmp) / "project"
+            target.mkdir()  # no .sicario/rules either, so zero rules load
+            findings = cli.verify_project(target, write=True)
+            codes = {f.code for f in findings}
+            self.assertIn("SICARIO-ASSET-ROOT-OVERRIDE", codes)
+            self.assertIn("SICARIO-NO-RULES-LOADED", codes)
+
+            override = next(f for f in findings if f.code == "SICARIO-ASSET-ROOT-OVERRIDE")
+            self.assertEqual("medium", override.severity)
+            self.assertIn("SICARIO_ASSET_ROOT", override.message)
+            self.assertIn(str(decoy.resolve()), override.message)
+            self.assertIn("fails the run by design", override.message)
+
+            record = _gate_summary(target)["scan_coverage"]["asset_root"]
+            self.assertEqual(str(decoy.resolve()), record["path"])
+            self.assertEqual(str(decoy), record["env_value"])
+            self.assertTrue(record["env_override_set"])
+            self.assertTrue(record["env_override_honored"])
+            self.assertTrue(record["redirected_by_env"])
+            self.assertEqual(0, record["shipped_rule_file_count"])
+
+    def test_full_copy_of_real_assets_at_a_new_path_still_fires_redirect(self) -> None:
+        """Identical content at a different path is still a redirect.
+
+        The finding keys on WHERE rules came from, not what they contain:
+        content can only be audited once the reviewer knows the source moved,
+        so the move itself is the reviewable event. The shipped rules DO load
+        here, so SICARIO-NO-RULES-LOADED stays silent.
+        """
+        with tempfile.TemporaryDirectory() as tmp:
+            relocated = Path(tmp) / "relocated"
+            shutil.copytree(PRESETS_ROOT, relocated / "presets")
+            shutil.copytree(PRESETS_ROOT.parent / "extensions", relocated / "extensions")
+
+            cli = self._cli_with_asset_root(str(relocated))
+            target = Path(tmp) / "project"
+            target.mkdir()
+            findings = cli.verify_project(target, write=True)
+            codes = {f.code for f in findings}
+            self.assertIn("SICARIO-ASSET-ROOT-OVERRIDE", codes)
+            self.assertNotIn("SICARIO-NO-RULES-LOADED", codes)
+
+            record = _gate_summary(target)["scan_coverage"]["asset_root"]
+            self.assertEqual(str(relocated.resolve()), record["path"])
+            self.assertEqual(str(relocated), record["env_value"])
+            self.assertTrue(record["redirected_by_env"])
+            shipped_count = len(list((PRESETS_ROOT / "sicario-core" / "rules").glob("*.rule.json")))
+            self.assertEqual(shipped_count, record["shipped_rule_file_count"])
+
+    def test_env_naming_the_default_root_is_not_a_redirect(self) -> None:
+        """Setting the env var to the root that wins anyway changes nothing."""
+        cli = self._cli_with_asset_root(None)
+        default_root = str(cli.ASSET_ROOT_RESOLUTION.default_root)
+
+        cli = self._cli_with_asset_root(default_root)
+        self.assertTrue(cli.ASSET_ROOT_RESOLUTION.env_honored)
+        self.assertFalse(cli.ASSET_ROOT_RESOLUTION.redirected)
+        with tempfile.TemporaryDirectory() as tmp:
+            target = Path(tmp) / "project"
+            self.assertEqual(0, cli.main(["init", str(target), "--profile", "public-core"]))
+            findings = cli.verify_project(target, write=True)
+            self.assertEqual([], findings)  # the verdict is untouched
+
+            record = _gate_summary(target)["scan_coverage"]["asset_root"]
+            self.assertTrue(record["env_override_set"])
+            self.assertTrue(record["env_override_honored"])
+            self.assertFalse(record["redirected_by_env"])
+            self.assertEqual(str(Path(default_root).resolve()), record["path"])
+            self.assertEqual(default_root, record["env_value"])
+
+    def test_case_variant_of_default_root_is_not_a_redirect(self) -> None:
+        """A case-variant spelling of the default root is the SAME directory on
+        a case-insensitive filesystem (macOS APFS default) and must not fire
+        SICARIO-ASSET-ROOT-OVERRIDE: `resolve()` does not fold case, so path
+        comparison alone read it as a move; `os.path.samefile` sees one inode.
+
+        The premise only holds where the filesystem actually ignores case, so
+        it is probed at test time: on a case-sensitive filesystem the variant
+        path is a different (nonexistent) directory, there is no false
+        positive to reproduce, and the test skips.
+        """
+        cli = self._cli_with_asset_root(None)
+        default_root = cli.ASSET_ROOT_RESOLUTION.default_root
+        variant = Path(str(default_root).swapcase())
+        if str(variant) == str(default_root):
+            self.skipTest("default root spelling contains no letters to case-vary")
+        try:
+            same = variant.exists() and os.path.samefile(variant, default_root)
+        except OSError:
+            same = False
+        if not same:
+            self.skipTest("filesystem is case-sensitive; the case variant is another path")
+
+        cli = self._cli_with_asset_root(str(variant))
+        self.assertTrue(cli.ASSET_ROOT_RESOLUTION.env_honored)
+        self.assertFalse(cli.ASSET_ROOT_RESOLUTION.redirected)
+
+        with tempfile.TemporaryDirectory() as tmp:
+            target = Path(tmp) / "project"
+            self.assertEqual(0, cli.main(["init", str(target), "--profile", "public-core"]))
+            findings = cli.verify_project(target, write=True)
+            self.assertNotIn("SICARIO-ASSET-ROOT-OVERRIDE", {f.code for f in findings})
+
+            record = _gate_summary(target)["scan_coverage"]["asset_root"]
+            self.assertFalse(record["redirected_by_env"])
+            self.assertTrue(record["env_override_honored"])
+            self.assertEqual(str(variant), record["env_value"])
+
+    def test_relative_env_value_is_recorded_resolved_alongside_the_raw_value(self) -> None:
+        """`SICARIO_ASSET_ROOT=decoyA` recorded verbatim is not reproducible
+        evidence — the path only means anything relative to a cwd the artifact
+        does not capture. `path` is now the resolved absolute directory and
+        `env_value` keeps the raw value: what was asked, and what it meant."""
+        saved_cwd = os.getcwd()
+        self.addCleanup(os.chdir, saved_cwd)
+        with tempfile.TemporaryDirectory() as tmp:
+            decoy = Path(tmp) / "decoyA"
+            shutil.copytree(PRESETS_ROOT, decoy / "presets")
+            shutil.copytree(PRESETS_ROOT.parent / "extensions", decoy / "extensions")
+            os.chdir(tmp)
+            cli = self._cli_with_asset_root("decoyA")
+            self.assertTrue(cli.ASSET_ROOT_RESOLUTION.env_honored)
+            self.assertTrue(cli.ASSET_ROOT_RESOLUTION.redirected)
+
+            target = Path(tmp) / "project"
+            target.mkdir()
+            findings = cli.verify_project(target, write=True)
+            self.assertIn("SICARIO-ASSET-ROOT-OVERRIDE", {f.code for f in findings})
+
+            record = _gate_summary(target)["scan_coverage"]["asset_root"]
+            self.assertEqual("decoyA", record["env_value"])
+            self.assertEqual(str(decoy.resolve()), record["path"])
+            self.assertTrue(Path(record["path"]).is_absolute())
+            # The finding message names the resolved directory, not the alias.
+            override = next(f for f in findings if f.code == "SICARIO-ASSET-ROOT-OVERRIDE")
+            self.assertIn(str(decoy.resolve()), override.message)
+            os.chdir(saved_cwd)
 
 
 if __name__ == "__main__":
