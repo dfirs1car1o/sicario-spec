@@ -47,25 +47,103 @@ except ImportError:
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
 
-def _asset_root() -> Path:
-    env_root = os.environ.get("SICARIO_ASSET_ROOT")
-    candidates = []
-    if env_root:
-        candidates.append(Path(env_root).expanduser())
-    candidates.extend(
-        [
-            REPO_ROOT,
-            Path(str(package_files("sicario_cli").joinpath("assets"))),
-            Path(sysconfig.get_path("data")) / "share" / "sicario-spec",
-        ]
+@dataclass(frozen=True)
+class AssetRootResolution:
+    """How the asset root was chosen, captured for gate evidence.
+
+    ``SICARIO_ASSET_ROOT`` is a legitimate feature (relocated installs, test
+    fixtures), but it also lets a decoy directory carrying ``presets/`` and
+    ``extensions/`` — with a partial or empty rules tree — silently replace the
+    shipped rule set while the gate still looks populated. An env var that
+    silently swaps the rule set is indistinguishable from an attack, so a
+    redirected gate must not present as a normal one: the resolution is
+    recorded in ``scan_coverage`` and a redirect raises a finding.
+    """
+
+    #: The asset root actually used for this process (rules load from here).
+    root: Path
+    #: ``root`` resolved at construction time — symlinks and cwd-relative
+    #: spellings pinned to one absolute path while the resolution-time cwd is
+    #: still in effect. This is what evidence records: a raw relative env value
+    #: like ``decoyA`` is not reproducible evidence on its own.
+    resolved_root: Path
+    #: Raw ``SICARIO_ASSET_ROOT`` value observed at resolution time, or None.
+    env_value: Optional[str]
+    #: True when the env var was set AND its directory won the candidate race.
+    env_honored: bool
+    #: The root that would have won with the env var unset.
+    default_root: Path
+
+    @property
+    def redirected(self) -> bool:
+        """True when the env var actually changed which root was used.
+
+        Path identity, not content, is the criterion: pointing the env var at
+        a byte-identical copy of the real assets still counts as a redirect,
+        because the SOURCE of the gate's rules moved and a reviewer must see
+        that. Pointing it at the root that would win anyway is a no-op and is
+        not a redirect.
+
+        DIRECTORY identity is inode identity where the filesystem can say so:
+        on a case-insensitive filesystem (macOS APFS default) a case-variant
+        spelling of the default root names the SAME directory, and resolve()
+        does not fold case, so a pure resolved-path comparison fired a false
+        redirect. ``os.path.samefile`` compares the actual directories; the
+        resolved-path comparison remains only as the fallback when either side
+        does not exist (samefile raises there), where it still keeps symlinked
+        spellings of one directory from reading as a move.
+        """
+        if not self.env_honored:
+            return False
+        try:
+            return not os.path.samefile(self.resolved_root, self.default_root)
+        except OSError:
+            return self.resolved_root != self.default_root.resolve()
+
+
+def _has_asset_layout(candidate: Path) -> bool:
+    return (candidate / "presets").exists() and (candidate / "extensions").exists()
+
+
+def _resolve_asset_root() -> AssetRootResolution:
+    """Resolve the asset root, keeping provenance for evidence.
+
+    Selection behavior is unchanged from the original ``_asset_root``: the env
+    var candidate races first, then the repo checkout, packaged assets, and the
+    sysconfig share directory; ``REPO_ROOT`` is the fallback. What is new is
+    that the losing default is computed alongside, so callers can tell whether
+    the env var merely named the winner or actually replaced it.
+    """
+    env_value = os.environ.get("SICARIO_ASSET_ROOT")
+    default_candidates = [
+        REPO_ROOT,
+        Path(str(package_files("sicario_cli").joinpath("assets"))),
+        Path(sysconfig.get_path("data")) / "share" / "sicario-spec",
+    ]
+    default_root = next((c for c in default_candidates if _has_asset_layout(c)), REPO_ROOT)
+    root = default_root
+    env_honored = False
+    if env_value:
+        env_candidate = Path(env_value).expanduser()
+        if _has_asset_layout(env_candidate):
+            root = env_candidate
+            env_honored = True
+    return AssetRootResolution(
+        root=root,
+        resolved_root=root.resolve(),
+        env_value=env_value,
+        env_honored=env_honored,
+        default_root=default_root,
     )
-    for candidate in candidates:
-        if (candidate / "presets").exists() and (candidate / "extensions").exists():
-            return candidate
-    return REPO_ROOT
 
 
-ASSET_ROOT = _asset_root()
+# Resolved once at import time; every module global below derives from it, and
+# rules are loaded from PRESETS_ROOT, so the evidence written by
+# ``verify_project`` records THIS snapshot — the root the run actually used —
+# rather than re-reading the environment later and possibly describing a root
+# the rules never came from.
+ASSET_ROOT_RESOLUTION = _resolve_asset_root()
+ASSET_ROOT = ASSET_ROOT_RESOLUTION.root
 PRESETS_ROOT = ASSET_ROOT / "presets"
 EXTENSIONS_ROOT = ASSET_ROOT / "extensions"
 WORKFLOW_ROOT = ASSET_ROOT / "workflow_templates"
@@ -286,7 +364,11 @@ TEXT_SUFFIXES = {
     ".yml",
 }
 
-DATA_CLASSIFICATION_VALUES = {"public", "internal", "confidential", "restricted", "regulated"}
+# NOTE: DATA_CLASSIFICATION_VALUES used to live here; it served only the
+# deleted `_validate_spec_classification_and_tags` (see the note above
+# `_write_evidence`). The live copy is `_DATA_CLASSIFICATION_VALUES` in
+# sicario_cli/rules/kinds/classification_complete.py, next to the rule kind
+# that actually enforces it.
 
 # NOTE: SECRET_PATTERNS, AI_KEYWORDS and FLEET_KEYWORDS used to live here. The
 # 0.5.0 rule-engine migration moved every check into declarative `.rule.json`
@@ -993,11 +1075,6 @@ def iter_text_files(root: Path) -> Iterable[Path]:
                 yield path
 
 
-def _contains_any(text: str, phrases: Sequence[str]) -> bool:
-    lower = text.lower()
-    return any(phrase.lower() in lower for phrase in phrases)
-
-
 def _rule_sources(root: Path) -> "tuple[List[Path], List[str]]":
     """The ordered rule directories `sicario verify` loads, with their labels.
 
@@ -1095,6 +1172,29 @@ def verify_project(path: Path, *, write: bool = True) -> List[Finding]:
             Finding("critical", err["code"], f"{detail}: {'; '.join(err['errors'])}", location)
         )
 
+    # Design note: an env var that silently swaps the rule set is
+    # indistinguishable from an attack — a decoy asset root with a PARTIAL rule
+    # set weakens enforcement while looking populated, and the zero-rules
+    # fail-closed check above cannot see it. The env var stays a legitimate
+    # feature; the control is visibility, so a redirected gate must not present
+    # as a normal one. This fires only when SICARIO_ASSET_ROOT actually changed
+    # which root won the race — naming the root that would win anyway stays
+    # silent. No path is attached: the redirected root lives outside the
+    # scanned tree, and the message carries both paths.
+    if ASSET_ROOT_RESOLUTION.redirected:
+        findings.append(
+            Finding(
+                "medium",
+                "SICARIO-ASSET-ROOT-OVERRIDE",
+                "SICARIO_ASSET_ROOT redirected this gate's rule source: rules were "
+                f"loaded from '{ASSET_ROOT_RESOLUTION.resolved_root}' instead of the default "
+                f"'{ASSET_ROOT_RESOLUTION.default_root}'. This finding fails the run "
+                "by design — a redirected rule source is indistinguishable from a "
+                "tampered one until a reviewer confirms it. See "
+                "scan_coverage.asset_root in the evidence for the resolution record.",
+            )
+        )
+
     for r in rule_report.findings:
         findings.append(Finding(r["severity"], r["code"], r["message"], r["path"], r.get("line")))
 
@@ -1134,58 +1234,50 @@ def _scan_coverage(rule_report) -> dict:
     who changed them, from which file, and what changed — including the case a
     reviewer most needs to catch, a project rule turning off a shipped
     `critical` rule, which carries `impact: "disables-critical-severity-rule"`.
+
+    `asset_root` records WHERE the shipped rules came from: the resolved asset
+    root, the raw `SICARIO_ASSET_ROOT` value as given (`env_value`, possibly
+    relative), whether the env var was set and honored, whether it actually
+    redirected resolution, and the shipped-rules directory with its top-level
+    rule-file count (the same non-recursive glob the loader uses). Without
+    this, a decoy asset root that drops the shipped rules leaves no trace in
+    evidence at all. Existing keys keep their names, types, and meanings;
+    `asset_root` is additive.
     """
     from sicario_cli.rules.kinds.regex_forbidden import SKIPPED_DIR_NAMES
 
+    shipped_rules_dir = PRESETS_ROOT / "sicario-core" / "rules"
     return {
         "skipped_path_set": sorted(SKIPPED_DIR_NAMES),
         "rules": rule_report.coverage,
         "disabled_rules": rule_report.disabled_rules,
         "overrides": rule_report.overrides,
+        "asset_root": {
+            # The RESOLVED absolute path — a relative env value like `decoyA`
+            # recorded verbatim is not reproducible evidence. `env_value` below
+            # keeps the raw value as given, so the evidence shows both what was
+            # asked and what it meant.
+            "path": str(ASSET_ROOT_RESOLUTION.resolved_root),
+            "env_value": ASSET_ROOT_RESOLUTION.env_value,
+            "env_override_set": ASSET_ROOT_RESOLUTION.env_value is not None,
+            "env_override_honored": ASSET_ROOT_RESOLUTION.env_honored,
+            "redirected_by_env": ASSET_ROOT_RESOLUTION.redirected,
+            "shipped_rules_dir": str(shipped_rules_dir),
+            "shipped_rule_file_count": (
+                len(list(shipped_rules_dir.glob("*.rule.json")))
+                if shipped_rules_dir.is_dir()
+                else 0
+            ),
+        },
     }
 
 
-def _validate_spec_classification_and_tags(root: Path, path: Path, text: str) -> List[Finding]:
-    findings: List[Finding] = []
-    rel = str(path.relative_to(root))
-    lower = text.lower()
-
-    if "data classification" in lower:
-        required_phrases = [
-            "classification owner",
-            "retention",
-            "residency",
-            "sharing",
-            "redaction",
-        ]
-        missing = [phrase for phrase in required_phrases if phrase not in lower]
-        has_level = any(level in lower for level in DATA_CLASSIFICATION_VALUES)
-        if missing or not has_level:
-            details = ", ".join(missing + ([] if has_level else ["classification level"]))
-            findings.append(
-                Finding(
-                    "high",
-                    "SICARIO-DATA-CLASSIFICATION-INCOMPLETE",
-                    "Data classification must include owner, level, retention, residency, sharing, and redaction fields"
-                    + (f": {details}" if details else ""),
-                    rel,
-                )
-            )
-
-    if "tagging discipline" in lower:
-        required_tag_terms = ["owner", "system", "environment", "data-classification", "retention"]
-        missing_tags = [tag for tag in required_tag_terms if tag not in lower]
-        if missing_tags:
-            findings.append(
-                Finding(
-                    "high",
-                    "SICARIO-TAGGING-DISCIPLINE-INCOMPLETE",
-                    "Tagging discipline must include owner, system, environment, data-classification, and retention tags",
-                    rel,
-                )
-            )
-
-    return findings
+# NOTE: `_validate_spec_classification_and_tags` used to live here. It was
+# never called after the 0.5.0 rule-engine migration — its two codes
+# (SICARIO-DATA-CLASSIFICATION-INCOMPLETE, SICARIO-TAGGING-DISCIPLINE-INCOMPLETE)
+# are enforced by shipped rules 080/081 in presets/sicario-core/rules/. Keeping
+# an uncalled Python twin alongside the declarative rules was two sources of
+# truth for one check — a drift trap — so it was deleted rather than kept.
 
 
 def _write_evidence(

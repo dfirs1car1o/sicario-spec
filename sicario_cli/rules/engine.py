@@ -11,8 +11,6 @@ class RuleValidationError(Exception):
     """Raised when a rule file fails schema validation."""
 
 
-_RULE_SCHEMA_PATH = Path(__file__).resolve().parent / "schema.json"
-
 ALLOWED_SEVERITIES = {"critical", "high", "medium", "low"}
 ALLOWED_KINDS = {
     "file-exists",
@@ -50,7 +48,10 @@ def _validate_rule(rule: Dict[str, Any]) -> List[str]:
         return errors
 
     rid = rule["id"]
-    if not isinstance(rid, str) or not re.match(r"^[A-Z][A-Z0-9-]+$", rid):
+    # fullmatch, not match: `$` in re.match also matches just BEFORE a trailing
+    # newline, so an id like "SICARIO-X\n" validated and then rendered
+    # identically to the real id in evidence — a grep-poisoning primitive.
+    if not isinstance(rid, str) or not re.fullmatch(r"[A-Z][A-Z0-9-]+", rid):
         errors.append(f"rule id '{rid}' must match ^[A-Z][A-Z0-9-]+$")
 
     sev = rule["severity"]
@@ -116,17 +117,82 @@ _SEVERITY_ORDER = ["critical", "high", "medium", "low"]
 MATERIAL_OVERRIDE_FIELDS = ("enabled", "severity", "kind", "path", "params")
 
 
-def _more_severe(left: Any, right: Any) -> str:
-    """Return the more severe of two severity strings.
+def _more_severe(*severities: Any) -> str:
+    """Return the most severe of the given severity strings.
 
-    An override is ranked by the HIGHER of the superseded and the winning
-    severity so that demoting a rule to `low` in the same edit that disables it
-    cannot dress a disabled `critical` rule up as a routine `low` tweak.
+    An override is ranked by the HIGHEST of the ORIGINAL, the superseded, and
+    the winning severity so that demoting a rule to `low` in the same edit that
+    disables it cannot dress a disabled `critical` rule up as a routine `low`
+    tweak — and so that splitting the demotion and the disable across two files
+    cannot either. A chain of N overriding files must yield the same ultimate
+    impact string as doing it all in one file.
     """
-    candidates = [s for s in (left, right) if s in _SEVERITY_ORDER]
+    candidates = [s for s in severities if s in _SEVERITY_ORDER]
     if not candidates:
         return "unknown"
     return min(candidates, key=_SEVERITY_ORDER.index)
+
+
+#: Ceiling on any single from/to value recorded in an override's `details`.
+#: Values here are rule-file content (patterns, globs) — never scanned
+#: repository content — so there is nothing secret to redact; the cap only
+#: stops a pathological rule from bloating the evidence artifact.
+_DETAIL_VALUE_MAX_CHARS = 500
+
+
+def _detail_value(value: Any) -> Any:
+    """Return ``value`` for an override detail entry, capping pathological sizes.
+
+    Non-string values (keyword lists, caps) are kept as-is when small so the
+    detail is machine-readable; anything whose rendering exceeds the cap is
+    replaced by its truncated rendering with an explicit ``(truncated)`` marker
+    so the truncation itself is visible, never silent.
+    """
+    rendered = value if isinstance(value, str) else json.dumps(value, sort_keys=True)
+    if len(rendered) > _DETAIL_VALUE_MAX_CHARS:
+        return rendered[:_DETAIL_VALUE_MAX_CHARS] + " (truncated)"
+    return value
+
+
+def _override_details(
+    superseded: Dict[str, Any], winning: Dict[str, Any], changed: List[str]
+) -> Dict[str, Any]:
+    """From/to values for the changes a reviewer cannot judge from names alone.
+
+    The gate cannot decide whether a `params.pattern` change is a narrowing or
+    a neutering — that is regex containment, not something a deterministic gate
+    should pretend to judge. What it can do is put the actual change in front
+    of the reviewer: without this, replacing the secret-scan pattern with
+    `(?!x)x` produced a record saying only `changed: ["params"]`, and the
+    resulting green gate was indistinguishable from a clean repository without
+    diffing rule files by hand.
+
+    Covered: `path`, `kind`, and every changed KEY inside `params`, each as
+    `{"from": ..., "to": ...}`. `severity` and `enabled` already carry from/to
+    at the top of the record; `message` is cosmetic and needs no detail. Keys
+    are inserted in sorted order so the record is deterministic.
+    """
+    details: Dict[str, Any] = {}
+    for field_name in sorted(("kind", "path")):
+        if field_name in changed:
+            details[field_name] = {
+                "from": _detail_value(superseded.get(field_name)),
+                "to": _detail_value(winning.get(field_name)),
+            }
+    if "params" in changed:
+        previous = superseded.get("params")
+        current = winning.get("params")
+        previous = previous if isinstance(previous, dict) else {}
+        current = current if isinstance(current, dict) else {}
+        param_details: Dict[str, Any] = {}
+        for key in sorted(set(previous) | set(current)):
+            if previous.get(key) != current.get(key):
+                param_details[key] = {
+                    "from": _detail_value(previous.get(key)),
+                    "to": _detail_value(current.get(key)),
+                }
+        details["params"] = param_details
+    return details
 
 
 def _rule_diff(superseded: Dict[str, Any], winning: Dict[str, Any]) -> List[str]:
@@ -151,11 +217,20 @@ def _override_record(
     superseded_ref: Dict[str, str],
     winning_ref: Dict[str, str],
     changed: List[str],
+    original_severity: Any,
 ) -> Dict[str, Any]:
-    """Build the evidence record for one rule replaced by a later rule file."""
+    """Build the evidence record for one rule replaced by a later rule file.
+
+    ``original_severity`` is the severity of the FIRST definition ever loaded
+    for this id — the shipped severity whenever a shipped rule exists. `impact`
+    is anchored to it so that a chain of project files (demote in one file,
+    disable in a later one) cannot launder `disables-critical-severity-rule`
+    down to `disables-low-severity-rule`: each adjacent comparison alone would
+    only ever see the already-demoted severity.
+    """
     was_enabled = superseded.get("enabled", True)
     now_enabled = winning.get("enabled", True)
-    severity = _more_severe(superseded.get("severity"), winning.get("severity"))
+    severity = _more_severe(original_severity, superseded.get("severity"), winning.get("severity"))
     disables = bool(was_enabled and not now_enabled)
     # The impact string carries the severity so that turning a rule OFF never
     # reads like narrowing one. `disables-critical-severity-rule` and
@@ -172,8 +247,13 @@ def _override_record(
         "material": any(field in MATERIAL_OVERRIDE_FIELDS for field in changed),
         "enabled": {"from": was_enabled, "to": now_enabled},
         "severity": {"from": superseded.get("severity"), "to": winning.get("severity")},
+        # The anchor made visible: the severity this id was FIRST defined with,
+        # not merely applied to `impact`. A reviewer can check the ranking.
+        "original_severity": original_severity,
         "disables_rule": disables,
         "impact": impact,
+        # The actual change, not just its field names: see _override_details.
+        "details": _override_details(superseded, winning, changed),
     }
 
 
@@ -215,10 +295,20 @@ class RuleRunReport:
 
 
 class RuleEngine:
+    # NOTE: schema.json ships alongside this module as the documented statement
+    # of intent for rule files, but it is NOT enforced — validation is
+    # `_validate_rule`, which overlaps the schema without matching it. An
+    # earlier version loaded the schema into `self._schema` here and never read
+    # it, which made rules look schema-validated when they were not.
     def __init__(self) -> None:
-        self._schema = json.loads(_RULE_SCHEMA_PATH.read_text(encoding="utf-8"))
         self.load_errors: List[Dict[str, Any]] = []
         self.overrides: List[Dict[str, Any]] = []
+        #: id -> severity of the FIRST valid definition loaded for that id (the
+        #: shipped severity when a shipped rule exists). This is the anchor for
+        #: override `impact` ranking and for the severity shown in
+        #: `disabled_rules`, so a chain of overriding files cannot demote the
+        #: severity context step by step before disabling the rule.
+        self.original_severities: Dict[str, str] = {}
 
     def load_rules(
         self,
@@ -261,10 +351,17 @@ class RuleEngine:
         """
         rules: List[Dict[str, Any]] = []
         seen_ids: Dict[str, int] = {}
-        # id -> where the currently-winning definition of that id came from.
+        # id -> where the last definition of that id that CHANGED anything came
+        # from. A byte-equivalent redefinition (the `sicario init` verbatim
+        # copies, above all) must not re-anchor this: it changed nothing, so
+        # the definition a later real override supersedes is still the one
+        # before it. Otherwise `superseded_origin` would read "project" instead
+        # of "shipped" in every normally-initialised project, and a reviewer or
+        # CI filter on `superseded_origin == "shipped"` would never match.
         provenance: Dict[str, Dict[str, str]] = {}
         self.load_errors = []
         self.overrides = []
+        self.original_severities = {}
 
         labels = [str(directory) for directory in rule_dirs] if origins is None else list(origins)
         if len(labels) != len(rule_dirs):
@@ -308,16 +405,29 @@ class RuleEngine:
                     # of anything: the effective rule is unchanged. `sicario
                     # init` copies every shipped rule into `.sicario/rules/`, so
                     # recording those ~21 no-op collisions on every run would
-                    # bury the one override a reviewer needs to see.
+                    # bury the one override a reviewer needs to see. For the
+                    # same reason it must not re-anchor `provenance` either: the
+                    # definition a later override supersedes is the last one
+                    # that MATTERED, not a verbatim copy of it.
                     if changed:
                         self.overrides.append(
-                            _override_record(rid, rules[idx], data, provenance[rid], ref, changed)
+                            _override_record(
+                                rid,
+                                rules[idx],
+                                data,
+                                provenance[rid],
+                                ref,
+                                changed,
+                                self.original_severities.get(rid),
+                            )
                         )
+                        provenance[rid] = ref
                     rules[idx] = data
                 else:
                     seen_ids[rid] = len(rules)
                     rules.append(data)
-                provenance[rid] = ref
+                    self.original_severities[rid] = data["severity"]
+                    provenance[rid] = ref
 
         return rules
 
@@ -351,10 +461,15 @@ class RuleEngine:
                 # Recorded so a rule disabled by identifier override — a
                 # disabled `critical` rule especially — is visible in evidence
                 # rather than only in an overriding file (FR-022, AC-003).
+                # The severity shown is the ORIGINAL one for this id (shipped
+                # when a shipped rule exists), so an override chain that
+                # demotes a rule before disabling it still reads as a disabled
+                # rule of its original severity. For a rule never overridden
+                # the two are the same value.
                 report.disabled_rules.append(
                     {
                         "id": rule["id"],
-                        "severity": rule["severity"],
+                        "severity": self.original_severities.get(rule["id"], rule["severity"]),
                         "kind": rule["kind"],
                     }
                 )
