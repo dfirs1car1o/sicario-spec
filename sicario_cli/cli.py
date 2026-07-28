@@ -10,9 +10,9 @@ from __future__ import annotations
 import argparse
 import json
 import os
-import re
 import shutil
 import subprocess
+import sys
 import sysconfig
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -23,6 +23,7 @@ from typing import Iterable, List, Optional, Sequence
 from sicario_cli._render import (
     FileReport,
     _copy_tree,
+    _ensure_gitignore_rule,
     _print_report,
     _write_text,
 )
@@ -135,6 +136,29 @@ FRAMEWORK_IDS = {
     "owasp-asvs": "owasp-asvs-sicario.json",
 }
 
+# Framework maturity tiers.
+#
+# All 14 maps are coarse traceability aids, not certification artifacts. But they
+# are not equally substantial, and presenting them as peers means the weakest map
+# sets the credibility of the whole set. These three fall measurably short of the
+# rest — PCI DSS resolves ~29% of its evidence to bare directory names and covers
+# 12 requirements against ~300 sub-requirements; NIST AI RMF's "GOVERN 1" labels
+# are function names rather than real subcategory IDs; OWASP ASVS ships 3 entries
+# and 7 evidence references covering roughly a fifth of the standard.
+#
+# EXPERIMENTAL maps remain fully installable and are still enforced by
+# `sicario verify` when explicitly selected via `--frameworks`. The only
+# behavioral difference is that they are never selected implicitly: they are
+# excluded from per-profile defaults, so a team opts into them deliberately.
+EXPERIMENTAL_FRAMEWORKS = {"pci-dss", "ai-rmf", "owasp-asvs"}
+SUPPORTED_FRAMEWORKS = [k for k in FRAMEWORK_IDS if k not in EXPERIMENTAL_FRAMEWORKS]
+
+
+def _framework_label(key: str) -> str:
+    """Render a framework key with its tier, so experimental never passes silently."""
+    return f"{key} (experimental)" if key in EXPERIMENTAL_FRAMEWORKS else key
+
+
 # The project config file that records the selected subset (one key per line).
 FRAMEWORKS_CONFIG = Path(".sicario") / "frameworks.txt"
 
@@ -168,18 +192,30 @@ def _parse_frameworks(value: str) -> List[str]:
                     selected.append(key)
             continue
         if name not in FRAMEWORK_IDS:
-            known = ", ".join(sorted(FRAMEWORK_IDS))
-            raise SystemExit(f"Unknown framework(s): {name}. Known frameworks: {known}")
+            supported = ", ".join(sorted(SUPPORTED_FRAMEWORKS))
+            experimental = ", ".join(sorted(EXPERIMENTAL_FRAMEWORKS))
+            raise SystemExit(
+                f"Unknown framework(s): {name}. "
+                f"Supported: {supported}. Experimental: {experimental}."
+            )
         if name not in selected:
             selected.append(name)
     return selected
 
 
 def _default_frameworks_for_profiles(profile_names: Sequence[str]) -> List[str]:
-    """Compute the default framework subset from the selected profile name(s)."""
+    """Compute the default framework subset from the selected profile name(s).
+
+    EXPERIMENTAL maps are filtered out here rather than being removed from
+    ``PROFILE_FRAMEWORKS``: the table keeps stating which frameworks a profile is
+    *about*, and this single choke point guarantees none of them can be enforced
+    without someone naming it explicitly on ``--frameworks``.
+    """
     selected: List[str] = []
     for name in profile_names:
         for key in PROFILE_FRAMEWORKS.get(name, []):
+            if key in EXPERIMENTAL_FRAMEWORKS:
+                continue
             if key not in selected:
                 selected.append(key)
     return selected
@@ -191,8 +227,17 @@ def _frameworks_config_content(frameworks: Sequence[str]) -> str:
         "# One framework key per line. `sicario verify` requires a control map\n"
         "# for each key listed here (SICARIO-MISSING-FRAMEWORK-MAP if absent).\n"
         "# Remove this file to fall back to the default coarse control-map check.\n"
-        f"# Known keys: {', '.join(sorted(FRAMEWORK_IDS))}\n"
+        f"# Supported keys: {', '.join(sorted(SUPPORTED_FRAMEWORKS))}\n"
+        f"# Experimental keys: {', '.join(sorted(EXPERIMENTAL_FRAMEWORKS))}\n"
+        "#   Experimental maps are thinner than the supported set. They are\n"
+        "#   enforced exactly like any other key when listed here, but are never\n"
+        "#   selected by a profile default -- only by explicit --frameworks.\n"
     )
+    # Key lines stay bare so the reader stays a plain one-key-per-line parse; the
+    # experimental call-out belongs in the header, not appended to a key.
+    experimental = [k for k in frameworks if k in EXPERIMENTAL_FRAMEWORKS]
+    if experimental:
+        header += f"# This project explicitly enforces experimental: {', '.join(experimental)}\n"
     body = "\n".join(frameworks)
     return header + (body + "\n" if body else "")
 
@@ -236,19 +281,13 @@ TEXT_SUFFIXES = {
 
 DATA_CLASSIFICATION_VALUES = {"public", "internal", "confidential", "restricted", "regulated"}
 
-SECRET_PATTERNS = [
-    re.compile(r"(?i)\b(api[_-]?key|secret|token|password)\b\s*[:=]\s*['\"][^'\"]{12,}['\"]"),
-    re.compile(r"AKIA[0-9A-Z]{16}"),
-    re.compile(r"sk-[A-Za-z0-9_-]{20,}"),
-    re.compile(r"-----BEGIN (RSA |EC |OPENSSH |)PRIVATE KEY-----"),
-]
-
-AI_KEYWORDS = re.compile(r"\b(ai|llm|rag|agent|mcp|model|prompt|tool use|tool-call)\b", re.I)
-FLEET_KEYWORDS = re.compile(
-    r"\b(langgraph|temporal|ray|celery|queue|worker|orchestrator|orchestration|"
-    r"durable workflow|sub-agent|subagent|agent fleet|multi-agent|soar|playbook)\b",
-    re.I,
-)
+# NOTE: SECRET_PATTERNS, AI_KEYWORDS and FLEET_KEYWORDS used to live here. The
+# 0.5.0 rule-engine migration moved every check into declarative `.rule.json`
+# files, but left these constants behind with no remaining reference. Three of
+# the four secret patterns (AWS access key ids, `sk-` provider tokens, and
+# private key blocks) were therefore enforced by nothing while the docs still
+# claimed coverage. They now ship as rules 041-043 in
+# presets/sicario-core/rules/, which is the only place a check should live.
 
 SEMGREQ_SEVERITIES = {"error", "high", "critical"}
 SARIF_ERROR_LEVELS = {"error"}
@@ -320,6 +359,20 @@ def _parse_sarif(path: Path) -> List[Finding]:
 
 
 def _scan_evidence_files(root: Path) -> List[Finding]:
+    """Ingest third-party scanner output. NOT WIRED IN — see the warning below.
+
+    Nothing calls this. Before wiring it into ``verify_project``, note that
+    ``_parse_semgrep_json`` and ``_parse_sarif`` build findings from the
+    third-party tool's ``message.text``, and scanners routinely put matched
+    source snippets there. Those findings flow into
+    ``generated/sicario/gate-summary.json``, so enabling this as written would
+    import scanned source text — potentially a live credential — straight into
+    the evidence artifact, breaching the no-secret-echo property that
+    specs/006 SEC-002 establishes for the native evaluators.
+
+    Wiring it in therefore requires discarding or sanitising the third-party
+    message rather than copying it through.
+    """
     """Scan for Semgrep JSON and SARIF scanner output files in the project.
 
     Recognised file names:
@@ -340,14 +393,34 @@ class Finding:
     code: str
     message: str
     path: str = ""
+    #: One-based line of the occurrence, when the producing rule kind has a
+    #: line concept. Kinds with no line concept leave it unset and the finding
+    #: is a file-scoped location (FR-006). The line is a distinct value and is
+    #: never packed into ``path``, so ``path`` stays a resolvable file
+    #: reference for SARIF consumers (FR-005).
+    line: Optional[int] = None
+
+    @property
+    def location(self) -> str:
+        """Human-readable location in the repository's ``path:line`` convention.
+
+        For human output only (FR-007). Machine formats carry the path and the
+        line as separate values.
+        """
+        if self.line is None or not self.path:
+            return self.path
+        return f"{self.path}:{self.line}"
 
     def as_dict(self) -> dict:
-        return {
+        data: dict = {
             "severity": self.severity,
             "code": self.code,
             "message": self.message,
             "path": self.path,
         }
+        if self.line is not None:
+            data["line"] = self.line
+        return data
 
 
 def _now() -> str:
@@ -514,6 +587,16 @@ def init_project(args: argparse.Namespace) -> int:
     if not args.dry_run:
         target.mkdir(parents=True, exist_ok=True)
 
+    # Ensure backups are unstageable BEFORE the first one is written. Brownfield
+    # adoption backs up the target's own constitution/instructions/templates, which
+    # may contain secrets; the ignore rule must land ahead of that, not after.
+    _ensure_gitignore_rule(
+        target,
+        dry_run=args.dry_run,
+        actions=actions,
+        reports=reports,
+    )
+
     for preset in selected_presets:
         _copy_tree(
             PRESETS_ROOT / preset,
@@ -554,7 +637,19 @@ def init_project(args: argparse.Namespace) -> int:
     else:
         selected_frameworks = _default_frameworks_for_profiles(_parse_profile_names(args.profile))
     if selected_frameworks:
-        actions.append(f"frameworks {', '.join(selected_frameworks)}")
+        # An existing selector is preserved rather than clobbered (brownfield-safe),
+        # so on a re-run the set we just computed may NOT be the set that is
+        # enforced. Report what will actually be enforced — a project that selected
+        # an experimental framework before it was tiered keeps enforcing it, and
+        # printing the computed defaults instead would state the opposite.
+        existing_selection = _read_selected_frameworks(target) if not args.force else None
+        effective = existing_selection if existing_selection is not None else selected_frameworks
+        actions.append(f"frameworks {', '.join(_framework_label(k) for k in effective)}")
+        if existing_selection is not None and set(existing_selection) != set(selected_frameworks):
+            actions.append(
+                "frameworks: existing .sicario/frameworks.txt preserved; it differs from this "
+                "profile's defaults. Re-run with --force or edit the file to adopt them."
+            )
         _write_text(
             target / FRAMEWORKS_CONFIG,
             _frameworks_config_content(selected_frameworks),
@@ -908,9 +1003,26 @@ def verify_project(path: Path, *, write: bool = True) -> List[Finding]:
         rule_dirs.append(shipped)
 
     engine = RuleEngine()
-    rule_results = engine.run(root, rule_dirs=rule_dirs)
-    for r in rule_results:
-        findings.append(Finding(r["severity"], r["code"], r["message"], r["path"]))
+    rule_report = engine.run_detailed(root, rule_dirs=rule_dirs)
+
+    # A rule that could not be loaded did not run, so the verdict below covers
+    # less than it appears to. Surface it as a critical finding rather than
+    # letting the run report "pass" over checks that never executed: a cap of 0
+    # on the secret-scan rule would otherwise drop it silently and turn a
+    # repository full of live credentials into a clean gate result.
+    for err in rule_report.load_errors:
+        named = err.get("rule_id") or err["file"]
+        findings.append(
+            Finding(
+                "critical",
+                err["code"],
+                f"Rule '{named}' did not run: {'; '.join(err['errors'])}",
+                f".sicario/rules/{err['file']}",
+            )
+        )
+
+    for r in rule_report.findings:
+        findings.append(Finding(r["severity"], r["code"], r["message"], r["path"], r.get("line")))
 
     selected_frameworks = _read_selected_frameworks(root)
     if selected_frameworks is not None:
@@ -930,34 +1042,25 @@ def verify_project(path: Path, *, write: bool = True) -> List[Finding]:
                 )
 
     if write:
-        _write_evidence(root, findings)
+        _write_evidence(root, findings, scan_coverage=_scan_coverage(rule_report))
 
     return findings
 
 
-def _validate_active_risk_rows(root: Path, path: Path) -> List[Finding]:
-    findings: List[Finding] = []
-    text = path.read_text(encoding="utf-8")
-    rel = str(path.relative_to(root))
-    for line_number, line in enumerate(text.splitlines(), start=1):
-        stripped = line.strip()
-        if not stripped.startswith("|"):
-            continue
-        lower = stripped.lower()
-        if "| active |" not in lower:
-            continue
-        cells = [cell.strip().lower() for cell in stripped.strip("|").split("|")]
-        bad_values = {"", "tbd", "n/a", "na", "none", "never", "permanent"}
-        if any(cell in bad_values for cell in cells):
-            findings.append(
-                Finding(
-                    "high",
-                    "SICARIO-INCOMPLETE-ACTIVE-RISK",
-                    "Active risk or exception row must have owner, expiration, approval/rationale, compensating control, and evidence",
-                    f"{rel}:{line_number}",
-                )
-            )
-    return findings
+def _scan_coverage(rule_report) -> dict:
+    """Build the coverage record written into gate evidence.
+
+    Records per-rule scan coverage and truncation counts (FR-020), the
+    effective skipped-path set (FR-021, SEC-010), and rules loaded but
+    disabled (FR-022). Evidence only: nothing here feeds the verdict.
+    """
+    from sicario_cli.rules.kinds.regex_forbidden import SKIPPED_DIR_NAMES
+
+    return {
+        "skipped_path_set": sorted(SKIPPED_DIR_NAMES),
+        "rules": rule_report.coverage,
+        "disabled_rules": rule_report.disabled_rules,
+    }
 
 
 def _validate_spec_classification_and_tags(root: Path, path: Path, text: str) -> List[Finding]:
@@ -1003,15 +1106,23 @@ def _validate_spec_classification_and_tags(root: Path, path: Path, text: str) ->
     return findings
 
 
-def _write_evidence(root: Path, findings: Sequence[Finding]) -> None:
+def _write_evidence(
+    root: Path, findings: Sequence[Finding], scan_coverage: Optional[dict] = None
+) -> None:
     out_dir = root / "generated" / "sicario"
     out_dir.mkdir(parents=True, exist_ok=True)
+    # Additions here are additive only: `status`, `finding_count`, and
+    # `findings` keep their names, types, and meanings. `finding_count` still
+    # means "number of findings" — it is simply larger now that every
+    # occurrence is reported (FR-023, FR-024).
     summary = {
         "generated_at_utc": _now(),
         "status": "pass" if not findings else "fail",
         "finding_count": len(findings),
         "findings": [finding.as_dict() for finding in findings],
     }
+    if scan_coverage is not None:
+        summary["scan_coverage"] = scan_coverage
     (out_dir / "gate-summary.json").write_text(
         json.dumps(summary, indent=2) + "\n", encoding="utf-8"
     )
@@ -1037,6 +1148,31 @@ def _write_evidence(root: Path, findings: Sequence[Finding]) -> None:
     )
 
 
+def _finding_line(finding: Finding) -> str:
+    """Render one finding for human output.
+
+    Located findings read in the repository's existing ``path:line``
+    convention (FR-007). A finding with no path — the overflow finding is the
+    only one — omits the location segment rather than leaving a gap.
+    """
+    location = finding.location
+    where = f" {location}" if location else ""
+    return f"{finding.severity.upper()} {finding.code}{where}: {finding.message}"
+
+
+def _physical_location(finding: Finding) -> dict:
+    """SARIF physicalLocation for a finding.
+
+    The artifact location is the clean repository-relative path with no
+    positional suffix, so a code-scanning platform can resolve it; the line
+    goes in the region's start line (FR-008).
+    """
+    location: dict = {"artifactLocation": {"uri": finding.path}}
+    if finding.line is not None:
+        location["region"] = {"startLine": finding.line}
+    return location
+
+
 def _sarif_output(findings: List[Finding]) -> str:
     """Convert findings to SARIF 2.1.0 format."""
     sarif_runs = {
@@ -1056,13 +1192,7 @@ def _sarif_output(findings: List[Finding]) -> str:
                         "ruleId": f.code,
                         "level": "error" if f.severity == "critical" else "warning",
                         "message": {"text": f.message},
-                        "locations": [
-                            {
-                                "physicalLocation": {
-                                    "artifactLocation": {"uri": f.path},
-                                }
-                            }
-                        ]
+                        "locations": [{"physicalLocation": _physical_location(f)}]
                         if f.path
                         else [],
                     }
@@ -1077,45 +1207,63 @@ def _sarif_output(findings: List[Finding]) -> str:
 def verify_command(args: argparse.Namespace) -> int:
     root = Path(args.path).expanduser().resolve()
 
-    from sicario_cli.rules import RuleEngine, RuleValidationError
-
     rule_dirs = [root / ".sicario" / "rules"]
 
     if getattr(args, "validate_rules", False):
-        engine = RuleEngine()
+        # This previously called `engine._load_rule_file(...)`, but
+        # `_load_rule_file` is a module-level function in rules.engine, not a
+        # method — so every rule file raised AttributeError and reported as an
+        # error, valid or not, and `_validate_rule` was never reached. The one
+        # control that catches a malformed rule before a run was inert.
+        from sicario_cli.rules.engine import _load_rule_file, _validate_rule
+
+        shipped_rules = PRESETS_ROOT / "sicario-core" / "rules"
+        if shipped_rules.is_dir():
+            rule_dirs.append(shipped_rules)
+
         errors: List[str] = []
+        checked = 0
         for rule_dir in rule_dirs:
             if not rule_dir.is_dir():
                 continue
             for rule_file in sorted(rule_dir.rglob("*.rule.json")):
-                try:
-                    engine._load_rule_file(rule_file)
-                except RuleValidationError as e:
-                    errors.append(f"{rule_file}: {e}")
-                except Exception as e:
-                    errors.append(f"{rule_file}: unexpected error: {e}")
+                checked += 1
+                data = _load_rule_file(rule_file)
+                if data is None:
+                    errors.append(f"{rule_file}: not readable, decodable, or a JSON object")
+                    continue
+                for message in _validate_rule(data):
+                    errors.append(f"{rule_file}: {message}")
         if errors:
             for e in errors:
                 print(e)
-            print(f"rule validation failed with {len(errors)} error(s)")
+            print(f"rule validation failed with {len(errors)} error(s) across {checked} file(s)")
             return 1
-        print("all rules valid")
+        print(f"all rules valid ({checked} file(s))")
         return 0
 
     findings = verify_project(root, write=True)
 
     fmt = getattr(args, "format", "text")
+    machine_readable = fmt in ("json", "sarif")
     if fmt == "json":
         print(json.dumps([f.as_dict() for f in findings], indent=2))
     elif fmt == "sarif":
         print(_sarif_output(findings))
     else:
         for finding in findings:
-            print(f"{finding.severity.upper()} {finding.code} {finding.path}: {finding.message}")
+            print(_finding_line(finding))
+
+    # The summary is a human diagnostic, not part of the payload. Printing it to
+    # stdout after a JSON or SARIF document made that document unparseable —
+    # `verify --format sarif | jq` failed outright, on passing runs as well as
+    # failing ones. stdout carries the artifact; stderr carries the commentary.
+    # The exit code is unchanged and remains the authoritative verdict.
+    summary_stream = sys.stderr if machine_readable else sys.stdout
     if findings:
-        print(f"sicario verify failed with {len(findings)} finding(s)")
+        print(f"sicario verify failed with {len(findings)} finding(s)", file=summary_stream)
         return 1
-    print("sicario verify passed")
+    print("sicario verify passed", file=summary_stream)
     return 0
 
 
@@ -1129,7 +1277,7 @@ def assess_command(args: argparse.Namespace) -> int:
         lines.append("")
         for finding in findings:
             lines.append(
-                f"- **{finding.severity.upper()} {finding.code}** `{finding.path}` - {finding.message}"
+                f"- **{finding.severity.upper()} {finding.code}** `{finding.location}` - {finding.message}"
             )
     else:
         lines.append("Status: PASS")
@@ -1196,7 +1344,7 @@ def _run_deterministic_hook(command: str, root: Path) -> int:
     if command == "sicario.verify":
         findings = verify_project(root, write=True)
         for finding in findings:
-            print(f"  {finding.severity.upper()} {finding.code} {finding.path}: {finding.message}")
+            print(f"  {_finding_line(finding)}")
         return 1 if findings else 0
     if command in {"sicario.assess", "sicario.evidence"}:
         ns = argparse.Namespace(path=str(root))
@@ -1346,9 +1494,12 @@ def build_parser() -> argparse.ArgumentParser:
         "--frameworks",
         default=None,
         help="Comma-separated control-map frameworks this project enforces "
-        f"(known: {', '.join(sorted(FRAMEWORK_IDS))}; or 'all'). Writes "
-        ".sicario/frameworks.txt, which `sicario verify` honors so you enforce "
-        "only the frameworks you chose. Default: the profile's framework set.",
+        f"(supported: {', '.join(sorted(SUPPORTED_FRAMEWORKS))}; "
+        f"experimental: {', '.join(sorted(EXPERIMENTAL_FRAMEWORKS))}; or 'all'). "
+        "Experimental maps are thinner and are never chosen by a profile default, "
+        "but are enforced normally when named here. Writes .sicario/frameworks.txt, "
+        "which `sicario verify` honors so you enforce only the frameworks you "
+        "chose. Default: the profile's supported framework set.",
     )
     speckit_group = init.add_mutually_exclusive_group()
     speckit_group.add_argument(

@@ -49,7 +49,7 @@
         "docs/security/threat-model.md",
         "docs/security/abuse-cases.md",
         "docs/risk/risk-register.md",
-        "specs/**/spec.md#ai-evaluation--red-team"
+        "specs/**/spec.md#ai--llm-risk"
       ],
       "sicario_presets": [
         "sicario-ai-system",
@@ -119,7 +119,7 @@
       "article": "Article 14",
       "intent": "Design the system to be effectively overseen by humans, including stop/override and human approval gates.",
       "sicario_evidence": [
-        "specs/**/plan.md#human-approval",
+        "specs/**/plan.md#human-approval-points",
         "specs/**/plan.md#rollback",
         "docs/machine-user-pr-flow.md",
         "docs/risk/security-exceptions.md"
@@ -135,7 +135,7 @@
       "article": "Article 15",
       "intent": "Maintain appropriate accuracy, robustness, and cybersecurity, including resilience to errors, misuse, and adversarial attacks (e.g. prompt injection).",
       "sicario_evidence": [
-        "specs/**/spec.md#ai-evaluation--red-team",
+        "specs/**/spec.md#ai--llm-risk",
         "docs/security/threat-model.md",
         "security/toolchain",
         "tests",

@@ -20,9 +20,8 @@ from typing import List, Optional, Sequence
 def _constitution_overlay(presets: Sequence[str], deferrals: Sequence[str]) -> str:
     """Build the additive constitution overlay that DEFERS to existing authority.
 
-    Mirrors saas-assurance's pattern of adding governance as a brownfield overlay
-    (e.g. "Principle VIII as an overlay that yields to mission.md") rather than
-    replacing the host project's constitution.
+    Adds governance as a brownfield overlay (e.g. an overlay principle that
+    yields to mission.md) rather than replacing the host project's constitution.
     """
     from sicario_cli._render import SICARIO_OVERLAY_BEGIN, SICARIO_OVERLAY_END
 
@@ -146,9 +145,11 @@ def _apply_to_speckit(
     presets_root: Path,
     speckit_template_files: Sequence[str],
 ) -> None:
-    from sicario_cli._render import FileReport, _overlay_text
+    from sicario_cli._render import _overlay_text
 
-    template_sources = _resolve_speckit_template_sources(presets, presets_root, speckit_template_files)
+    template_sources = _resolve_speckit_template_sources(
+        presets, presets_root, speckit_template_files
+    )
     for template, src in sorted(template_sources.items()):
         _overlay_text(
             target / ".specify" / "templates" / template,
@@ -502,7 +503,7 @@ def _write_agent_integrations(
     actions: List[str],
     reports: List,
 ) -> None:
-    from sicario_cli._render import FileReport, _overlay_text, _write_text
+    from sicario_cli._render import _overlay_text, _write_text
 
     if integration in {"claude", "all"}:
         _overlay_text(

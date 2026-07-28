@@ -67,7 +67,7 @@
         "MEASURE 4"
       ],
       "sicario_evidence": [
-        "specs/**/spec.md#ai-evaluation--red-team",
+        "specs/**/spec.md#ai--llm-risk",
         "specs/**/tasks.md",
         "tests",
         "generated/sicario/gate-summary.json"
@@ -87,7 +87,7 @@
         "MANAGE 4"
       ],
       "sicario_evidence": [
-        "specs/**/plan.md#human-approval",
+        "specs/**/plan.md#human-approval-points",
         "specs/**/plan.md#rollback",
         "docs/risk/security-exceptions.md",
         "generated/sicario/spec-run-evidence.json"

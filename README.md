@@ -214,7 +214,7 @@ sicario init my-audit-ready-build --profile appsec,cloud-iac,security-toolchain,
 | `security-toolchain` | Secret scanning, SAST, SCA, SBOM, container/IaC scans, policy-as-code, and scan evidence. |
 | `supply-chain` | SBOM, SCA, provenance, pinned dependencies, pinned actions/images, and release integrity. |
 | `compliance` | Control applicability, CCM/SOX maps, evidence index, exceptions, and accepted risk. |
-| `saas` | SaaS-tenant work (Salesforce/Workday/ServiceNow/M365): read-only-SaaS, tenant/data-boundary, and mission-supremacy invariants from the saas-assurance origin. |
+| `saas` | SaaS-tenant work (Salesforce/Workday/ServiceNow/M365): read-only-SaaS, tenant/data-boundary, and mission-supremacy invariants. |
 | `enterprise-strict` | High-assurance review, approval, release controls, CODEOWNERS, and exception discipline. |
 
 Profiles are composable:
@@ -295,7 +295,9 @@ Then, per file:
 
 Always:
 
-- Every modified file is **backed up first** to `*.sicario-bak.<UTC-timestamp>`.
+- Every modified file is **backed up first** to `*.sicario-bak.<UTC-timestamp>`,
+  and `*.sicario-bak.*` is added to the target repo's `.gitignore` so backups
+  (which may contain pre-existing secrets) can never be committed.
 - A per-file **adoption report** prints at the end: `created` /
   `merged-overlaid` / `preserved` / `overwritten`, plus a summary line.
 
@@ -366,19 +368,27 @@ coarse level (domain, practice group, or function):
 - SOX 404 / ICFR ITGC — control-area evidence readiness
 - NIST SSDF (SP 800-218) — PO/PS/PW/RV practice-group evidence
 - NIST AI RMF (AI 100-1) — Govern/Map/Measure/Manage function evidence
+  *(experimental)*
 - ISO/IEC 27001:2022 — Annex A theme + control-group evidence (4 themes, 93 controls)
 - NIST SP 800-53 Rev 5 — control-family evidence (20 families)
 - EU AI Act (Reg. 2024/1689) — risk-tier + high-risk obligation (Art. 9-15) evidence
 - GDPR (+ CPRA parallels) — Article 5 principles, DPIA, rights, and breach duties
 - PCI DSS v4.0 — 12-requirement cardholder-data-environment evidence
+  *(experimental)*
 - HIPAA Security Rule — Administrative/Physical/Technical ePHI safeguards
 - OWASP ASVS — application security verification evidence for architecture,
   authentication/session management, and access-control evidence
+  *(experimental)*
 - SOC 2 Trust Services Criteria — common criteria plus availability,
   confidentiality, processing-integrity, and privacy evidence
 - FedRAMP Rev. 5 — baseline and control-family evidence for federal cloud
   authorization readiness
 - BSI C5:2026 — criteria-area evidence for cloud service provider assurance
+
+Maps marked *experimental* (`pci-dss`, `ai-rmf`, `owasp-asvs`) install and
+verify exactly like the rest when selected, but are excluded from every
+profile's default framework set — enforce them by naming them on
+`--frameworks` (see [docs/control-maps.md](docs/control-maps.md)).
 
 These maps are traceability aids. They are not control-by-control crosswalks,
 not certification claims, and do not replace the official framework artifacts,

@@ -184,9 +184,13 @@ def _read_bundle_manifest(path: Path) -> dict[str, object]:
         if value is not None:
             result[key] = value
     result["tags"] = _yaml_list(text, "tags")
-    result["speckit_version"] = _scalar(requires_block, "speckit_version") or DEFAULT_SPECKIT_VERSION
+    result["speckit_version"] = (
+        _scalar(requires_block, "speckit_version") or DEFAULT_SPECKIT_VERSION
+    )
     result["provides"] = {
-        "extensions": len(re.findall(r"^\s{4}- id:", _mapping_block(text, "extensions"), re.MULTILINE)),
+        "extensions": len(
+            re.findall(r"^\s{4}- id:", _mapping_block(text, "extensions"), re.MULTILINE)
+        ),
         "presets": len(re.findall(r"^\s{4}- id:", _mapping_block(text, "presets"), re.MULTILINE)),
         "steps": 0,
         "workflows": 0,
@@ -222,7 +226,9 @@ def _preset_catalog_entry(
         "requires": {"speckit_version": manifest.get("speckit_version", DEFAULT_SPECKIT_VERSION)},
         "provides": {
             "templates": len(list((preset_dir / "templates").glob("*.md"))),
-            "commands": len(list((preset_dir / "commands").glob("*.md"))) if (preset_dir / "commands").exists() else 0,
+            "commands": len(list((preset_dir / "commands").glob("*.md")))
+            if (preset_dir / "commands").exists()
+            else 0,
         },
         "tags": manifest.get("tags") or ["security", "governance"],
         "created_at": "2026-06-25T00:00:00Z",

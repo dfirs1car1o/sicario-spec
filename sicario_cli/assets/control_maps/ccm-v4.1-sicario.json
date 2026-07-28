@@ -169,8 +169,8 @@
       ]
     },
     {
-      "domain": "Infrastructure Security",
-      "abbreviation": "I&S",
+      "domain": "Infrastructure and Virtualization Security",
+      "abbreviation": "IVS",
       "control_count": 9,
       "sicario_evidence": [
         "infra",

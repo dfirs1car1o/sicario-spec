@@ -74,12 +74,7 @@ def titleize(value: str) -> str:
             value = value[: -len(suffix)]
             break
     value = value.replace("sicario-", "").replace("-sicario", "").replace("_", "-")
-    parts = [
-        part
-        for segment in value.split("/")
-        for part in segment.split("-")
-        if part
-    ]
+    parts = [part for segment in value.split("/") for part in segment.split("-") if part]
     return " ".join(ACRONYMS.get(part.lower(), part.capitalize()) for part in parts)
 
 
@@ -174,9 +169,7 @@ def control_map_nodes() -> List[Dict[str, object]]:
 
 def rule_nodes() -> List[Dict[str, object]]:
     rules = [
-        path
-        for path in sorted_files("sicario_cli/rules/kinds/*.py")
-        if path.name != "__init__.py"
+        path for path in sorted_files("sicario_cli/rules/kinds/*.py") if path.name != "__init__.py"
     ]
     primary = [
         node(
@@ -211,9 +204,7 @@ def rule_nodes() -> List[Dict[str, object]]:
 
 
 def workflow_nodes() -> List[Dict[str, object]]:
-    workflows = sorted_files(".github/workflows/*.yml") + sorted_files(
-        "workflow_templates/*.yml"
-    )
+    workflows = sorted_files(".github/workflows/*.yml") + sorted_files("workflow_templates/*.yml")
     return [
         node(
             node_id=f"workflow-{rel(path).replace('/', '-').replace('.', '-')}",

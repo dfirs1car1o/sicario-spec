@@ -78,9 +78,8 @@ ownership.
 
 ## SaaS Invariants (sicario-saas)
 
-These invariants are battle-tested guardrails carried over from the
-`saas-assurance` multi-agent origin. They are non-negotiable for any work that
-connects to a SaaS tenant.
+These invariants are non-negotiable for any work that connects to a SaaS
+tenant.
 
 ### S1. Read-Only SaaS By Default
 

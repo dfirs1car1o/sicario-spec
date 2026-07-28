@@ -8,7 +8,66 @@ improve the security model.
 
 ## [Unreleased]
 
-No unreleased changes yet.
+### Changed
+
+- **Control maps are now tiered supported vs experimental.** The 14 shipped
+  maps no longer present as peers. `pci-dss`, `ai-rmf`, and `owasp-asvs` are
+  labeled EXPERIMENTAL: PCI DSS resolves roughly 29% of its evidence to bare
+  directory names and covers 12 requirements against ~300 sub-requirements;
+  AI RMF's `example_categories` are function labels rather than real
+  subcategory identifiers; OWASP ASVS ships 3 entries covering about a fifth
+  of the standard. Experimental maps remain fully installable and are still
+  enforced by `sicario verify` when named explicitly on `--frameworks` — the
+  only behavioral change is that they are excluded from every per-profile
+  default, including `enterprise-strict`, which now defaults to the 11
+  supported maps rather than all 14.
+
+### Fixed
+
+- **Backup ignore rule is now verified as effective, not merely present.** Git
+  applies the last matching pattern, so a `.gitignore` containing
+  `*.sicario-bak.*` followed by a negation re-included backups while a
+  presence-only check reported them protected. `init` now re-asserts the rule so
+  it is the deciding one, preserves CRLF line endings instead of rewriting every
+  line, and refuses to write through a symlinked `.gitignore` (which would edit a
+  file outside the project). A nested `.gitignore` negating the rule for a
+  subtree remains a documented limitation.
+- **`init` now reports the framework set it actually enforces.** On a re-run the
+  existing `.sicario/frameworks.txt` is preserved, so the recomputed profile
+  defaults may not be what is enforced; printing them stated the opposite of the
+  truth. The preserved set is reported and any divergence is flagged.
+
+- **Broken control-map evidence anchors.** Five references pointed at headings
+  that exist in no shipped template. All 19 distinct anchors across all maps
+  now resolve.
+- **`fedramp-rev5` `control_family_count`** claimed 18 while shipping 13.
+- **`ccm-v4.1` domain 12** was "Infrastructure Security" / "I&S"; the official
+  CCM v4 domain is "Infrastructure and Virtualization Security" / "IVS".
+- **`owasp-asvs` scope note** was the only map claiming to trace controls
+  "directly" with no disclaimer; it now carries the same starter-mapping hedge
+  as the other 13.
+
+### Security
+
+- **Three documented secret patterns were enforced by nothing.** The 0.5.0
+  rule-engine migration moved every check into declarative `.rule.json` files
+  but left `SECRET_PATTERNS` behind in `cli.py` with no remaining reference.
+  Only the assignment pattern shipped as a rule, so bare AWS access key ids
+  (`AKIA…`), provider tokens (`sk-…`), and private key blocks were detected by
+  nothing — while `USAGE.md` documented `SICARIO-HARDCODED-SECRET` as covering
+  all four. They now ship as rules 041-043 with their own finding codes
+  (`SICARIO-HARDCODED-AWS-KEY`, `SICARIO-HARDCODED-PROVIDER-TOKEN`,
+  `SICARIO-PRIVATE-KEY-MATERIAL`), verified by a regression test that plants one
+  of each. The dead constants are removed and `USAGE.md` now lists what is
+  actually enforced.
+
+- **Backups are no longer committable.** `sicario init` now adds
+  `*.sicario-bak.*` to the target repository's `.gitignore` before taking the
+  first backup. Backups are verbatim copies of the adopting repo's existing
+  constitution, instruction files, and Spec Kit templates, so they can carry
+  secrets or internal content that was never meant to be committed. The rule is
+  written idempotently and never clobbers an existing `.gitignore`. The same
+  pattern was added to this repository's own `.gitignore`.
 
 ## [0.5.1] - 2026-06-25
 
@@ -120,7 +179,7 @@ existing constitution, Spec Kit templates, or agent-instruction files.
   writing, and merges/overlays instead of skipping or clobbering:
   - **Constitution:** appends a clearly-marked ADDITIVE SicarioSpec overlay that
     explicitly DEFERS to the project's own principles and any `mission.md`
-    (mirrors saas-assurance's brownfield overlay that yields to `mission.md`).
+    (a brownfield overlay that yields to `mission.md`).
     The existing constitution is never replaced.
   - **Templates:** appends the SicarioSpec governance-impact gate block to an
     existing `spec/plan/tasks` template — idempotently (no double-append on
@@ -171,7 +230,7 @@ a SaaS-hardened profile.
   (AI 100-1) function-level map, alongside the existing CSA CCM v4.1 and SOX 404
   maps.
 - New `sicario-saas` preset and `--profile saas`: read-only-SaaS, tenant/data
-  boundary, and mission-supremacy invariants from the saas-assurance origin.
+  boundary, and mission-supremacy invariants.
 
 ### Changed
 

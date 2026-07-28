@@ -110,7 +110,9 @@ This is **brownfield-safe by default**: it *overlays*, it never clobbers.
   appended **idempotently** (re-running does not double-append).
 - Existing `CLAUDE.md` / `AGENTS.md` → a delimited SicarioSpec section is
   appended; your content is never overwritten.
-- Every modified file is backed up first to `*.sicario-bak.<UTC-timestamp>`.
+- Every modified file is backed up first to `*.sicario-bak.<UTC-timestamp>`, and
+  `*.sicario-bak.*` is added to the target repo's `.gitignore` so backups (which
+  may contain pre-existing secrets) can never be committed.
 
 Preview or override:
 
@@ -191,7 +193,10 @@ Secrets:
 
 | Code | Severity | Meaning |
 |---|---|---|
-| `SICARIO-HARDCODED-SECRET` | critical | A secret-shaped string (API key / token / `AKIA…` / `sk-…` / private key) was found in a scanned text file. |
+| `SICARIO-HARDCODED-SECRET` | critical | A secret-shaped assignment (`api_key`/`secret`/`token`/`password` set to a 12+ character literal) was found in a scanned text file. |
+| `SICARIO-HARDCODED-AWS-KEY` | critical | An AWS access key id (`AKIA…`) was found in a scanned text file. |
+| `SICARIO-HARDCODED-PROVIDER-TOKEN` | critical | A provider API token (`sk-…`) was found in a scanned text file. |
+| `SICARIO-PRIVATE-KEY-MATERIAL` | critical | A private key block (`-----BEGIN … PRIVATE KEY-----`) was found in a scanned text file. |
 
 Spec contract (`specs/**/spec.md`):
 

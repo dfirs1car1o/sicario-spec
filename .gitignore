@@ -16,3 +16,6 @@ docs-site/build/
 /.specify/presets/.cache/
 docs-site/src/generated/
 .DS_Store
+
+# SicarioSpec timestamped backups (may contain pre-existing secrets)
+*.sicario-bak.*
