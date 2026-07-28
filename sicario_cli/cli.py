@@ -249,7 +249,10 @@ FRAMEWORKS_CONFIG = Path(".sicario") / "frameworks.txt"
 
 # Default framework subset per profile. The default = the profile's natural set
 # (`public-core` carries no compliance obligation; compliance-shaped profiles
-# carry the maps they imply). `enterprise-strict` enforces all 14.
+# carry the maps they imply). This table states what a profile is ABOUT;
+# _default_frameworks_for_profiles filters experimental keys at its single choke
+# point, so the EFFECTIVE default for `enterprise-strict` is the 11 supported
+# maps, never all 14 — experimental maps require explicit --frameworks.
 PROFILE_FRAMEWORKS = {
     "compliance": ["ccm", "sox", "soc2", "iso27001", "nist-800-53"],
     "saas": ["ccm", "soc2", "iso27001", "ai-rmf"],

@@ -145,6 +145,15 @@ They do not replace review. They structure it.
 That matters because an AI agent can draft or explain, but it cannot own the
 pass/fail verdict. Code owns the verdict. Humans approve the result.
 
+One honest limit: the shipped gates are not tamper-proof. A project can
+override or disable any shipped rule — including the secret scan — by reusing
+its `id` in `.sicario/rules/`. The control is visibility, not prohibition:
+every effective override is recorded in `scan_coverage.overrides` in
+`generated/sicario/gate-summary.json` with `impact` and `original_severity`
+fields, so disabling a shipped critical rule always reads
+`disables-critical-severity-rule` and is grep-able in review. See
+[rule-engine.md](./rule-engine.md#override-evidence).
+
 ## Install The Native Spec Kit Bundle
 
 Use this when you want Spec Kit itself to install the bundle:
@@ -167,8 +176,11 @@ still need to be findable through the preset and extension catalogs.
 Use this when you want to bootstrap a target repository with docs, risk
 registers, control maps, workflows, and verification:
 
+The package is not currently published on PyPI; install it from the git
+repository (optionally pinned to a release tag):
+
 ```bash
-pip install sicario-spec
+python3 -m pip install "git+https://github.com/dfirs1car1o/sicario-spec.git"
 sicario init ./my-project --integration all --profile appsec,cloud-iac,security-toolchain,compliance
 sicario verify ./my-project
 ```

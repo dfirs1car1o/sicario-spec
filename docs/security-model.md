@@ -21,5 +21,14 @@ SicarioSpec follows these principles.
 8. **Exceptions expire.** Active risk or security exceptions require ownership,
    approval, expiration, compensating controls, and evidence.
 
+Deterministic does not mean unbypassable. A project can override or disable any
+shipped rule — including the secret scan — by reusing its `id` in
+`.sicario/rules/`. The control is visibility, not prohibition: every effective
+override is recorded in `scan_coverage.overrides` in
+`generated/sicario/gate-summary.json`, with `impact` and `original_severity`
+fields, so disabling a shipped critical rule always reads
+`disables-critical-severity-rule` and is grep-able in review. See
+[Rule Engine](./rule-engine.md#override-evidence).
+
 SicarioSpec is not a compliance certification engine. It is a development
 governance system that helps create evidence for review.

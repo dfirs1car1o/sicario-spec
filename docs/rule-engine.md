@@ -76,17 +76,98 @@ Each override record carries:
 | `severity` | `{"from": ..., "to": ...}` — severity before and after. |
 | `disables_rule` | `true` when the override turns an enabled rule off. |
 | `impact` | `disables-<severity>-severity-rule` or `modifies-<severity>-severity-rule`. |
+| `original_severity` | The severity of the **first** definition ever loaded for this id — the shipped severity whenever a shipped rule exists. This is the anchor `impact` ranks against, recorded so a reviewer can check the ranking. |
+| `details` | From/to values for the changed `path`, `kind`, and each changed `params` key. See below. |
 
-`impact` uses the **higher** of the two definitions' severities, so disabling a
-shipped `critical` rule always reads `disables-critical-severity-rule` — even
-if the same edit demotes the rule to `low` — and cannot be skimmed past as a
-routine tweak.
+`impact` ranks against the **highest** of three severities: the original (the
+severity this id was *first* loaded with), the superseded definition's, and the
+winning definition's. The anchor matters because comparing only adjacent
+definitions can be laundered: demote a shipped `critical` rule to `low` in one
+project file and disable it in a second file whose name sorts later, and each
+adjacent comparison only ever sees the already-demoted severity — the disable
+would read `disables-low-severity-rule`, and a reviewer grepping for
+`disables-critical-severity-rule` would find nothing. Anchored to the original,
+a chain of N overriding files yields the same `impact` as making every edit in
+a single file: disabling a shipped `critical` rule always reads
+`disables-critical-severity-rule`, even when the same edit — or an earlier file
+in the chain — demotes the rule first.
+
+The same anchor is used in `scan_coverage.disabled_rules`: the `severity` shown
+for a disabled rule is the **original** severity for that id, not the possibly
+demoted one in the file that disabled it. For a rule never overridden the two
+are the same value.
+
+### Override `details`: The Actual Change, Not Just Its Field Names
+
+A `changed` list alone is not reviewable evidence. Replacing the secret-scan
+pattern with `(?!x)x` — a regex that matches nothing — neuters the rule while
+every disable-shaped signal stays silent: the rule is still enabled, still
+`critical`, still scanning, and coverage affirmatively reads like a clean
+repository. The gate cannot decide whether a pattern change is a narrowing or
+a neutering — that is regex containment, not something a deterministic gate
+should pretend to judge. What it can do is put the actual change in front of
+the reviewer, so each override record carries a `details` object with
+`{"from": ..., "to": ...}` for:
+
+- `path` and `kind`, when changed;
+- every changed **key** inside `params`, individually.
+
+`severity` and `enabled` already carry from/to at the top of the record, and a
+changed `message` is cosmetic and gets no detail entry. Any single value whose
+rendering exceeds 500 characters is truncated with an explicit ` (truncated)`
+marker — the truncation is visible, never silent. Non-string values (keyword
+lists, caps) are kept as-is when small, so the detail stays machine-readable.
+
+A real record, produced by initializing a project and adding a
+`zzz-neuter-secret-scan.rule.json` that reuses the shipped secret-scan id with
+its pattern replaced by `(?!x)x`:
+
+```json
+{
+  "rule_id": "SICARIO-HARDCODED-SECRET",
+  "winning_origin": "project",
+  "winning_file": "zzz-neuter-secret-scan.rule.json",
+  "superseded_origin": "shipped",
+  "superseded_file": "040-secret-scan.rule.json",
+  "changed": ["params"],
+  "material": true,
+  "enabled": {"from": true, "to": true},
+  "severity": {"from": "critical", "to": "critical"},
+  "original_severity": "critical",
+  "disables_rule": false,
+  "impact": "modifies-critical-severity-rule",
+  "details": {
+    "params": {
+      "pattern": {
+        "from": "(?i)\\b(api[_-]?key|secret|token|password)\\b\\s*[:=]\\s*['\"][^'\"]{12,}['\"]",
+        "to": "(?!x)x"
+      }
+    }
+  }
+}
+```
+
+State the limit plainly: **a neutered rule still passes the gate.** The run
+above exits 0. An override never fails the run on its own; the control is that
+`"to": "(?!x)x"` is sitting in the evidence for a reviewer to see, not that the
+gate prohibits the change.
+
+### The No-Op Exemption
 
 One exemption: a rule identical in every field to the rule it replaces changes
 nothing and is **not** recorded. `sicario init` copies every
 shipped rule into `.sicario/rules/`, so without this exemption every
 initialized project would carry ~21 meaningless override records, burying the
 one a reviewer needs to see.
+
+The exemption also does not re-anchor provenance. The definition a later real
+override supersedes is the last one that *changed* anything, not a verbatim
+copy of it — so in a normally initialized project, a real override of a
+shipped rule records `superseded_origin: "shipped"` even though the byte-equal
+project copy loaded in between. (The record above shows this.) A reviewer or
+CI filter on `superseded_origin == "shipped"` therefore matches; before this
+fix it matched zero records in any initialized project, because the no-op copy
+re-anchored provenance to `project`.
 
 ## Rule Contract
 
@@ -129,8 +210,13 @@ rejected.
 - `id`, `severity`, `kind`, `path`, and `message` are present. If any is
   missing, validation stops there and reports only the missing fields — no
   further check runs on that rule.
-- `id` is a string matching `^[A-Z][A-Z0-9-]+$`. (The schema does *not* express
-  this; here the code is stricter.)
+- `id` is a string **fully** matching `[A-Z][A-Z0-9-]+` — the check is
+  `re.fullmatch`, so an id carrying a trailing newline is rejected. (The schema
+  does *not* express this; here the code is stricter.) The earlier `re.match`
+  with `$` accepted `"SICARIO-X\n"`, because `$` also matches just before a
+  trailing newline — and that id renders identically to the real one in
+  findings and evidence, a grep-poisoning primitive. Such a rule now fails
+  validation and surfaces as `SICARIO-RULE-INVALID`.
 - `severity` is one of `critical`, `high`, `medium`, `low`.
 - `kind` is one of the ten kinds listed below.
 - `path` and `message` are strings.
@@ -272,9 +358,11 @@ them.
 `sicario verify` writes a `scan_coverage` object into
 `generated/sicario/gate-summary.json`. It is evidence only — nothing in it
 feeds the pass/fail verdict. It carries the effective skip-directory set
-(`skipped_path_set`), rules loaded but disabled (`disabled_rules`), every
-override of a shipped rule (`overrides`, above), and one record per
-`regex-forbidden` rule under `rules`. Each per-rule record includes:
+(`skipped_path_set`), rules loaded but disabled (`disabled_rules`, showing
+each rule's *original* severity as described above), every rule override
+(`overrides`, above), where the shipped rules came from (`asset_root`, below),
+and one record per `regex-forbidden` rule under `rules`. Each per-rule record
+includes:
 
 | Field | Meaning |
 |---|---|
@@ -295,6 +383,59 @@ The `excluded_dirs` itemisation is bounded at 50 directories; when the list is
 shortened, `excluded_dirs_truncated` is `true` and `excluded_dirs_total`
 carries the real directory count. The file **count** (`files_excluded`) is
 always exact and never capped.
+
+### `asset_root`: Where The Shipped Rules Came From
+
+The `SICARIO_ASSET_ROOT` environment variable redirects where `sicario` looks
+for its shipped assets — presets (and therefore the shipped rules),
+extensions, workflow templates, and control maps. It exists for relocated
+installs and test fixtures. It is honored only when the directory it names
+contains both a `presets/` and an `extensions/` entry; otherwise the default
+resolution wins (the repo checkout, then the packaged assets, then the
+sysconfig share directory). Resolution happens once, at process start, and the
+evidence records that snapshot — the root the rules were actually loaded from.
+
+The env var is also a way to point the gate at a decoy: a directory carrying
+`presets/` and `extensions/` but a partial or empty rules tree silently
+replaces the shipped rule set while the gate still looks populated. So every
+`sicario verify` run records the resolution in `scan_coverage.asset_root`:
+
+| Field | Meaning |
+|---|---|
+| `path` | The asset root actually used, **resolved absolute**. A relative env value like `decoyA` recorded verbatim is not reproducible evidence, so the resolved path is recorded here and the raw value below. |
+| `env_value` | The raw `SICARIO_ASSET_ROOT` value exactly as given (possibly relative), or `null` when unset. |
+| `env_override_set` | `true` when the env var was set at all. |
+| `env_override_honored` | `true` when it was set **and** its directory won the candidate race (had the asset layout). |
+| `redirected_by_env` | `true` when honoring the env var actually **changed** which root won — not merely named the winner. |
+| `shipped_rules_dir` | The shipped-rules directory under the chosen root. |
+| `shipped_rule_file_count` | Count of top-level `*.rule.json` files there, using the same non-recursive glob the loader uses; `0` when the directory is missing. A populated-looking root with `0` here is the decoy signature. |
+
+When `redirected_by_env` is `true`, `verify` additionally emits a `medium`
+`SICARIO-ASSET-ROOT-OVERRIDE` finding, which fails the run by design: a
+redirected rule source is indistinguishable from a tampered one until a
+reviewer confirms it. The finding fires **only when resolution actually
+changed**. Pointing the env var at the root that would win anyway is a no-op
+and stays silent — and "the same root" is judged by directory identity
+(`os.path.samefile`, i.e. inode comparison) where the filesystem can answer,
+so a symlinked or, on case-insensitive filesystems, case-variant spelling of
+the default root does not fire a false redirect. Identity is path/inode
+identity, **not content**: redirecting to a byte-identical copy of the real
+assets still fires, because the source of the gate's rules moved and a
+reviewer must see that.
+
+Two limits, stated plainly. First, this detects the env var only: replacing
+the default root's *content* in place — a bind mount or overlay mount over its
+path, or editing the installed files — is out of scope; no env var changed
+resolution, so nothing flags a redirect (`shipped_rule_file_count` may still
+betray an emptied tree, but nothing fails the run over it). Second, a
+redirect with a *complete* rule set still requires the reviewer to actually
+confirm it; the finding is a stop-and-look signal, not proof of tampering.
+
+Related fail-closed behavior: if the run ends up loading **zero** rules from
+every searched directory — shipped and project alike — `verify` emits a
+critical `SICARIO-NO-RULES-LOADED` finding naming the directories searched. A
+run with no rules cannot fail, so it would report "pass" over any repository
+whatsoever; a gate that enforces nothing must say so.
 
 ## Validation Workflow
 

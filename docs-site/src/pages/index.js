@@ -15,7 +15,7 @@ const proofPoints = [
   },
   {
     title: 'A halting gate plus control maps',
-    body: 'sicario verify blocks merge/release on violation and is wired into CI. Starter evidence maps cover 14 frameworks: CSA CCM v4.1, SOX 404 / ICFR, SOC 2, FedRAMP Rev. 5, BSI C5, NIST SSDF, NIST AI RMF, ISO/IEC 27001:2022, NIST SP 800-53 Rev 5, EU AI Act, GDPR (+ CPRA), PCI DSS v4.0, HIPAA Security Rule, and OWASP ASVS.',
+    body: 'sicario verify blocks merge/release on violation and is wired into CI. Starter evidence maps cover 14 frameworks (11 supported, 3 experimental): CSA CCM v4.1, SOX 404 / ICFR, SOC 2, FedRAMP Rev. 5, BSI C5, NIST SSDF, ISO/IEC 27001:2022, NIST SP 800-53 Rev 5, EU AI Act, GDPR (+ CPRA), HIPAA Security Rule, plus experimental-tier NIST AI RMF, PCI DSS v4.0, and OWASP ASVS.',
   },
   {
     title: 'Security Evidence Chain',
@@ -32,14 +32,14 @@ const currentSurface = [
     body: 'Composable Spec Kit profiles for core governance, docs, appsec, AI systems, agent fleets, cloud/IaC, security tooling, supply chain, compliance, SaaS, and enterprise-strict delivery.',
   },
   {
-    metric: '16',
+    metric: '21',
     label: 'shipped verify rules',
-    body: 'Default `.rule.json` gates cover files, sections, keywords, forbidden patterns, required regexes, risk rows, classification, tagging, AI guardrails, and fleet guardrails.',
+    body: 'Default `.rule.json` gates cover files, sections, keywords, secret scanning (generic secrets, AWS keys, provider tokens, private key material), required regexes, risk rows, classification, tagging, AI guardrails, and fleet guardrails.',
   },
   {
     metric: '14',
     label: 'control maps',
-    body: 'Starter maps connect SicarioSpec evidence to CCM, SOX, SOC 2, FedRAMP, BSI C5, SSDF, AI RMF, ISO 27001, NIST 800-53, EU AI Act, GDPR/CPRA, PCI DSS, HIPAA, and OWASP ASVS.',
+    body: 'Starter maps connect SicarioSpec evidence to CCM, SOX, SOC 2, FedRAMP, BSI C5, SSDF, ISO 27001, NIST 800-53, EU AI Act, GDPR/CPRA, and HIPAA — plus experimental-tier AI RMF, PCI DSS, and OWASP ASVS maps that are enforced only when selected explicitly.',
   },
   {
     metric: '8',
@@ -49,10 +49,11 @@ const currentSurface = [
 ];
 
 const ruleFlow = [
-  'load `.sicario/rules/*.rule.json`',
-  'validate required fields and kind-specific params',
+  'load shipped rules, then project `.sicario/rules/*.rule.json` (same id: project wins)',
+  'validate required fields, kind-specific params, and finding caps',
   'dispatch to fixed evaluator modules',
   'emit named findings with severity and path',
+  'record overrides, disabled rules, and scan coverage as evidence',
   'write gate evidence under `generated/sicario/`',
   'exit non-zero when required evidence is missing',
 ];
@@ -211,10 +212,11 @@ export default function Home() {
                 <p className={styles.kicker}>Declarative verification</p>
                 <Heading as="h2">Custom gates are JSON files, not Python forks.</Heading>
                 <p>
-                  SicarioSpec 0.5.1 loads `*.rule.json` files, validates their schema,
+                  SicarioSpec 0.5.1 loads `*.rule.json` files, validates them,
                   and runs fixed evaluator modules. A project can add, override, or disable
-                  a governance gate in `.sicario/rules/` while keeping the same deterministic
-                  pass/fail path in CI.
+                  a governance gate in `.sicario/rules/` — project rules win by id, and every
+                  override or disable is recorded in the gate evidence — while keeping the
+                  same deterministic pass/fail path in CI.
                 </p>
                 <Link className={styles.inlineLink} to="/docs/rule-engine">
                   Read the rule engine docs
@@ -242,7 +244,8 @@ export default function Home() {
               consider. SicarioSpec operates at a different layer — a mandatory governance contract
               whose pass/fail verdict is owned by deterministic, stdlib-only code with no LLM in the
               decision path, backed by a <strong>halting</strong> verify gate (non-zero exit blocks
-              the merge) and selectable control maps across 14 frameworks. The two are
+              the merge) and selectable control maps across 14 frameworks (11 supported, 3
+              experimental). The two are
               complementary: keep the advice you like, then gate the result.
             </p>
           </div>

@@ -1334,6 +1334,82 @@ class BrownfieldSafeAdoptionTests(unittest.TestCase):
             self.assertIn("SICARIO-NO-RULES-LOADED", codes)
             self.assertTrue(findings, "a zero-rule run must not report clean")
 
+    def test_brownfield_overlay_template_copy_passes_the_gate(self) -> None:
+        """A spec copied from a brownfield-overlaid template must pass the gate.
+
+        In a brownfield adoption the user's own template is kept and the
+        SicarioSpec governance block is appended. That block is SicarioSpec's own
+        vocabulary, so a fresh spec created from the combined template must
+        satisfy SicarioSpec's own substring checks — it previously failed
+        classification-complete because the overlay said "owner" where the rule
+        demands the literal "classification owner", and named no level word.
+        The greenfield template already passed; the two paths must agree.
+        """
+        with tempfile.TemporaryDirectory() as tmp:
+            target = Path(tmp) / "project"
+            (target / ".specify" / "templates").mkdir(parents=True)
+            (target / ".specify" / "memory").mkdir(parents=True)
+            (target / ".specify" / "memory" / "constitution.md").write_text(
+                "# Existing constitution\n", encoding="utf-8"
+            )
+            (target / ".specify" / "templates" / "spec-template.md").write_text(
+                "# Feature Specification: [FEATURE]\n\n## User Scenarios\n",
+                encoding="utf-8",
+            )
+            self.assertEqual(0, main(["init", str(target), "--profile", "appsec"]))
+
+            spec_dir = target / "specs" / "001-first"
+            spec_dir.mkdir(parents=True)
+            template = target / ".specify" / "templates" / "spec-template.md"
+            (spec_dir / "spec.md").write_text(
+                template.read_text(encoding="utf-8"), encoding="utf-8"
+            )
+            findings = [f for f in verify_project(target, write=False) if "001-first" in f.path]
+            self.assertEqual([], findings, f"overlaid template copy fails its own gate: {findings}")
+
+    def test_every_preset_template_passes_the_gate_when_it_wins(self) -> None:
+        """Any preset's template can become THE live template; each must pass.
+
+        Template resolution is last-preset-wins, so a preset shipping a thin
+        addendum as `spec-template.md` silently replaces the governed core
+        template for every profile where it sorts last. That is exactly what
+        happened on the default `public-core` profile: sicario-docs shipped a
+        28-line addendum, and a spec created from the resulting live template
+        failed the gate with four findings. Every preset's spec/plan/tasks
+        template must therefore satisfy the gate rules that will judge the
+        documents created from it, no matter which profile it wins in.
+        """
+        from sicario_cli.rules import RuleEngine
+
+        engine = RuleEngine()
+        rules = engine.load_rules([PRESETS_ROOT / "sicario-core" / "rules"])
+        as_doc = {
+            "spec-template.md": "spec.md",
+            "plan-template.md": "plan.md",
+            "tasks-template.md": "tasks.md",
+        }
+        for preset in sorted(p for p in PRESETS_ROOT.iterdir() if (p / "templates").is_dir()):
+            with tempfile.TemporaryDirectory() as tmp:
+                root = Path(tmp)
+                feature = root / "specs" / "001-x"
+                feature.mkdir(parents=True)
+                for template, doc in as_doc.items():
+                    source = preset / "templates" / template
+                    if source.exists():
+                        (feature / doc).write_text(
+                            source.read_text(encoding="utf-8"), encoding="utf-8"
+                        )
+                findings = []
+                for rule in rules:
+                    findings.extend(engine.evaluate(rule, root))
+                spec_findings = [f for f in findings if f["path"].startswith("specs/")]
+                self.assertEqual(
+                    [],
+                    spec_findings,
+                    f"{preset.name} templates fail the gate when they win: "
+                    f"{[(f['code'], f['path']) for f in spec_findings]}",
+                )
+
     def test_generated_files_contain_no_placeholder_secrets(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             target = Path(tmp) / "project"

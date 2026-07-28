@@ -56,6 +56,22 @@ cd my-project
 sicario verify
 ```
 
+The package is not published on PyPI; install from the git URL above (optionally
+pinned to a release tag, e.g. `...sicario-spec.git@v0.5.1`) or with
+`pip install -e .` from a local checkout.
+
+`sicario init` is brownfield-safe by default: new files are created, files it
+can safely extend are merged or overlaid, and everything else is preserved — a
+timestamped `*.sicario-bak.*` backup is taken before any file is changed. Useful
+flags:
+
+- `--dry-run` previews the per-file adoption report and writes nothing.
+- `--force` opts into full overwrite (backups are still taken first).
+- `-i` / `--interactive` runs a setup wizard for frameworks, data
+  classification, and cloud providers.
+- `--frameworks` selects which control-map frameworks `sicario verify` enforces
+  (see [Control Maps](./control-maps.md)).
+
 That creates a governed project with:
 
 - Spec Kit preset material under `.specify/`
@@ -75,7 +91,7 @@ Use this when you want the smallest upstream-compatible baseline.
 From a local checkout during development:
 
 ```bash
-specify preset add --dev /Users/jerieljuarbe/sicario-spec/presets/sicario-core
+specify preset add --dev /path/to/sicario-spec/presets/sicario-core
 specify preset resolve spec-template
 specify preset info sicario-core
 ```
@@ -109,9 +125,14 @@ Profile rule of thumb:
 | `ai-system` | You use LLMs, agents, RAG, MCP, model tools, or evals. |
 | `agent-fleet` | You coordinate workers, queues, workflows, or SOAR-style automation. |
 | `cloud-iac` | You manage infrastructure, policy-as-code, containers, or Kubernetes. |
+| `supply-chain` | You need dependency, provenance, build, and third-party risk discipline. |
 | `security-toolchain` | You need scan, SBOM, SCA, IaC, or policy evidence. |
 | `compliance` | You need control applicability, evidence indexes, or risk acceptance. |
+| `saas` | You ship a SaaS product with tenant, privacy, and operational-readiness needs. |
 | `enterprise-strict` | You need stricter approval, CODEOWNERS, and change-control posture. |
+
+`core` and `docs` are accepted as aliases that install the same baseline preset
+set as `public-core`.
 
 ## Daily Operating Loop
 
@@ -126,6 +147,11 @@ Profile rule of thumb:
 ```bash
 sicario verify
 ```
+
+For automation, `sicario verify --format json` and
+`sicario verify --format sarif` emit machine-readable output, and
+`sicario verify --validate-rules` checks rule files without running the gate.
+See [Rule Engine](./rule-engine.md) for details.
 
 The verification goal is not to claim the project is secure by magic. The goal
 is to make missing evidence visible before the work ships.

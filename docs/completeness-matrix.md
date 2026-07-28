@@ -7,7 +7,13 @@ artifact, validator, CI gate, and evidence output.
 |---|---|---|---|---|---|
 | Prompt injection | AI / LLM Risk | threat model, abuse cases | `sicario verify` | Sicario verify | gate summary |
 | Broken access control | Security Requirements | tests, threat model | test suite | CI test | test report |
-| Hardcoded secret | Secrets / Credential Handling | gate summary | secret pattern scan | secret scan | gate summary |
+| Hardcoded secret | Secrets / Credential Handling | gate summary | secret pattern scan (`SICARIO-HARDCODED-SECRET`) | secret scan | gate summary |
+| Hardcoded cloud/provider credential | Secrets / Credential Handling | gate summary | shipped rules 041-043 (`SICARIO-HARDCODED-AWS-KEY`, `SICARIO-HARDCODED-PROVIDER-TOKEN`, `SICARIO-PRIVATE-KEY-MATERIAL`) | secret scan | gate summary |
+| Finding flood hides secret-scan results | Secrets / Credential Handling | gate summary | per-file/per-rule output caps with mandatory `SICARIO-FINDINGS-TRUNCATED` overflow finding | Sicario verify | gate summary + `scan_coverage` |
+| Invalid or unreadable rule file weakens gate | Rule engine | gate summary | `SICARIO-RULE-INVALID` / `SICARIO-RULE-UNREADABLE` critical findings; `sicario verify --validate-rules` | Sicario verify | gate summary |
+| Gate runs with zero rules loaded | Rule engine | gate summary | fail-closed `SICARIO-NO-RULES-LOADED` critical finding | Sicario verify | gate summary |
+| Rule source redirected via `SICARIO_ASSET_ROOT` | Rule engine | gate summary | `SICARIO-ASSET-ROOT-OVERRIDE` finding | Sicario verify | `scan_coverage.asset_root` |
+| Shipped rule overridden or disabled by project rule | Rule engine | gate summary | override recording with `impact` / `original_severity` (visibility control) | Sicario verify | `scan_coverage.overrides` |
 | Missing data classification | Data Classification | data-classification.md | `sicario verify` | Sicario verify | spec-run evidence |
 | Missing tagging discipline | Tagging Discipline | tagging-taxonomy.md | `sicario verify` | Sicario verify | spec-run evidence |
 | Unsafe external write | External System Access | human approval record | plan review | Sicario review | evidence index |
