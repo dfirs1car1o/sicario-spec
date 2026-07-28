@@ -5,7 +5,8 @@ SicarioSpec is installed into target projects as local governance assets:
 - `.specify/presets/*`
 - `.specify/extensions/sicario-guard`
 - docs and diagram scaffolds
-- CCM/SOX control map starters
+- control-map starters for 14 frameworks (11 supported, 3 experimental — see
+  [docs/control-maps.md](../control-maps.md#map-tiers))
 - risk and exception registers
 - CI workflow templates
 

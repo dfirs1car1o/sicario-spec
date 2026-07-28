@@ -11,3 +11,5 @@
 | Accepted risk | Business owner / security reviewer | Per exception | docs/risk/accepted-risk-log.md |
 | Completeness matrix | Maintainers | Per release | docs/completeness-matrix.md |
 | Gate summary | `sicario verify` | Per run | generated/sicario/gate-summary.json |
+| Scan coverage (per-rule coverage, caps/truncation counters, disabled rules, rule overrides, asset-root resolution) | `sicario verify` | Per run | generated/sicario/gate-summary.json (`scan_coverage` block) |
+| Spec run evidence | `sicario verify` | Per run | generated/sicario/spec-run-evidence.json |

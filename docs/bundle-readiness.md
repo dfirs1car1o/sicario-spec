@@ -44,7 +44,7 @@ repository should receive docs, risk registers, control maps, workflow
 templates, and deterministic verification immediately:
 
 ```bash
-pip install sicario-spec
+pip install "git+https://github.com/dfirs1car1o/sicario-spec.git@v0.5.1"  # not on PyPI
 sicario init ./project --profile appsec,cloud-iac,security-toolchain,compliance
 sicario verify ./project
 ```

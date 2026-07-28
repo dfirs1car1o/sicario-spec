@@ -257,12 +257,20 @@ Rule-engine integrity:
 | `SICARIO-RULE-INVALID` | critical | A rule file failed validation (for example a zero, negative, or non-integer findings cap) and therefore did not run. The gate fails rather than silently enforcing less. |
 | `SICARIO-RULE-UNREADABLE` | critical | A rule file could not be read, decoded, or parsed as a JSON object, and therefore did not run. |
 | `SICARIO-FINDINGS-TRUNCATED` | (rule's severity) | A findings cap suppressed output for a `regex-forbidden` rule. Mandatory whenever anything is suppressed; carries exact reported / suppressed / total counts. |
+| `SICARIO-NO-RULES-LOADED` | critical | Zero rules were loaded from every searched rule directory, so the run enforced nothing. A run with no rules cannot fail, so it would report "pass" over any repository at all; it fails closed instead, naming the directories searched. |
+| `SICARIO-ASSET-ROOT-OVERRIDE` | medium | The `SICARIO_ASSET_ROOT` environment variable redirected where the shipped rules were loaded from — it was set, honored, and chose a different directory than the default resolution would have. Fails the run by design until a reviewer confirms the redirect; the full resolution record is in `scan_coverage.asset_root`. Fires only when resolution actually changed: a symlinked or case-variant spelling of the default root does not fire. |
 
 A clean run prints `sicario verify passed` and the gate summary shows
 `"status": "pass"`. The gate summary also carries `scan_coverage` evidence:
 per-rule scan counts (scanned, unreadable-skipped, policy-excluded files),
-disabled rules, and every override of a shipped rule by a project rule. See
-the [rule-engine docs](docs/rule-engine.md) for the record shapes.
+disabled rules (at their original severity), every rule override — including
+from/to `details` of exactly what changed, because a pattern edit can neuter a
+rule without disabling it — and an `asset_root` record of where the shipped
+rules came from. Note the limit: an override never fails the gate on its own,
+so a neutered rule still passes; the evidence makes the change visible to a
+reviewer, it does not prohibit it. See the
+[rule-engine docs](docs/rule-engine.md) for the record shapes and the
+`SICARIO_ASSET_ROOT` semantics.
 
 ---
 

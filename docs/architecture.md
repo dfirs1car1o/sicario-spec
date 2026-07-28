@@ -6,7 +6,8 @@ SicarioSpec separates governance intent from enforcement.
 SicarioSpec
 ├── presets/              # artifact shape: spec, plan, tasks, checklist, constitution
 │   ├── sicario-core/    #   static template and preset.yml files
-│   ├── sicario-core.py  #   Python plugin — generates governance artifacts (SicarioCorePreset)
+│   │   └── rules/       #   shipped *.rule.json gate rules loaded by `sicario verify`
+│   ├── sicario_core.py  #   Python plugin — generates governance artifacts (SicarioCorePreset)
 │   ├── sicario-docs/    #   static docs-site template assets
 │   ├── sicario_docs.py  #   Python plugin — generates Docusaurus scaffold (SicarioDocsPreset)
 │   ├── sicario-appsec/  #   (static preset.yml only)
@@ -17,6 +18,7 @@ SicarioSpec
 │   └── _render.py       #   shared write/copy/overlay helpers
 ├── workflow_templates/   # CI examples
 ├── control_maps/         # 14 framework traceability starters
+├── catalogs/             # Spec Kit catalog indexes (presets.json, extensions.json, bundles.json)
 ├── docs/                 # public project docs (served by Docusaurus)
 ├── examples/             # sample target projects
 ├── specs/                # feature specs (e.g. 001-preset-refactor)
