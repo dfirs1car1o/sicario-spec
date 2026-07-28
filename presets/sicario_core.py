@@ -83,7 +83,8 @@ def _template_overlay(template_name: str) -> str:
 Your template content above is unchanged. Complete this gate for every feature;
 `sicario verify` enforces the deterministic parts.
 
-- **Data Classification**: highest level, owner, retention, residency, sharing,
+- **Data Classification**: highest level (public / internal / confidential /
+  restricted / regulated), classification owner, retention, residency, sharing,
   redaction.
 - **Tagging Discipline**: owner, system, environment, data-classification,
   retention.

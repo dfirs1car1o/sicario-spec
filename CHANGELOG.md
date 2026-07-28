@@ -31,9 +31,11 @@ improve the security model.
 - **Override evidence.** Every project rule that replaces a shipped rule by
   reusing its `id` is recorded in `scan_coverage.overrides`: which file won,
   which was superseded, which fields changed, whether the change is material,
-  the enabled/severity transitions, and an `impact` string that carries the
-  higher of the two severities — so disabling a shipped `critical` rule always
-  reads `disables-critical-severity-rule`, even if the same edit demotes it.
+  the enabled/severity transitions, and an `impact` string ranked against the
+  highest of the original, superseded, and winning severities (see Security
+  below) — so disabling a shipped `critical` rule always reads
+  `disables-critical-severity-rule`, even if the rule is demoted first, in the
+  same file or an earlier one.
   An override never produces a finding or changes the verdict; the control is
   visibility, not prohibition. Project copies identical to the shipped rule
   (as written by `sicario init`) are not recorded.
@@ -64,6 +66,34 @@ improve the security model.
 
 ### Fixed
 
+- **The default profile shipped templates that failed the gate.** Template
+  resolution is last-preset-wins, and `sicario-docs` shipped 9-to-28-line
+  addenda as its five templates — so on the default `public-core` profile the
+  addendum replaced the governed core template, and a spec created from the
+  resulting live template failed `sicario verify` with four findings. The live
+  constitution was a nine-line addendum too. Every sicario-docs template is now
+  the full core template with the addendum appended as a section; the
+  sicario-security-toolchain spec template was also missing two required
+  vocabulary terms and an AI/tool-boundary section. A new invariant test treats
+  every preset's spec/plan/tasks template as the winning live template and runs
+  the gate rules against it, so no preset can ship a gate-failing template
+  again. The brownfield constitution overlay had the same class of defect —
+  its own wording failed the gate's classification check — fixed alongside
+  with its own regression test.
+
+- **Documentation corrected against shipped behavior.** Stale pages claimed
+  `--dry-run` was the init default (it is opt-in; the default is
+  brownfield-safe merge/overlay with backups), that empty framework selection
+  is rejected (it falls back to the coarse control-map check), and that the
+  package installs from PyPI (it has never been published there; the install
+  path is the git URL). Control-map pages and the tagging taxonomy now carry
+  the supported/experimental tier split and the full 14-key selector list;
+  threat-model and abuse-case rows reflect override evidence and the
+  fail-closed rule-load findings; the completeness matrix and evidence index
+  list the current finding codes and the `scan_coverage` block; the
+  docs-impact register gained the rows it was missing since 2026-06-23; and a
+  personal absolute path was scrubbed from getting-started.
+
 - **Secret-scan line numbers were wrong in files containing a bare `\r`.** The
   `regex-forbidden` evaluator read files with `Path.read_text()`, which applies
   universal-newline translation and rewrites a lone `\r` into `\n`. A bare `\r`
@@ -85,6 +115,15 @@ improve the security model.
   directory was loaded first while the engine's last-loaded-wins precedence
   applied, so the shipped rule silently won every collision and the documented
   override capability was unreachable. The project directory now loads last.
+- **`superseded_origin` never read `"shipped"` in an initialized project.**
+  `sicario init` copies every shipped rule verbatim into `.sicario/rules/`,
+  and although that byte-equal collision correctly records no override, it
+  re-anchored provenance to `project` — so every real override in a normally
+  initialized project recorded `superseded_origin: "project"`, and a reviewer
+  or CI filter on `superseded_origin == "shipped"` matched zero records
+  anywhere. No-op collisions no longer re-anchor provenance: the definition
+  an override supersedes is the last one that changed anything, so a real
+  override of a shipped rule now records `superseded_origin: "shipped"`.
 - **`--format json` and `--format sarif` output is parseable.** The human
   summary line was printed to stdout after the JSON or SARIF document, so
   `sicario verify --format sarif | jq` failed on every run. stdout now carries
@@ -162,6 +201,60 @@ improve the security model.
   secrets or internal content that was never meant to be committed. The rule is
   written idempotently and never clobbers an existing `.gitignore`. The same
   pattern was added to this repository's own `.gitignore`.
+- **`verify` fails closed when zero rules load.** A run with no rules cannot
+  produce a finding, so it reported "pass" over any repository whatsoever —
+  and that was shipping, not hypothetical: the packaged asset tree had no
+  `rules/` directory, so every pip-installed build resolved to it, loaded zero
+  rules, and printed `sicario verify passed` over planted credentials. The
+  packaged tree now carries the rules (a test keeps it byte-identical to
+  `presets/`), and a run that still loads zero rules from every searched
+  directory emits a critical `SICARIO-NO-RULES-LOADED` finding naming the
+  directories searched. A gate that enforces nothing must say so rather than
+  agreeing with you.
+- **Override `impact` can no longer be laundered through a chain of files.**
+  `impact` ranked an override against only the adjacent definition, so
+  demoting a shipped `critical` rule to `low` in one project file and
+  disabling it in a second yielded `disables-low-severity-rule` — the
+  documented reviewer grep for `disables-critical-severity-rule` found
+  nothing, and `disabled_rules` reported the rule as `low`. The engine now
+  tracks the severity of the first definition loaded per id, records it on
+  the override as `original_severity`, and ranks `impact` against the highest
+  of the original, superseded, and winning severities; `disabled_rules` shows
+  the original severity too. A chain of N overriding files now yields the
+  same `impact` as making every edit in a single file.
+- **Override records now carry the actual change, not just its field names
+  (`details`).** Replacing the shipped secret-scan pattern with `(?!x)x`
+  neuters the rule while every disable-shaped signal stays silent — still
+  enabled, still `critical`, coverage reading like a clean repository — and
+  the record said only `changed: ["params"]`. The gate cannot decide whether
+  a pattern change is a narrowing or a neutering (that is regex containment),
+  so it now puts the change in front of the reviewer: each record carries a
+  `details` object with from/to values for a changed `path`, `kind`, and each
+  changed `params` key, any single value over 500 characters truncated with
+  an explicit `(truncated)` marker. `message` changes get no detail. The
+  limit stands: a neutered rule still passes the gate — the control is
+  visibility, not prohibition.
+- **`SICARIO_ASSET_ROOT` redirects are now visible.** The env var — which
+  redirects where `sicario` loads its shipped assets, and was documented
+  nowhere — let a decoy directory carrying `presets/` and `extensions/` but a
+  partial or empty rules tree silently replace the shipped rule set while the
+  gate still looked populated. `gate-summary.json` now records the resolution
+  in `scan_coverage.asset_root`: the resolved absolute root, the raw env
+  value as given, whether the var was set and honored, whether it actually
+  redirected resolution, and the shipped-rules directory with its rule-file
+  count. A redirected run additionally emits a medium
+  `SICARIO-ASSET-ROOT-OVERRIDE` finding that fails the run by design — a
+  redirected rule source is indistinguishable from a tampered one until a
+  reviewer confirms it. It fires only when resolution actually changed:
+  symlinked or case-variant spellings of the default root are compared by
+  inode and stay silent. Out of scope: replacing the default root's content
+  in place (bind mounts, editing the install) involves no env var and is not
+  flagged as a redirect.
+- **Rule ids are validated with `fullmatch`.** The previous `re.match` with
+  `$` accepted an id carrying a trailing newline (`$` also matches just
+  before one), and `"SICARIO-X\n"` renders identically to the real id in
+  findings and evidence — a grep-poisoning primitive. Such ids are now
+  rejected at rule load and surface as `SICARIO-RULE-INVALID`.
 
 ### Documentation
 

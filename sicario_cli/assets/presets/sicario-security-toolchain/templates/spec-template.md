@@ -23,6 +23,7 @@
 - Regulated data involved: none / PII / PHI / PCI / SOX / export-controlled / customer confidential / other
 - Data retention and deletion expectations:
 - Data residency or sovereignty constraints:
+- Data sharing boundaries (internal / external / third-party):
 - Scanner output, SBOM, finding, and evidence sensitivity:
 - Redaction or masking requirements:
 
@@ -60,6 +61,12 @@
 - IaC scan:
 - Policy-as-code:
 - Evidence artifact locations:
+
+## AI / Tool Boundary
+
+- Prompt injection exposure (untrusted scanner output, AI-assisted triage):
+- Tool boundary: which tools may act on findings, and with what human
+  approval:
 
 ## Misuse / Abuse Cases
 
