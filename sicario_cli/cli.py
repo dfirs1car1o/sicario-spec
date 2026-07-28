@@ -12,6 +12,7 @@ import json
 import os
 import shutil
 import subprocess
+import sys
 import sysconfig
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -358,6 +359,20 @@ def _parse_sarif(path: Path) -> List[Finding]:
 
 
 def _scan_evidence_files(root: Path) -> List[Finding]:
+    """Ingest third-party scanner output. NOT WIRED IN — see the warning below.
+
+    Nothing calls this. Before wiring it into ``verify_project``, note that
+    ``_parse_semgrep_json`` and ``_parse_sarif`` build findings from the
+    third-party tool's ``message.text``, and scanners routinely put matched
+    source snippets there. Those findings flow into
+    ``generated/sicario/gate-summary.json``, so enabling this as written would
+    import scanned source text — potentially a live credential — straight into
+    the evidence artifact, breaching the no-secret-echo property that
+    specs/006 SEC-002 establishes for the native evaluators.
+
+    Wiring it in therefore requires discarding or sanitising the third-party
+    message rather than copying it through.
+    """
     """Scan for Semgrep JSON and SARIF scanner output files in the project.
 
     Recognised file names:
@@ -1048,31 +1063,6 @@ def _scan_coverage(rule_report) -> dict:
     }
 
 
-def _validate_active_risk_rows(root: Path, path: Path) -> List[Finding]:
-    findings: List[Finding] = []
-    text = path.read_text(encoding="utf-8")
-    rel = str(path.relative_to(root))
-    for line_number, line in enumerate(text.splitlines(), start=1):
-        stripped = line.strip()
-        if not stripped.startswith("|"):
-            continue
-        lower = stripped.lower()
-        if "| active |" not in lower:
-            continue
-        cells = [cell.strip().lower() for cell in stripped.strip("|").split("|")]
-        bad_values = {"", "tbd", "n/a", "na", "none", "never", "permanent"}
-        if any(cell in bad_values for cell in cells):
-            findings.append(
-                Finding(
-                    "high",
-                    "SICARIO-INCOMPLETE-ACTIVE-RISK",
-                    "Active risk or exception row must have owner, expiration, approval/rationale, compensating control, and evidence",
-                    f"{rel}:{line_number}",
-                )
-            )
-    return findings
-
-
 def _validate_spec_classification_and_tags(root: Path, path: Path, text: str) -> List[Finding]:
     findings: List[Finding] = []
     rel = str(path.relative_to(root))
@@ -1255,6 +1245,7 @@ def verify_command(args: argparse.Namespace) -> int:
     findings = verify_project(root, write=True)
 
     fmt = getattr(args, "format", "text")
+    machine_readable = fmt in ("json", "sarif")
     if fmt == "json":
         print(json.dumps([f.as_dict() for f in findings], indent=2))
     elif fmt == "sarif":
@@ -1262,10 +1253,17 @@ def verify_command(args: argparse.Namespace) -> int:
     else:
         for finding in findings:
             print(_finding_line(finding))
+
+    # The summary is a human diagnostic, not part of the payload. Printing it to
+    # stdout after a JSON or SARIF document made that document unparseable —
+    # `verify --format sarif | jq` failed outright, on passing runs as well as
+    # failing ones. stdout carries the artifact; stderr carries the commentary.
+    # The exit code is unchanged and remains the authoritative verdict.
+    summary_stream = sys.stderr if machine_readable else sys.stdout
     if findings:
-        print(f"sicario verify failed with {len(findings)} finding(s)")
+        print(f"sicario verify failed with {len(findings)} finding(s)", file=summary_stream)
         return 1
-    print("sicario verify passed")
+    print("sicario verify passed", file=summary_stream)
     return 0
 
 

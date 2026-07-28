@@ -1157,6 +1157,56 @@ class BrownfieldSafeAdoptionTests(unittest.TestCase):
             self.assertEqual(1, rc, "a non-positive cap was not reported")
             self.assertIn("positive integer", out)
 
+    def test_machine_readable_output_is_parseable(self) -> None:
+        """stdout must carry only the artifact for --format json/sarif.
+
+        The human summary was printed to stdout after the payload, so
+        `verify --format sarif | jq` failed outright — on passing runs as well
+        as failing ones. The spec's downstream-consumer argument assumes these
+        artifacts are machine-readable, so this is a broken contract, not a
+        cosmetic issue.
+        """
+        import contextlib
+        import io
+
+        with tempfile.TemporaryDirectory() as tmp:
+            target = Path(tmp) / "project"
+            self.assertEqual(0, main(["init", str(target), "--profile", "appsec"]))
+
+            for expect_findings in (False, True):
+                if expect_findings:
+                    (target / "leak.txt").write_text(_secret_assignment() + "\n", encoding="utf-8")
+                for fmt in ("json", "sarif"):
+                    out, err = io.StringIO(), io.StringIO()
+                    with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+                        rc = main(["verify", str(target), "--format", fmt])
+
+                    payload = out.getvalue()
+                    # The whole point: stdout parses on its own.
+                    try:
+                        json.loads(payload)
+                    except json.JSONDecodeError as exc:
+                        self.fail(f"--format {fmt} stdout is not valid JSON: {exc}")
+
+                    # The verdict is still reported, just not into the artifact.
+                    self.assertIn("sicario verify", err.getvalue())
+                    self.assertNotIn("sicario verify", payload)
+                    self.assertEqual(1 if expect_findings else 0, rc)
+
+    def test_text_format_keeps_summary_on_stdout(self) -> None:
+        """Only machine-readable formats move the summary; text is unchanged."""
+        import contextlib
+        import io
+
+        with tempfile.TemporaryDirectory() as tmp:
+            target = Path(tmp) / "project"
+            self.assertEqual(0, main(["init", str(target), "--profile", "appsec"]))
+            out = io.StringIO()
+            with contextlib.redirect_stdout(out):
+                rc = main(["verify", str(target)])
+            self.assertEqual(0, rc)
+            self.assertIn("sicario verify passed", out.getvalue())
+
     def test_generated_files_contain_no_placeholder_secrets(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             target = Path(tmp) / "project"
@@ -1571,6 +1621,196 @@ class RegexForbiddenCompletenessTests(unittest.TestCase):
             self.assertEqual(1, coverage["files_scanned"])
             self.assertEqual(0, coverage["files_skipped"])
 
+    # --- SEC-011: the skipped-path policy has a visible effect, not just a
+    # --- recorded statement -------------------------------------------------
+
+    def test_files_under_an_excluded_dir_at_depth_are_counted(self) -> None:
+        """A file the scanner never opened is not reported as one it cleared.
+
+        The policy matches any path component at any depth. Before this was
+        counted, everything under such a component was absent from the coverage
+        record entirely, so the record described a complete, clean scan.
+        """
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            _write_matches_on(root / "a" / "b" / "node_modules" / "c" / "d" / "creds.env", [1])
+            _write_matches_on(root / "visible.txt", [1])
+            findings, coverage = self._evaluate(root)
+
+            self.assertEqual(["visible.txt"], [f["path"] for f in findings])
+            self.assertEqual(1, coverage["files_scanned"])
+            self.assertEqual(0, coverage["files_skipped"])
+            # The gap is now stated, and attributed to the component that
+            # caused it rather than to the leaf file.
+            self.assertEqual(1, coverage["files_excluded"])
+            self.assertEqual([{"path": "a/b/node_modules", "files": 1}], coverage["excluded_dirs"])
+            self.assertEqual(1, coverage["excluded_dirs_total"])
+            self.assertFalse(coverage["excluded_dirs_truncated"])
+
+    def test_reproduction_four_of_five_secrets_are_excluded_not_invisible(self) -> None:
+        """The exact reported reproduction: 5 secrets, 4 under excluded dirs.
+
+        The verdict is unchanged — `visible.txt` still fails the gate — but the
+        coverage record can no longer be read as "the tree is clean".
+        """
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            for rel in (
+                "src/dist/creds.env",
+                "app/build/creds.env",
+                "docs/generated/creds.env",
+                "vendor/node_modules/creds.env",
+                "visible.txt",
+            ):
+                _write_matches_on(root / rel, [1])
+            findings, coverage = self._evaluate(root)
+
+            self.assertEqual([("visible.txt", 1)], [(f["path"], f["line"]) for f in findings])
+            self.assertEqual(1, coverage["files_scanned"])
+            self.assertEqual(0, coverage["files_skipped"])
+            self.assertEqual(4, coverage["files_excluded"])
+            self.assertEqual(
+                [
+                    {"path": "app/build", "files": 1},
+                    {"path": "docs/generated", "files": 1},
+                    {"path": "src/dist", "files": 1},
+                    {"path": "vendor/node_modules", "files": 1},
+                ],
+                coverage["excluded_dirs"],
+            )
+            # Scanned + skipped + excluded accounts for every resolved file, so
+            # nothing falls out of the record unaccounted for.
+            self.assertEqual(
+                5,
+                coverage["files_scanned"] + coverage["files_skipped"] + coverage["files_excluded"],
+            )
+
+    def test_excluded_dir_with_many_files_produces_no_finding_per_file(self) -> None:
+        """Counting and attribution, not noise: node_modules must stay one row."""
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            for index in range(200):
+                _write_matches_on(root / "node_modules" / f"pkg{index:03d}" / "creds.env", [1])
+            findings, coverage = self._evaluate(root)
+
+            self.assertEqual([], findings, "an excluded tree must not emit findings")
+            self.assertEqual(200, coverage["files_excluded"])
+            self.assertEqual([{"path": "node_modules", "files": 200}], coverage["excluded_dirs"])
+            self.assertEqual(0, coverage["files_matched"])
+            self.assertFalse(coverage["truncated"])
+
+    def test_excluded_dir_list_is_bounded_and_says_when_it_is(self) -> None:
+        """A truncated list that looked complete would be the same defect."""
+        from sicario_cli.rules.kinds.regex_forbidden import MAX_EXCLUDED_DIRS_RECORDED
+
+        over = MAX_EXCLUDED_DIRS_RECORDED + 7
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            for index in range(over):
+                _write_matches_on(root / f"pkg{index:03d}" / "__pycache__" / "creds.env", [1])
+            _, coverage = self._evaluate(root)
+
+            # The total is exact and uncapped; only the itemisation is bounded.
+            self.assertEqual(over, coverage["files_excluded"])
+            self.assertEqual(over, coverage["excluded_dirs_total"])
+            self.assertEqual(MAX_EXCLUDED_DIRS_RECORDED, len(coverage["excluded_dirs"]))
+            self.assertTrue(coverage["excluded_dirs_truncated"])
+            self.assertEqual(MAX_EXCLUDED_DIRS_RECORDED, coverage["max_excluded_dirs_recorded"])
+            # The retained slice is the stable head of the sorted order.
+            self.assertEqual(
+                [f"pkg{index:03d}/__pycache__" for index in range(MAX_EXCLUDED_DIRS_RECORDED)],
+                [entry["path"] for entry in coverage["excluded_dirs"]],
+            )
+
+    def test_exclusion_record_is_byte_identical_across_repeated_runs(self) -> None:
+        """FR-019 / AC-008: the new counters must not reintroduce churn."""
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            for rel in (
+                "vendor/node_modules/b.env",
+                "vendor/node_modules/a.env",
+                "src/dist/x.env",
+                "z/.git/objects/pack.env",
+                "app/build/deep/y.env",
+            ):
+                _write_matches_on(root / rel, [1])
+            _write_matches_on(root / "visible.txt", [1])
+
+            renders = {json.dumps(self._evaluate(root), sort_keys=True) for _ in range(10)}
+            self.assertEqual(1, len(renders), "output varied across repeated runs")
+
+            _, coverage = self._evaluate(root)
+            paths = [entry["path"] for entry in coverage["excluded_dirs"]]
+            self.assertEqual(sorted(paths), paths)
+            self.assertEqual(["app/build", "src/dist", "vendor/node_modules", "z/.git"], paths)
+            self.assertEqual(5, coverage["files_excluded"])
+
+    def test_well_known_vendor_dirs_are_still_not_scanned(self) -> None:
+        """Counting an exclusion must not turn it into an inclusion."""
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            for name in (".git", "node_modules", ".venv"):
+                _write_matches_on(root / name / "creds.env", [1])
+            _write_matches_on(root / "visible.txt", [1])
+            findings, coverage = self._evaluate(root)
+
+            self.assertEqual(["visible.txt"], [f["path"] for f in findings])
+            self.assertEqual(1, coverage["files_scanned"])
+            self.assertEqual(3, coverage["files_excluded"])
+            self.assertEqual(
+                [".git", ".venv", "node_modules"],
+                [entry["path"] for entry in coverage["excluded_dirs"]],
+            )
+
+    def test_gate_summary_carries_the_exclusion_tally(self) -> None:
+        """FR-020 / SC-010: legible from the evidence file alone."""
+        from sicario_cli.cli import verify_project
+
+        with tempfile.TemporaryDirectory() as tmp:
+            target = Path(tmp) / "project"
+            self.assertEqual(0, main(["init", str(target), "--profile", "appsec"]))
+            _write_matches_on(target / "node_modules" / "pkg" / "creds.env", [1])
+            _write_matches_on(target / "leak.txt", [1])
+
+            verify_project(target, write=True)
+            summary = json.loads(
+                (target / "generated" / "sicario" / "gate-summary.json").read_text(encoding="utf-8")
+            )
+            secret = next(
+                r
+                for r in summary["scan_coverage"]["rules"]
+                if r["rule_id"] == "SICARIO-HARDCODED-SECRET"
+            )
+            for key in (
+                "files_excluded",
+                "excluded_dirs",
+                "excluded_dirs_total",
+                "excluded_dirs_truncated",
+                "max_excluded_dirs_recorded",
+            ):
+                self.assertIn(key, secret)
+            self.assertGreaterEqual(secret["files_excluded"], 1)
+            self.assertIn(
+                {"path": "node_modules", "files": 1},
+                secret["excluded_dirs"],
+            )
+            # The policy statement and its effect are now both in evidence.
+            self.assertIn("node_modules", summary["scan_coverage"]["skipped_path_set"])
+            self.assertNotIn(
+                "node_modules/pkg/creds.env",
+                [f["path"] for f in summary["findings"]],
+            )
+
+    def test_a_clean_tree_states_zero_exclusions_rather_than_omitting_them(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            _write_matches_on(root / "a.txt", [1])
+            _, coverage = self._evaluate(root)
+            self.assertEqual(0, coverage["files_excluded"])
+            self.assertEqual([], coverage["excluded_dirs"])
+            self.assertEqual(0, coverage["excluded_dirs_total"])
+            self.assertFalse(coverage["excluded_dirs_truncated"])
+
     # --- SEC-002 / FR-027 / SA-004: matched text never leaves ---------------
 
     def test_no_matched_value_appears_in_any_output_surface(self) -> None:
@@ -1707,6 +1947,161 @@ class RegexForbiddenCompletenessTests(unittest.TestCase):
             _write_matches_on(target / "leak.txt", [1, 2])
             codes = {f.code for f in verify_project(target, write=False)}
             self.assertIn("SICARIO-HARDCODED-SECRET", codes)
+            self.assertEqual(1, main(["verify", str(target)]))
+
+
+_RISK_HEADER = [
+    "# Security Exceptions",
+    "",
+    "| Exception ID | Status | Control / Gate | Owner | Expires | Approval | Compensating |",
+    "|---|---|---|---|---|---|---|",
+]
+
+_VALID_ROW = "| EX-{n} | active | secret scan | @sec | 2027-01-01 | @ciso | dual review |"
+_INVALID_ROW = "| EX-{n} | active | secret scan | TBD | never | TBD | TBD |"
+_CLOSED_ROW = "| EX-{n} | closed | secret scan | @sec | N/A | N/A | N/A |"
+
+
+def _risk_rule() -> dict:
+    """The shipped SICARIO-INCOMPLETE-ACTIVE-RISK rule, as loaded from presets."""
+    return json.loads(
+        (PRESETS_ROOT / "sicario-core" / "rules" / "033-risk-register-rows.rule.json").read_text(
+            encoding="utf-8"
+        )
+    )
+
+
+def _write_register(path: Path, rows: list[str]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text("\n".join(_RISK_HEADER + rows) + "\n", encoding="utf-8")
+
+
+class RiskRowsValidCompletenessTests(unittest.TestCase):
+    """`risk-rows-valid` reporting completeness.
+
+    Same defect and same contract as feature 006 fixed for `regex-forbidden`:
+    every invalid row reported, the line carried as its own value, a total
+    deterministic order, and no change to the verdict.
+    """
+
+    def _evaluate(self, root: Path) -> list:
+        from sicario_cli.rules.kinds.risk_rows_valid import evaluate
+
+        return evaluate(_risk_rule(), root)
+
+    # --- FR-001 / FR-002: every invalid row, not just the first -------------
+
+    def test_three_invalid_rows_report_three_findings(self) -> None:
+        """Regression guard for the `break` that stopped after the first row."""
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            _write_register(
+                root / "docs" / "risk" / "security-exceptions.md",
+                [_INVALID_ROW.format(n=i) for i in (1, 2, 3)],
+            )
+            findings = self._evaluate(root)
+            self.assertEqual(3, len(findings))
+            self.assertEqual({"SICARIO-INCOMPLETE-ACTIVE-RISK"}, {f["code"] for f in findings})
+
+    def test_line_numbers_are_one_based_and_exact(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            # Header occupies lines 1-4; rows begin at line 5.
+            _write_register(
+                root / "docs" / "risk" / "security-exceptions.md",
+                [
+                    _INVALID_ROW.format(n=1),  # line 5
+                    _VALID_ROW.format(n=2),  # line 6
+                    _INVALID_ROW.format(n=3),  # line 7
+                    _CLOSED_ROW.format(n=4),  # line 8 — not active, ignored
+                    _INVALID_ROW.format(n=5),  # line 9
+                ],
+            )
+            findings = self._evaluate(root)
+            self.assertEqual([5, 7, 9], [f["line"] for f in findings])
+
+    # --- FR-004 / FR-005: the line is its own value -------------------------
+
+    def test_line_is_a_separate_field_and_path_has_no_positional_suffix(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            _write_register(
+                root / "docs" / "risk" / "security-exceptions.md",
+                [_INVALID_ROW.format(n=1)],
+            )
+            finding = self._evaluate(root)[0]
+            self.assertEqual("docs/risk/security-exceptions.md", finding["path"])
+            self.assertNotIn(":", finding["path"])
+            self.assertEqual(5, finding["line"])
+            self.assertIsInstance(finding["line"], int)
+
+    def test_finding_message_is_the_static_rule_message_only(self) -> None:
+        """A finding names where, never what: no row content in the message."""
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            _write_register(
+                root / "docs" / "risk" / "security-exceptions.md",
+                ["| EX-SENSITIVE-ZZZQQQ | active | gate | TBD | never | TBD | TBD |"],
+            )
+            findings = self._evaluate(root)
+            self.assertEqual(1, len(findings))
+            self.assertEqual(_risk_rule()["message"], findings[0]["message"])
+            self.assertNotIn("ZZZQQQ", json.dumps(findings))
+
+    # --- FR-017 / FR-019: deterministic total order -------------------------
+
+    def test_ordering_is_deterministic_across_repeated_runs(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            risk = root / "docs" / "risk"
+            _write_register(risk / "zeta-register.md", [_INVALID_ROW.format(n=i) for i in (1, 2)])
+            _write_register(risk / "alpha-register.md", [_INVALID_ROW.format(n=i) for i in (3, 4)])
+            _write_register(risk / "mid-register.md", [_INVALID_ROW.format(n=5)])
+
+            expected = [
+                ("docs/risk/alpha-register.md", 5),
+                ("docs/risk/alpha-register.md", 6),
+                ("docs/risk/mid-register.md", 5),
+                ("docs/risk/zeta-register.md", 5),
+                ("docs/risk/zeta-register.md", 6),
+            ]
+            for _ in range(10):
+                findings = self._evaluate(root)
+                self.assertEqual(expected, [(f["path"], f["line"]) for f in findings])
+
+    # --- No false positives -------------------------------------------------
+
+    def test_valid_register_produces_no_findings(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            _write_register(
+                root / "docs" / "risk" / "security-exceptions.md",
+                [_VALID_ROW.format(n=i) for i in (1, 2, 3)] + [_CLOSED_ROW.format(n=4)],
+            )
+            self.assertEqual([], self._evaluate(root))
+
+    # --- FR-025 / SEC-006: the verdict is unchanged -------------------------
+
+    def test_clean_project_still_passes_and_dirty_register_still_fails(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            target = Path(tmp) / "project"
+            self.assertEqual(0, main(["init", str(target), "--profile", "appsec"]))
+            self.assertEqual([], verify_project(target, write=False))
+            self.assertEqual(0, main(["verify", str(target)]))
+
+            _write_register(
+                target / "docs" / "risk" / "security-exceptions.md",
+                [_INVALID_ROW.format(n=i) for i in (1, 2, 3)],
+            )
+            findings = verify_project(target, write=False)
+            risk_findings = [f for f in findings if f.code == "SICARIO-INCOMPLETE-ACTIVE-RISK"]
+            # More findings than before is the fix; the verdict is not.
+            self.assertEqual(3, len(risk_findings))
+            self.assertEqual([5, 6, 7], [f.line for f in risk_findings])
+            self.assertEqual(
+                ["docs/risk/security-exceptions.md:5"],
+                [f.location for f in risk_findings[:1]],
+            )
             self.assertEqual(1, main(["verify", str(target)]))
 
 

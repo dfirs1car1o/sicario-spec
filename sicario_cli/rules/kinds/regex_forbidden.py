@@ -20,7 +20,12 @@ Reporting contract:
 * any suppression emits a mandatory, unsuppressible overflow finding carrying
   exact reported / suppressed / total counts (FR-013, FR-014, SEC-003, SEC-004);
 * counting continues after emission stops, so those counts are exact rather
-  than lower bounds (FR-015, SEC-005).
+  than lower bounds (FR-015, SEC-005);
+* a file the scanner did not inspect is never indistinguishable from a file the
+  scanner cleared, whether it was unreadable or excluded by the skipped-path
+  policy (SEC-011, FR-020). The two are counted separately, because "could not
+  be read" and "excluded by policy" are different facts a reviewer acts on
+  differently.
 """
 
 from __future__ import annotations
@@ -50,6 +55,14 @@ SKIPPED_DIR_NAMES = frozenset(
 )
 
 _SKIP_DIRS = SKIPPED_DIR_NAMES
+
+#: Cap on how many distinct excluded directories the coverage record itemises.
+#: The *count* of excluded files is exact and never capped; only the per-
+#: directory attribution list is bounded, so a vendored tree cannot inflate the
+#: evidence file. Whenever the list is shortened the record says so explicitly
+#: (``excluded_dirs_truncated``, ``excluded_dirs_total``): a truncated list that
+#: looked complete would be the same defect this record exists to close.
+MAX_EXCLUDED_DIRS_RECORDED = 50
 
 #: Documented cap defaults. High enough that a normal repository never reaches
 #: them, low enough that a pathological one stays usable (FR-010).
@@ -94,21 +107,70 @@ def _cap(params: Dict[str, Any], key: str, default: int) -> int:
     return value
 
 
-def _resolve_paths(pattern: str, root: Path) -> List[Path]:
-    """Resolve a rule target to a deterministically ordered list of paths.
+def _excluded_root(parts: Sequence[str]) -> Optional[str]:
+    """Return the shallowest prefix of ``parts`` whose own name is skipped.
+
+    The skip policy matches any path component at any depth, so the component
+    that triggered the exclusion is what a reader needs to see: it is the fact
+    that explains why the files beneath it were not scanned. Attribution is to
+    that prefix rather than to each file, so an excluded vendored tree collapses
+    to one record instead of tens of thousands.
+    """
+    for index, part in enumerate(parts):
+        if part in _SKIP_DIRS:
+            # POSIX form, built from components, so it does not depend on the
+            # platform path separator (FR-018, SEC-014).
+            return "/".join(parts[: index + 1])
+    return None
+
+
+def _resolve_paths(pattern: str, root: Path) -> Tuple[List[Path], Dict[str, int]]:
+    """Resolve a rule target to a deterministically ordered list of paths, plus
+    a per-directory tally of the files the skipped-path policy excluded.
 
     Ordering is by repository-relative POSIX path, so it does not depend on
     filesystem enumeration order or on the platform path separator (FR-018).
+
+    The tally is the effect of the policy, where ``SKIPPED_DIR_NAMES`` is only
+    its statement. Recording the statement alone let an excluded file be
+    reported exactly like a cleared one, which SEC-011 forbids.
     """
-    if any(c in pattern for c in "*?["):
-        matches = [
-            p
-            for p in root.glob(pattern)
-            if not any(part in _SKIP_DIRS for part in p.relative_to(root).parts)
-        ]
-        return sorted(matches, key=lambda p: p.relative_to(root).as_posix())
-    target = root / pattern
-    return [target] if target.exists() else []
+    if not any(c in pattern for c in "*?["):
+        # A literal target is not filtered by the skip policy today, so there is
+        # nothing for it to exclude. Left as-is deliberately: widening the
+        # policy to literal targets would change what is scanned, which this
+        # coverage fix must not do (FR-025, SEC-006).
+        target = root / pattern
+        return ([target] if target.exists() else []), {}
+
+    matches: List[Path] = []
+    excluded: Dict[str, int] = {}
+    for path in root.glob(pattern):
+        skip_root = _excluded_root(path.relative_to(root).parts)
+        if skip_root is None:
+            matches.append(path)
+        elif not path.is_dir():
+            # Count exactly what ``files_scanned`` and ``files_skipped`` count:
+            # directories are neither scanned nor skipped, so they are not
+            # excluded either, and the three counters stay commensurable.
+            excluded[skip_root] = excluded.get(skip_root, 0) + 1
+    matches.sort(key=lambda p: p.relative_to(root).as_posix())
+    return matches, excluded
+
+
+def _record_exclusions(coverage: Dict[str, Any], excluded: Dict[str, int]) -> None:
+    """Write the skip-policy tally into the coverage record.
+
+    ``files_excluded`` is always the exact total. Only ``excluded_dirs`` is
+    bounded, and the record carries the true directory count alongside it so a
+    shortened list can never be mistaken for a complete one.
+    """
+    ordered = sorted(excluded.items())
+    listed = ordered[:MAX_EXCLUDED_DIRS_RECORDED]
+    coverage["files_excluded"] = sum(excluded.values())
+    coverage["excluded_dirs"] = [{"path": path, "files": count} for path, count in listed]
+    coverage["excluded_dirs_total"] = len(ordered)
+    coverage["excluded_dirs_truncated"] = len(listed) < len(ordered)
 
 
 def _line_starts(text: str) -> List[int]:
@@ -133,8 +195,20 @@ def _new_coverage(rule: Dict[str, Any], per_file_cap: int, per_rule_cap: int) ->
         "kind": "regex-forbidden",
         "target": rule["path"],
         "files_scanned": 0,
+        # Could not be read or decoded (SEC-011).
         "files_skipped": 0,
         "skipped_files": [],
+        # Excluded by the skipped-path policy before any read was attempted.
+        # Kept distinct from `files_skipped`: an unreadable file is a scanner
+        # limitation to investigate, an excluded file is a policy decision to
+        # review, and collapsing them would hide both (SEC-011, FR-021).
+        # Always present, including as zero, so "no exclusions" is stated
+        # rather than inferred from an absent key.
+        "files_excluded": 0,
+        "excluded_dirs": [],
+        "excluded_dirs_total": 0,
+        "excluded_dirs_truncated": False,
+        "max_excluded_dirs_recorded": MAX_EXCLUDED_DIRS_RECORDED,
         "files_matched": 0,
         "total_occurrences": 0,
         "total_matches": 0,
@@ -181,7 +255,10 @@ def evaluate_detailed(
     candidates: List[Tuple[str, int, int]] = []
     per_file_suppressed = 0
 
-    for target in _resolve_paths(rule["path"], root):
+    targets, excluded = _resolve_paths(rule["path"], root)
+    _record_exclusions(coverage, excluded)
+
+    for target in targets:
         if target.is_dir():
             continue
         try:
