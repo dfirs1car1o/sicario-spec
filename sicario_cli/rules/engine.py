@@ -95,6 +95,88 @@ def _validate_rule(rule: Dict[str, Any]) -> List[str]:
     return errors
 
 
+# --- Rule overrides -----------------------------------------------------------
+#
+# A project may replace a shipped rule by reusing its `id` (see load_rules for
+# the precedence contract). That is a documented, legitimate capability — a
+# platform team narrowing a noisy rule to the paths it owns. It is also how an
+# adopter could switch off the secret scan, so the security property is not
+# "you cannot do this", it is "you cannot do this without it showing up in the
+# evidence artifact and therefore in review". Everything below exists to make
+# an override impossible to perform silently.
+
+#: Severity ordering, most severe first. Used only to rank an override's impact
+#: in evidence. It never participates in the pass/fail verdict.
+_SEVERITY_ORDER = ["critical", "high", "medium", "low"]
+
+#: Fields whose difference changes what a rule actually ENFORCES. A record whose
+#: `changed` set touches none of these (a reworded `message`, say) is flagged
+#: `material: false` so a reviewer can tell a real policy change from a cosmetic
+#: one without re-reading both rule files.
+MATERIAL_OVERRIDE_FIELDS = ("enabled", "severity", "kind", "path", "params")
+
+
+def _more_severe(left: Any, right: Any) -> str:
+    """Return the more severe of two severity strings.
+
+    An override is ranked by the HIGHER of the superseded and the winning
+    severity so that demoting a rule to `low` in the same edit that disables it
+    cannot dress a disabled `critical` rule up as a routine `low` tweak.
+    """
+    candidates = [s for s in (left, right) if s in _SEVERITY_ORDER]
+    if not candidates:
+        return "unknown"
+    return min(candidates, key=_SEVERITY_ORDER.index)
+
+
+def _rule_diff(superseded: Dict[str, Any], winning: Dict[str, Any]) -> List[str]:
+    """Names of every field whose value differs between two rules sharing an id.
+
+    `enabled` is normalised to its effective value first, so a shipped rule that
+    omits the field and a project rule that spells out `"enabled": true` are not
+    reported as a difference that is not there.
+    """
+    previous = dict(superseded)
+    current = dict(winning)
+    previous["enabled"] = superseded.get("enabled", True)
+    current["enabled"] = winning.get("enabled", True)
+    keys = (set(previous) | set(current)) - {"id"}
+    return sorted(key for key in keys if previous.get(key) != current.get(key))
+
+
+def _override_record(
+    rule_id: str,
+    superseded: Dict[str, Any],
+    winning: Dict[str, Any],
+    superseded_ref: Dict[str, str],
+    winning_ref: Dict[str, str],
+    changed: List[str],
+) -> Dict[str, Any]:
+    """Build the evidence record for one rule replaced by a later rule file."""
+    was_enabled = superseded.get("enabled", True)
+    now_enabled = winning.get("enabled", True)
+    severity = _more_severe(superseded.get("severity"), winning.get("severity"))
+    disables = bool(was_enabled and not now_enabled)
+    # The impact string carries the severity so that turning a rule OFF never
+    # reads like narrowing one. `disables-critical-severity-rule` and
+    # `modifies-medium-severity-rule` are distinguishable at a glance and by
+    # grep, which is the point: this is what a reviewer scans for.
+    impact = f"{'disables' if disables else 'modifies'}-{severity}-severity-rule"
+    return {
+        "rule_id": rule_id,
+        "winning_origin": winning_ref["origin"],
+        "winning_file": winning_ref["file"],
+        "superseded_origin": superseded_ref["origin"],
+        "superseded_file": superseded_ref["file"],
+        "changed": changed,
+        "material": any(field in MATERIAL_OVERRIDE_FIELDS for field in changed),
+        "enabled": {"from": was_enabled, "to": now_enabled},
+        "severity": {"from": superseded.get("severity"), "to": winning.get("severity")},
+        "disables_rule": disables,
+        "impact": impact,
+    }
+
+
 def _load_rule_file(path: Path) -> Optional[Dict[str, Any]]:
     try:
         data = json.loads(path.read_text(encoding="utf-8"))
@@ -117,17 +199,32 @@ class RuleRunReport:
     findings: List[Dict[str, Any]] = field(default_factory=list)
     coverage: List[Dict[str, Any]] = field(default_factory=list)
     disabled_rules: List[Dict[str, Any]] = field(default_factory=list)
+    #: Every rule replaced by a later rule file with the same `id`, in the order
+    #: the replacements happened. Evidence only — an override is a documented,
+    #: legitimate action and never produces a finding or changes the verdict.
+    #: Its whole purpose is that the action cannot be taken invisibly.
+    overrides: List[Dict[str, Any]] = field(default_factory=list)
     #: Rule files that could not be loaded or failed validation. These DO reach
     #: the verdict: a rule that does not run is a gap in enforcement, and a gap
     #: that reports "pass" is worse than a failure. See load_rules.
     load_errors: List[Dict[str, Any]] = field(default_factory=list)
+    #: Ids that actually ended up enforced. Lets the caller tell a rejected
+    #: rule file that left no enforcement from one whose id is still covered
+    #: by a valid definition in the other directory.
+    loaded_rule_ids: List[str] = field(default_factory=list)
 
 
 class RuleEngine:
     def __init__(self) -> None:
         self._schema = json.loads(_RULE_SCHEMA_PATH.read_text(encoding="utf-8"))
+        self.load_errors: List[Dict[str, Any]] = []
+        self.overrides: List[Dict[str, Any]] = []
 
-    def load_rules(self, rule_dirs: List[Path]) -> List[Dict[str, Any]]:
+    def load_rules(
+        self,
+        rule_dirs: List[Path],
+        origins: Optional[List[str]] = None,
+    ) -> List[Dict[str, Any]]:
         """Load and validate every rule file, recording any that cannot be used.
 
         A rule file that fails to parse or fails validation is NOT silently
@@ -137,12 +234,43 @@ class RuleEngine:
         no trace in the evidence. That is the exact failure this project exists
         to prevent, so load failures are recorded here and surfaced as findings
         by the caller (SICARIO-RULE-INVALID / SICARIO-RULE-UNREADABLE).
+
+        PRECEDENCE CONTRACT — read before reordering anything.
+
+        There is exactly ONE precedence rule and it is deliberately dumb: for a
+        given ``id``, THE LAST RULE FILE LOADED WINS. Directories are consumed in
+        the order given; within a directory, files are consumed in sorted name
+        order. Nothing here knows or cares which directory is "shipped" and
+        which is "the project".
+
+        The caller therefore owns the policy, and the policy is that the target
+        project's ``.sicario/rules/`` is passed LAST so a project rule beats the
+        shipped rule of the same id (``sicario_cli.cli._rule_sources``). That is
+        the documented capability: a platform team narrows or disables a shipped
+        rule without editing the package. Passing the project directory first
+        inverts it and makes the capability unreachable — that was the defect
+        this contract now pins down.
+
+        Every replacement is recorded in ``self.overrides``. Overriding is
+        allowed; overriding INVISIBLY is not.
+
+        ``origins`` is an optional list of short labels parallel to
+        ``rule_dirs`` ("shipped", "project") used in the override records. It
+        defaults to the directory paths, which are fine for debugging but are
+        machine-specific — callers that write evidence should pass real labels.
         """
         rules: List[Dict[str, Any]] = []
         seen_ids: Dict[str, int] = {}
+        # id -> where the currently-winning definition of that id came from.
+        provenance: Dict[str, Dict[str, str]] = {}
         self.load_errors = []
+        self.overrides = []
 
-        for directory in rule_dirs:
+        labels = [str(directory) for directory in rule_dirs] if origins is None else list(origins)
+        if len(labels) != len(rule_dirs):
+            raise ValueError("origins must be parallel to rule_dirs")
+
+        for directory, origin in zip(rule_dirs, labels):
             if not directory.is_dir():
                 continue
             for rule_file in sorted(directory.glob("*.rule.json")):
@@ -151,6 +279,8 @@ class RuleEngine:
                     self.load_errors.append(
                         {
                             "file": rule_file.name,
+                            "path": str(rule_file),
+                            "origin": origin,
                             "code": "SICARIO-RULE-UNREADABLE",
                             "errors": ["file is not readable, decodable, or a JSON object"],
                         }
@@ -161,6 +291,8 @@ class RuleEngine:
                     self.load_errors.append(
                         {
                             "file": rule_file.name,
+                            "path": str(rule_file),
+                            "origin": origin,
                             "rule_id": data.get("id"),
                             "code": "SICARIO-RULE-INVALID",
                             "errors": errors,
@@ -168,12 +300,24 @@ class RuleEngine:
                     )
                     continue
                 rid = data["id"]
+                ref = {"origin": origin, "file": rule_file.name}
                 if rid in seen_ids:
                     idx = seen_ids[rid]
+                    changed = _rule_diff(rules[idx], data)
+                    # A byte-for-byte equivalent redefinition is not an override
+                    # of anything: the effective rule is unchanged. `sicario
+                    # init` copies every shipped rule into `.sicario/rules/`, so
+                    # recording those ~21 no-op collisions on every run would
+                    # bury the one override a reviewer needs to see.
+                    if changed:
+                        self.overrides.append(
+                            _override_record(rid, rules[idx], data, provenance[rid], ref, changed)
+                        )
                     rules[idx] = data
                 else:
                     seen_ids[rid] = len(rules)
                     rules.append(data)
+                provenance[rid] = ref
 
         return rules
 
@@ -184,16 +328,24 @@ class RuleEngine:
             return []
         return kind_evaluate(rule["kind"], rule, root)
 
-    def run_detailed(self, root: Path, rule_dirs: Optional[List[Path]] = None) -> RuleRunReport:
+    def run_detailed(
+        self,
+        root: Path,
+        rule_dirs: Optional[List[Path]] = None,
+        origins: Optional[List[str]] = None,
+    ) -> RuleRunReport:
         from sicario_cli.rules.kinds import evaluate_detailed as kind_evaluate_detailed
 
         if rule_dirs is None:
             rule_dirs = [
                 root / ".sicario" / "rules",
             ]
-        rules = self.load_rules(rule_dirs)
+            origins = ["project"]
+        rules = self.load_rules(rule_dirs, origins=origins)
         report = RuleRunReport()
         report.load_errors = list(self.load_errors)
+        report.loaded_rule_ids = [r["id"] for r in rules]
+        report.overrides = list(self.overrides)
         for rule in rules:
             if not rule.get("enabled", True):
                 # Recorded so a rule disabled by identifier override — a
@@ -213,5 +365,10 @@ class RuleEngine:
                 report.coverage.append(rule_coverage)
         return report
 
-    def run(self, root: Path, rule_dirs: Optional[List[Path]] = None) -> List[Dict[str, Any]]:
-        return self.run_detailed(root, rule_dirs=rule_dirs).findings
+    def run(
+        self,
+        root: Path,
+        rule_dirs: Optional[List[Path]] = None,
+        origins: Optional[List[str]] = None,
+    ) -> List[Dict[str, Any]]:
+        return self.run_detailed(root, rule_dirs=rule_dirs, origins=origins).findings

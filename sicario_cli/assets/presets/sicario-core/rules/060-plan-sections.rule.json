@@ -1,0 +1,20 @@
+{
+  "id": "SICARIO-PLAN-SECTION",
+  "severity": "high",
+  "kind": "section-exists",
+  "path": "specs/**/plan.md",
+  "params": {
+    "headings": [
+      "Threat Model",
+      "Data Classification",
+      "Tagging",
+      "Well-Architected",
+      "Supply Chain",
+      "Rollback",
+      "Human Approval",
+      "Evidence"
+    ]
+  },
+  "message": "plan.md missing required section: {missing}",
+  "enabled": true
+}

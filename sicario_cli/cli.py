@@ -991,34 +991,101 @@ def _contains_any(text: str, phrases: Sequence[str]) -> bool:
     return any(phrase.lower() in lower for phrase in phrases)
 
 
+def _rule_sources(root: Path) -> "tuple[List[Path], List[str]]":
+    """The ordered rule directories `sicario verify` loads, with their labels.
+
+    ORDER IS THE POLICY. `RuleEngine.load_rules` has exactly one precedence
+    rule — the last file loaded wins for a given `id` — so the target project's
+    `.sicario/rules/` is returned LAST, on purpose, and must stay last.
+
+    That is what makes the documented capability real: a project can narrow or
+    disable a shipped rule by reusing its id, without editing the package. With
+    the two entries swapped, the shipped rule wins instead and a project cannot
+    override anything at all — which is exactly the defect this ordering fixes,
+    so do not "tidy" the project directory back to the front.
+
+    Overriding a shipped rule is legitimate and never fails the gate on its own.
+    It is also how someone could switch off the secret scan, so every override
+    is recorded in `scan_coverage.overrides` in the evidence artifact. Visibility
+    is the control here, not prohibition.
+    """
+    rule_dirs: List[Path] = []
+    origins: List[str] = []
+    shipped = PRESETS_ROOT / "sicario-core" / "rules"
+    if shipped.is_dir():
+        rule_dirs.append(shipped)
+        origins.append("shipped")
+    rule_dirs.append(root / ".sicario" / "rules")
+    origins.append("project")
+    return rule_dirs, origins
+
+
 def verify_project(path: Path, *, write: bool = True) -> List[Finding]:
     from sicario_cli.rules import RuleEngine
 
     root = path.resolve()
     findings: List[Finding] = []
 
-    rule_dirs: List[Path] = [root / ".sicario" / "rules"]
-    shipped = PRESETS_ROOT / "sicario-core" / "rules"
-    if shipped.is_dir():
-        rule_dirs.append(shipped)
+    rule_dirs, rule_origins = _rule_sources(root)
 
     engine = RuleEngine()
-    rule_report = engine.run_detailed(root, rule_dirs=rule_dirs)
+    rule_report = engine.run_detailed(root, rule_dirs=rule_dirs, origins=rule_origins)
 
-    # A rule that could not be loaded did not run, so the verdict below covers
-    # less than it appears to. Surface it as a critical finding rather than
-    # letting the run report "pass" over checks that never executed: a cap of 0
-    # on the secret-scan rule would otherwise drop it silently and turn a
-    # repository full of live credentials into a clean gate result.
-    for err in rule_report.load_errors:
-        named = err.get("rule_id") or err["file"]
+    # A rule file that could not be loaded is a gap in enforcement, so it is a
+    # critical finding rather than a stderr warning: a cap of 0 on the
+    # secret-scan rule would otherwise drop it silently and turn a repository
+    # full of live credentials into a clean gate result.
+    #
+    # Two details the first version got wrong. The path was hardcoded to
+    # `.sicario/rules/`, which misattributed a broken SHIPPED rule to the
+    # project. And the message always said "did not run", which is false when a
+    # valid definition of the same id loaded from the other directory — the
+    # common case, since `init` copies every shipped rule into the project.
+    # Fail closed when nothing loaded. A run with zero rules cannot fail, so it
+    # reports "passed" over any repository at all. That is not hypothetical: the
+    # packaged build resolved its asset root to a tree with no rules/ directory,
+    # so every pip-installed deployment enforced nothing while printing
+    # "sicario verify passed" — and a wheel smoke test read that as healthy.
+    # A gate that enforces nothing must say so rather than agreeing with you.
+    if not rule_report.loaded_rule_ids:
         findings.append(
             Finding(
                 "critical",
-                err["code"],
-                f"Rule '{named}' did not run: {'; '.join(err['errors'])}",
-                f".sicario/rules/{err['file']}",
+                "SICARIO-NO-RULES-LOADED",
+                "No rules were loaded, so this run enforced nothing. A passing verdict "
+                f"here means only that no checks ran. Searched: "
+                f"{', '.join(str(d) for d in rule_dirs) or '(none)'}",
+                ".sicario/rules",
             )
+        )
+
+    enforced_ids = set(rule_report.loaded_rule_ids)
+    for err in rule_report.load_errors:
+        rule_id = err.get("rule_id")
+        named = rule_id or err["file"]
+        origin = err.get("origin", "project")
+        still_enforced = bool(rule_id) and rule_id in enforced_ids
+        if still_enforced:
+            detail = (
+                f"Rule file for '{named}' was rejected and is not in effect "
+                f"({origin} copy); another definition of this rule is still enforced"
+            )
+        else:
+            detail = f"Rule '{named}' did not run"
+        raw_path = err.get("path")
+        if raw_path:
+            candidate = Path(raw_path)
+            try:
+                # Repo-relative POSIX, matching every other finding location.
+                location = candidate.relative_to(root).as_posix()
+            except ValueError:
+                # A shipped rule lives outside the scanned tree; name it plainly
+                # rather than emitting an absolute path or a bogus relative one.
+                location = f"<shipped>/{candidate.name}"
+        else:
+            location = f".sicario/rules/{err['file']}"
+        findings.append(
+            Finding("critical", err["code"], f"{detail}: {'; '.join(err['errors'])}", location)
         )
 
     for r in rule_report.findings:
@@ -1051,8 +1118,15 @@ def _scan_coverage(rule_report) -> dict:
     """Build the coverage record written into gate evidence.
 
     Records per-rule scan coverage and truncation counts (FR-020), the
-    effective skipped-path set (FR-021, SEC-010), and rules loaded but
-    disabled (FR-022). Evidence only: nothing here feeds the verdict.
+    effective skipped-path set (FR-021, SEC-010), rules loaded but disabled
+    (FR-022), and every shipped rule a project rule replaced by reusing its id.
+    Evidence only: nothing here feeds the verdict.
+
+    `overrides` sits next to `disabled_rules` because the two answer different
+    questions. `disabled_rules` says which rules did not run. `overrides` says
+    who changed them, from which file, and what changed — including the case a
+    reviewer most needs to catch, a project rule turning off a shipped
+    `critical` rule, which carries `impact: "disables-critical-severity-rule"`.
     """
     from sicario_cli.rules.kinds.regex_forbidden import SKIPPED_DIR_NAMES
 
@@ -1060,6 +1134,7 @@ def _scan_coverage(rule_report) -> dict:
         "skipped_path_set": sorted(SKIPPED_DIR_NAMES),
         "rules": rule_report.coverage,
         "disabled_rules": rule_report.disabled_rules,
+        "overrides": rule_report.overrides,
     }
 
 
@@ -1207,8 +1282,6 @@ def _sarif_output(findings: List[Finding]) -> str:
 def verify_command(args: argparse.Namespace) -> int:
     root = Path(args.path).expanduser().resolve()
 
-    rule_dirs = [root / ".sicario" / "rules"]
-
     if getattr(args, "validate_rules", False):
         # This previously called `engine._load_rule_file(...)`, but
         # `_load_rule_file` is a module-level function in rules.engine, not a
@@ -1217,16 +1290,22 @@ def verify_command(args: argparse.Namespace) -> int:
         # control that catches a malformed rule before a run was inert.
         from sicario_cli.rules.engine import _load_rule_file, _validate_rule
 
-        shipped_rules = PRESETS_ROOT / "sicario-core" / "rules"
-        if shipped_rules.is_dir():
-            rule_dirs.append(shipped_rules)
+        # Same sources as a real run, so validation never clears a set of files
+        # the gate would not actually load. Order is irrelevant here — every
+        # file is validated on its own — but sharing one definition keeps the
+        # two paths from drifting apart.
+        rule_dirs, _ = _rule_sources(root)
 
         errors: List[str] = []
+        unreachable: List[Path] = []
         checked = 0
         for rule_dir in rule_dirs:
             if not rule_dir.is_dir():
                 continue
-            for rule_file in sorted(rule_dir.rglob("*.rule.json")):
+            # Non-recursive, matching `load_rules`, which globs a single level.
+            # Validating recursively would clear rule files the gate never loads,
+            # reporting "valid" for a rule that silently does not run.
+            for rule_file in sorted(rule_dir.glob("*.rule.json")):
                 checked += 1
                 data = _load_rule_file(rule_file)
                 if data is None:
@@ -1234,12 +1313,25 @@ def verify_command(args: argparse.Namespace) -> int:
                     continue
                 for message in _validate_rule(data):
                     errors.append(f"{rule_file}: {message}")
+            # Matching the loader is necessary but not sufficient: a rule file in
+            # a subdirectory would now get no signal from either side. Silence is
+            # the failure mode this gate exists to avoid, so name them.
+            unreachable.extend(
+                p for p in sorted(rule_dir.rglob("*.rule.json")) if p.parent != rule_dir
+            )
+
+        for path in unreachable:
+            print(
+                f"{path}: ignored — rule files load only from the top level of a "
+                "rules directory, not from subdirectories"
+            )
         if errors:
             for e in errors:
                 print(e)
             print(f"rule validation failed with {len(errors)} error(s) across {checked} file(s)")
             return 1
-        print(f"all rules valid ({checked} file(s))")
+        suffix = f"; {len(unreachable)} ignored in subdirectories" if unreachable else ""
+        print(f"all rules valid ({checked} file(s){suffix})")
         return 0
 
     findings = verify_project(root, write=True)

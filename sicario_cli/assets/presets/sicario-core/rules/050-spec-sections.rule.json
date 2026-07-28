@@ -1,0 +1,18 @@
+{
+  "id": "SICARIO-SPEC-SECTION",
+  "severity": "high",
+  "kind": "section-exists",
+  "path": "specs/**/spec.md",
+  "params": {
+    "headings": [
+      "Data Classification",
+      "Tagging Discipline",
+      "Trust Boundaries",
+      "Security Requirements",
+      "Abuse Cases",
+      "Evidence"
+    ]
+  },
+  "message": "spec.md missing required section: {missing}",
+  "enabled": true
+}

@@ -1,0 +1,8 @@
+{
+  "id": "SICARIO-MISSING-ACCEPTED-RISK-LOG",
+  "severity": "medium",
+  "kind": "file-exists",
+  "path": "docs/risk/accepted-risk-log.md",
+  "message": "Missing docs/risk/accepted-risk-log.md",
+  "enabled": true
+}

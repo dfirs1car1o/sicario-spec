@@ -1,0 +1,11 @@
+{
+  "id": "SICARIO-PRIVATE-KEY-MATERIAL",
+  "severity": "critical",
+  "kind": "regex-forbidden",
+  "path": "**/*",
+  "params": {
+    "pattern": "-----BEGIN (RSA |EC |OPENSSH |)PRIVATE KEY-----"
+  },
+  "message": "Private key material committed to the repository",
+  "enabled": true
+}

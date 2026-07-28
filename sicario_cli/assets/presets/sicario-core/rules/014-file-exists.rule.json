@@ -1,0 +1,8 @@
+{
+  "id": "SICARIO-MISSING-TAGGING-TAXONOMY",
+  "severity": "high",
+  "kind": "file-exists",
+  "path": "docs/governance/tagging-taxonomy.md",
+  "message": "Missing docs/governance/tagging-taxonomy.md",
+  "enabled": true
+}
