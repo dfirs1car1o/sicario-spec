@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0",
-  "updated_at": "2026-06-25T00:00:00Z",
+  "updated_at": "2026-07-27T00:00:00Z",
   "catalog_url": "https://raw.githubusercontent.com/dfirs1car1o/sicario-spec/main/catalogs/presets.json",
   "presets": {
     "sicario-agent-fleet": {
@@ -32,7 +32,7 @@
         "workers"
       ],
       "created_at": "2026-06-25T00:00:00Z",
-      "updated_at": "2026-06-25T00:00:00Z"
+      "updated_at": "2026-07-27T00:00:00Z"
     },
     "sicario-ai-system": {
       "name": "SicarioSpec AI System",
@@ -60,7 +60,7 @@
         "nist-ai-rmf"
       ],
       "created_at": "2026-06-25T00:00:00Z",
-      "updated_at": "2026-06-25T00:00:00Z"
+      "updated_at": "2026-07-27T00:00:00Z"
     },
     "sicario-appsec": {
       "name": "SicarioSpec AppSec",
@@ -87,7 +87,7 @@
         "secure-coding"
       ],
       "created_at": "2026-06-25T00:00:00Z",
-      "updated_at": "2026-06-25T00:00:00Z"
+      "updated_at": "2026-07-27T00:00:00Z"
     },
     "sicario-cloud-iac": {
       "name": "SicarioSpec Cloud IaC",
@@ -123,7 +123,7 @@
         "policy-as-code"
       ],
       "created_at": "2026-06-25T00:00:00Z",
-      "updated_at": "2026-06-25T00:00:00Z"
+      "updated_at": "2026-07-27T00:00:00Z"
     },
     "sicario-compliance": {
       "name": "SicarioSpec Compliance",
@@ -151,7 +151,7 @@
         "risk-acceptance"
       ],
       "created_at": "2026-06-25T00:00:00Z",
-      "updated_at": "2026-06-25T00:00:00Z"
+      "updated_at": "2026-07-27T00:00:00Z"
     },
     "sicario-core": {
       "name": "SicarioSpec Core",
@@ -178,7 +178,7 @@
         "evidence"
       ],
       "created_at": "2026-06-25T00:00:00Z",
-      "updated_at": "2026-06-25T00:00:00Z"
+      "updated_at": "2026-07-27T00:00:00Z"
     },
     "sicario-docs": {
       "name": "SicarioSpec Docs And Diagrams",
@@ -206,7 +206,7 @@
         "evidence"
       ],
       "created_at": "2026-06-25T00:00:00Z",
-      "updated_at": "2026-06-25T00:00:00Z"
+      "updated_at": "2026-07-27T00:00:00Z"
     },
     "sicario-enterprise-strict": {
       "name": "SicarioSpec Enterprise Strict",
@@ -233,7 +233,7 @@
         "release-governance"
       ],
       "created_at": "2026-06-25T00:00:00Z",
-      "updated_at": "2026-06-25T00:00:00Z"
+      "updated_at": "2026-07-27T00:00:00Z"
     },
     "sicario-saas": {
       "name": "SicarioSpec SaaS",
@@ -262,7 +262,7 @@
         "mission-supremacy"
       ],
       "created_at": "2026-06-25T00:00:00Z",
-      "updated_at": "2026-06-25T00:00:00Z"
+      "updated_at": "2026-07-27T00:00:00Z"
     },
     "sicario-security-toolchain": {
       "name": "SicarioSpec Security Toolchain",
@@ -292,7 +292,7 @@
         "sca"
       ],
       "created_at": "2026-06-25T00:00:00Z",
-      "updated_at": "2026-06-25T00:00:00Z"
+      "updated_at": "2026-07-27T00:00:00Z"
     },
     "sicario-supply-chain": {
       "name": "SicarioSpec Supply Chain",
@@ -320,7 +320,7 @@
         "provenance"
       ],
       "created_at": "2026-06-25T00:00:00Z",
-      "updated_at": "2026-06-25T00:00:00Z"
+      "updated_at": "2026-07-27T00:00:00Z"
     }
   }
 }
