@@ -112,7 +112,10 @@ class ReleaseMetadataTests(unittest.TestCase):
         self.assertIn("name: pypi", workflow)
         self.assertIn("id-token: write", workflow)
         self.assertIn("--require-hashes -r .github/requirements/release-build.txt", workflow)
-        self.assertRegex(workflow, r"pypa/gh-action-pypi-publish@[0-9a-f]{40} # v1\.14\.0")
+        # Assert the action is SHA-pinned with a version comment, not pinned to one
+        # specific version. Hardcoding the version made every Dependabot bump
+        # fail this test, which is what blocked #51.
+        self.assertRegex(workflow, r"pypa/gh-action-pypi-publish@[0-9a-f]{40} # v[0-9.]+")
         self.assertNotRegex(workflow, r"(?m)^\s*pass" r"word:")
         self.assertNotIn("api-token", workflow)
 
