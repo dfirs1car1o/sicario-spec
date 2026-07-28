@@ -1,0 +1,13 @@
+{
+  "id": "SICARIO-AI-GUARDRAIL-MISSING",
+  "severity": "high",
+  "kind": "keyword-absent",
+  "path": "specs/**/spec.md",
+  "params": {
+    "keywords": ["prompt injection", "tool boundary"],
+    "match_all": false,
+    "condition_keywords": ["ai", "llm", "rag", "agent", "mcp", "model", "prompt", "tool use", "tool-call"]
+  },
+  "message": "AI-sensitive spec missing prompt injection or tool boundary guardrails",
+  "enabled": true
+}

@@ -1,0 +1,11 @@
+{
+  "id": "SICARIO-MISSING-DIAGRAMS",
+  "severity": "medium",
+  "kind": "file-glob",
+  "path": "docs/diagrams/*",
+  "params": {
+    "min_count": 1
+  },
+  "message": "Missing docs/diagrams directory for architecture diagrams",
+  "enabled": true
+}

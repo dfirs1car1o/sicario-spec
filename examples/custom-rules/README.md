@@ -18,6 +18,10 @@ cp examples/custom-rules/terraform-pinned-version.rule.json \
   .sicario/rules/terraform-pinned-version.rule.json
 ```
 
+Keep the file at the top level of `.sicario/rules/`. Rules are loaded
+non-recursively, so a rule in a subdirectory never runs; `--validate-rules`
+prints such files as ignored rather than validating them.
+
 Then validate the rule file:
 
 ```bash
@@ -61,4 +65,11 @@ To suppress a local rule, set `enabled` to `false` in the copy under
 ```
 
 Record the reason in the project's risk register or security exception register
-before disabling a governance gate.
+before disabling a governance gate. Disabling is also visible in gate evidence:
+every disabled rule is listed in `scan_coverage.disabled_rules` in
+`generated/sicario/gate-summary.json`, and whenever one rule supersedes another
+by reusing its `id`, the override is recorded in `scan_coverage.overrides` with
+what changed and its impact. That applies to any `id` collision, not only to a
+project rule overriding a shipped one: a second file in `.sicario/rules/` whose
+name sorts later supersedes the first, and is recorded with
+`superseded_origin: "project"`.

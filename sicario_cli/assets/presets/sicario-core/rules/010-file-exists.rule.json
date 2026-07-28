@@ -1,0 +1,8 @@
+{
+  "id": "SICARIO-MISSING-THREAT-MODEL",
+  "severity": "high",
+  "kind": "file-exists",
+  "path": "docs/security/threat-model.md",
+  "message": "Missing docs/security/threat-model.md",
+  "enabled": true
+}

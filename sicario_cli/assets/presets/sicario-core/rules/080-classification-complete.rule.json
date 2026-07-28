@@ -1,0 +1,17 @@
+{
+  "id": "SICARIO-DATA-CLASSIFICATION-INCOMPLETE",
+  "severity": "high",
+  "kind": "classification-complete",
+  "path": "specs/**/spec.md",
+  "params": {
+    "required_columns": [
+      "classification owner",
+      "retention",
+      "residency",
+      "sharing",
+      "redaction"
+    ]
+  },
+  "message": "Data classification must include owner, level, retention, residency, sharing, and redaction fields",
+  "enabled": true
+}

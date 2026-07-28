@@ -411,9 +411,14 @@ sicario init my-project --profile enterprise-strict --frameworks all
 
 This writes `.sicario/frameworks.txt` (one key per line). A missing selected map
 fails the gate as `SICARIO-MISSING-FRAMEWORK-MAP`; unselected frameworks are not
-required. Omit `--frameworks` to default to the profile's framework set; delete
-the file to fall back to the prior coarse control-map check. Selector keys and
-per-profile defaults: [docs/control-maps.md](docs/control-maps.md) and
+required. That check accepts the map under either `docs/compliance/control-maps/`
+or a top-level `control_maps/`. Omit `--frameworks` to default to the profile's
+framework set; delete the file to drop per-framework enforcement entirely. Note
+that deleting it does not relax `SICARIO-MISSING-CONTROL-MAPS`, which is a
+separate shipped rule requiring at least one entry under
+`docs/compliance/control-maps/` on every run, selector or no selector.
+Selector keys and per-profile defaults:
+[docs/control-maps.md](docs/control-maps.md) and
 [docs/profiles.md](docs/profiles.md).
 
 ## Verification
@@ -440,6 +445,15 @@ The verifier currently checks for:
   compensating control, or evidence
 
 `sicario verify` is the only authority on pass/fail — no AI involvement.
+
+`--format json` and `--format sarif` write only the machine-readable artifact
+to stdout (the human summary goes to stderr, so piping into `jq` works); the
+exit code is the authoritative verdict in every format. The gate summary in
+`generated/sicario/gate-summary.json` also records scan-coverage evidence:
+which files each secret-scan rule scanned, skipped, or excluded by policy,
+which rules were disabled, and every rule superseded by another rule reusing
+its `id` — whether the superseded rule was a shipped one or another project
+rule — so weakening the policy is visible in review, not just in a config diff.
 
 ## Spec Kit Hooks
 

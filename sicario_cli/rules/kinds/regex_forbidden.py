@@ -39,6 +39,9 @@ from typing import Any, Dict, List, Optional, Sequence, Tuple
 #: effective skipped-path set recorded in gate evidence (FR-021, SEC-010).
 #: It is fixed in code, not configurable, because this feature introduces no
 #: new exclusion mechanism (FR-030, SEC-009).
+#:
+#: Every name here matches at ANY depth. See :func:`_excluded_root` for why the
+#: build-output names in particular are not anchored to the repository root.
 SKIPPED_DIR_NAMES = frozenset(
     {
         ".git",
@@ -115,6 +118,31 @@ def _excluded_root(parts: Sequence[str]) -> Optional[str]:
     that explains why the files beneath it were not scanned. Attribution is to
     that prefix rather than to each file, so an excluded vendored tree collapses
     to one record instead of tens of thousands.
+
+    Why ``build``/``dist``/``generated`` match at any depth and are NOT anchored
+    to the repository root — this has been proposed twice and measured once, so
+    the answer is recorded here rather than re-derived:
+
+    * The argument for anchoring is that ``src/dist/`` is a source directory
+      that happens to be called dist, so skipping it hides real findings. That
+      argument is theoretical; no such directory has been observed.
+    * The argument against is ``docs-site/build/`` — this repository's own
+      Docusaurus output, a genuine build directory two levels down and not at
+      the root. Anchoring the match to the root starts scanning it. Measured on
+      this repository, that scans 91 files of minified bundle output and
+      produces 3 findings, all false positives on strings inside minified and
+      generated content. The directory is gitignored, so nothing in it can be
+      committed and a secret-shaped string there is not a commit risk.
+    * Nesting a build output under a subproject is ordinary layout — any
+      monorepo, any ``docs-site/``, any ``packages/*/dist``. Nesting a *source*
+      directory called ``dist`` is not. The common case wins.
+
+    The concern that motivated the anchoring proposal — that these exclusions
+    were invisible, so an excluded file read exactly like a cleared one — is
+    real and is already fixed, by ``files_excluded`` and the per-directory
+    ``excluded_dirs`` tally in the coverage record (SEC-011, FR-020). A reader
+    can see that ``docs-site/build`` was excluded and how many files that cost.
+    Visibility was the defect; scanning build output was never the remedy.
     """
     for index, part in enumerate(parts):
         if part in _SKIP_DIRS:
@@ -173,8 +201,31 @@ def _record_exclusions(coverage: Dict[str, Any], excluded: Dict[str, int]) -> No
     coverage["excluded_dirs_truncated"] = len(listed) < len(ordered)
 
 
+def _read_untranslated(path: Path) -> str:
+    """Read ``path`` as UTF-8 with newline translation disabled.
+
+    ``Path.read_text`` applies universal-newline translation, which rewrites a
+    lone ``\\r`` into ``\\n``. A bare ``\\r`` is legal inside a file — classic-Mac
+    tooling and some generators still emit one — and the translation makes the
+    scanner count it as a line break, so every line number after it is one too
+    high and a SARIF annotation lands on the wrong line.
+
+    ``grep -n``, git, and SARIF consumers terminate a line on ``\\n`` and on
+    nothing else (the ``\\r`` of a CRLF counts only because the ``\\n`` follows
+    it). ``newline=""`` hands back the original characters, so the ``\\n``-only
+    count in :func:`_line_starts` agrees with every one of them.
+    """
+    with path.open(encoding="utf-8", newline="") as handle:
+        return handle.read()
+
+
 def _line_starts(text: str) -> List[int]:
-    """Byte-agnostic offsets of the first character of each line."""
+    """Byte-agnostic offsets of the first character of each line.
+
+    Only ``\\n`` starts a new line. This is the definition ``grep -n`` uses, and
+    it is correct for LF and CRLF alike; see :func:`_read_untranslated` for why
+    the text must reach here untranslated for that to hold.
+    """
     starts = [0]
     index = text.find("\n")
     while index != -1:
@@ -269,7 +320,7 @@ def evaluate_detailed(
         except ValueError:
             continue
         try:
-            text = target.read_text(encoding="utf-8")
+            text = _read_untranslated(target)
         except (OSError, UnicodeDecodeError, ValueError):
             # A file the scanner could not inspect is never indistinguishable
             # from a file the scanner cleared (SEC-011).

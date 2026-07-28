@@ -174,6 +174,18 @@ It exits non-zero on any finding, prints each finding, and writes evidence to
 `generated/sicario/gate-summary.json` and `spec-run-evidence.json`. **No AI is
 involved in the pass/fail decision.**
 
+Machine-readable output for automation:
+
+```bash
+sicario verify --format json    # findings as JSON on stdout
+sicario verify --format sarif   # SARIF 2.1.0 on stdout
+```
+
+With `--format json` or `--format sarif`, stdout carries only the artifact; the
+`sicario verify passed/failed` summary line goes to stderr, so
+`sicario verify --format sarif | jq` works. Text format keeps the summary on
+stdout. In every format, the exit code is the authoritative verdict.
+
 ### Finding codes it emits
 
 Repo-level governance docs:
@@ -184,10 +196,20 @@ Repo-level governance docs:
 | `SICARIO-MISSING-DATA-CLASSIFICATION` | high | `docs/governance/data-classification.md` is missing. |
 | `SICARIO-MISSING-TAGGING-TAXONOMY` | high | `docs/governance/tagging-taxonomy.md` is missing. |
 | `SICARIO-MISSING-DOCS-IMPACT` | medium | `docs/docs-impact.md` is missing. |
-| `SICARIO-MISSING-DIAGRAMS` | medium | `docs/diagrams/` directory is missing. |
-| `SICARIO-MISSING-CONTROL-MAPS` | medium | No `docs/compliance/control-maps` (or `control_maps`) pack — only when **no** framework selector is configured. |
-| `SICARIO-MISSING-FRAMEWORK-MAP` | medium | A framework selected in `.sicario/frameworks.txt` has no control map present. |
-| `SICARIO-MISSING-RISK-REGISTER` | medium | A `docs/risk/*` register file is missing. |
+| `SICARIO-MISSING-DIAGRAMS` | medium | `docs/diagrams/` contains no entries. Fires when the directory is missing **and** when it exists but is empty. |
+| `SICARIO-MISSING-CONTROL-MAPS` | medium | `docs/compliance/control-maps/` contains no entries. Runs on every `sicario verify`, whether or not a framework selector is configured. A top-level `control_maps/` directory does **not** satisfy it. |
+| `SICARIO-MISSING-FRAMEWORK-MAP` | medium | A framework selected in `.sicario/frameworks.txt` has no control map present. Emitted only when that file exists. This is the check that accepts either `docs/compliance/control-maps/<map>.json` or `control_maps/<map>.json`. |
+| `SICARIO-MISSING-RISK-REGISTER` | medium | `docs/risk/risk-register.md` is missing. |
+| `SICARIO-MISSING-SECURITY-EXCEPTIONS` | medium | `docs/risk/security-exceptions.md` is missing. |
+| `SICARIO-MISSING-ACCEPTED-RISK-LOG` | medium | `docs/risk/accepted-risk-log.md` is missing. |
+
+`SICARIO-MISSING-CONTROL-MAPS` and `SICARIO-MISSING-FRAMEWORK-MAP` are separate
+checks and neither suppresses the other. The first is a shipped rule
+(`presets/sicario-core/rules/020-control-maps.rule.json`) that requires at least
+one entry under `docs/compliance/control-maps/`, unconditionally. The second is
+implemented in `sicario verify` itself and runs only when
+`.sicario/frameworks.txt` exists, once per selected framework. Selecting no
+frameworks — or deleting the selector file — does not turn the first one off.
 
 Secrets:
 
@@ -198,6 +220,13 @@ Secrets:
 | `SICARIO-HARDCODED-PROVIDER-TOKEN` | critical | A provider API token (`sk-…`) was found in a scanned text file. |
 | `SICARIO-PRIVATE-KEY-MATERIAL` | critical | A private key block (`-----BEGIN … PRIVATE KEY-----`) was found in a scanned text file. |
 
+All four are `regex-forbidden` rules, and every `regex-forbidden` pattern is
+compiled case-insensitively — see
+[docs/rule-engine.md](docs/rule-engine.md#rule-parameters). The `AKIA…` and
+`sk-…` patterns additionally require a left boundary: the character before the
+prefix must not be a letter or digit, so the prefix has to start a token rather
+than appear mid-word. A standalone key still matches.
+
 Spec contract (`specs/**/spec.md`):
 
 | Code | Severity | Meaning |
@@ -206,7 +235,7 @@ Spec contract (`specs/**/spec.md`):
 | `SICARIO-DATA-CLASSIFICATION-INCOMPLETE` | high | The Data Classification section lacks owner, level, retention, residency, sharing, or redaction. |
 | `SICARIO-TAGGING-DISCIPLINE-INCOMPLETE` | high | The Tagging Discipline section lacks owner, system, environment, data-classification, or retention. |
 | `SICARIO-AI-GUARDRAIL-MISSING` | high | The spec mentions AI/LLM/agent/RAG/MCP/model/prompt but has no `prompt injection` or `tool boundary` guardrail. |
-| `SICARIO-FLEET-GUARDRAIL-MISSING` | high | An orchestration spec (LangGraph/queue/worker/multi-agent/SOAR…) lacks retry, idempotency, dead-letter, workflow state, or human-approval guardrails. |
+| `SICARIO-FLEET-GUARDRAIL-MISSING` | high | An orchestration spec (LangGraph/queue/worker/multi-agent/SOAR…) mentions **none** of retry, idempotency, dead-letter, workflow state, or human approval. Any one of them satisfies the rule. |
 
 Plan / tasks contract:
 
@@ -221,8 +250,19 @@ Risk register hygiene:
 |---|---|---|
 | `SICARIO-INCOMPLETE-ACTIVE-RISK` | high | A row marked `\| active \|` has a blank / `TBD` / `N/A` / `none` / `never` / `permanent` cell — an active risk or exception must name an owner, expiration, approval/rationale, compensating control, and evidence. |
 
+Rule-engine integrity:
+
+| Code | Severity | Meaning |
+|---|---|---|
+| `SICARIO-RULE-INVALID` | critical | A rule file failed validation (for example a zero, negative, or non-integer findings cap) and therefore did not run. The gate fails rather than silently enforcing less. |
+| `SICARIO-RULE-UNREADABLE` | critical | A rule file could not be read, decoded, or parsed as a JSON object, and therefore did not run. |
+| `SICARIO-FINDINGS-TRUNCATED` | (rule's severity) | A findings cap suppressed output for a `regex-forbidden` rule. Mandatory whenever anything is suppressed; carries exact reported / suppressed / total counts. |
+
 A clean run prints `sicario verify passed` and the gate summary shows
-`"status": "pass"`.
+`"status": "pass"`. The gate summary also carries `scan_coverage` evidence:
+per-rule scan counts (scanned, unreadable-skipped, policy-excluded files),
+disabled rules, and every override of a shipped rule by a project rule. See
+the [rule-engine docs](docs/rule-engine.md) for the record shapes.
 
 ---
 

@@ -1,0 +1,8 @@
+{
+  "id": "SICARIO-MISSING-RISK-REGISTER",
+  "severity": "medium",
+  "kind": "file-exists",
+  "path": "docs/risk/risk-register.md",
+  "message": "Missing docs/risk/risk-register.md",
+  "enabled": true
+}

@@ -1207,6 +1207,130 @@ class BrownfieldSafeAdoptionTests(unittest.TestCase):
             self.assertEqual(0, rc)
             self.assertIn("sicario verify passed", out.getvalue())
 
+    def test_secret_rules_do_not_fire_on_risk_identifiers(self) -> None:
+        """The `sk-` rule must not match inside ordinary words containing `risk-`.
+
+        As first shipped, `sk-[A-Za-z0-9_-]{20,}` had no left boundary, so
+        `docs/risk/risk-security-exceptions-register` matched as a provider
+        token. This is a governance tool whose repositories are full of `risk-`
+        paths and identifiers, so the rule would have fired constantly on its
+        own subject matter. Both rules now require the token not to be preceded
+        by an identifier character.
+        """
+        with tempfile.TemporaryDirectory() as tmp:
+            target = Path(tmp) / "project"
+            self.assertEqual(0, main(["init", str(target), "--profile", "appsec"]))
+
+            benign = [
+                "docs/risk/risk-security-exceptions-register",
+                "see the risk-acceptance-and-exception-policy",
+                "asterisk-driven-configuration-values-here",
+                "prefixed" + "AKIA" + "A1B2C3D4E5F6G7H8",
+            ]
+            (target / "benign.txt").write_text("\n".join(benign) + "\n", encoding="utf-8")
+            codes = {f.code for f in verify_project(target, write=False)}
+            self.assertNotIn("SICARIO-HARDCODED-PROVIDER-TOKEN", codes)
+            self.assertNotIn("SICARIO-HARDCODED-AWS-KEY", codes)
+
+            # ...and the real thing is still caught, in every ordinary form.
+            (target / "real.txt").write_text(
+                "AKIA" + "A1B2C3D4E5F6G7H8" + "\n"
+                'token = "sk-' + "a" * 30 + '"\n'
+                "sk-" + "b" * 25 + "\n",
+                encoding="utf-8",
+            )
+            codes = {f.code for f in verify_project(target, write=False)}
+            self.assertIn("SICARIO-HARDCODED-PROVIDER-TOKEN", codes)
+            self.assertIn("SICARIO-HARDCODED-AWS-KEY", codes)
+
+    def test_validate_rules_matches_what_the_engine_loads(self) -> None:
+        """Validation must cover exactly the files that run, and name those that do not.
+
+        `--validate-rules` used rglob while `load_rules` uses a flat glob, so a
+        rule in a subdirectory was reported "valid" while never running. Aligning
+        the glob alone would have swapped one silence for another, so an
+        unreachable rule file is now named explicitly.
+        """
+        import contextlib
+        import io
+
+        with tempfile.TemporaryDirectory() as tmp:
+            target = Path(tmp) / "project"
+            self.assertEqual(0, main(["init", str(target), "--profile", "appsec"]))
+            nested = target / ".sicario" / "rules" / "nested"
+            nested.mkdir(parents=True, exist_ok=True)
+            (nested / "900-nested.rule.json").write_text(
+                json.dumps(
+                    {
+                        "id": "PROJECT-NESTED",
+                        "severity": "high",
+                        "kind": "file-exists",
+                        "path": "definitely-absent.md",
+                        "params": {},
+                        "message": "nested rule",
+                        "enabled": True,
+                    }
+                ),
+                encoding="utf-8",
+            )
+
+            buf = io.StringIO()
+            with contextlib.redirect_stdout(buf):
+                rc = main(["verify", str(target), "--validate-rules"])
+            out = buf.getvalue()
+            self.assertEqual(0, rc)
+            self.assertIn("900-nested.rule.json", out)
+            self.assertIn("ignored", out)
+            self.assertIn("1 ignored in subdirectories", out)
+
+            # And the engine really does not load it, so the warning is honest.
+            codes = {f.code for f in verify_project(target, write=False)}
+            self.assertNotIn("PROJECT-NESTED", codes)
+
+    def test_packaged_assets_carry_the_shipped_rules(self) -> None:
+        """The packaged asset tree must contain the rules, byte-for-byte.
+
+        `sicario_cli/assets/` is what a pip-installed build resolves to. It had
+        no `rules/` directory at all, so every installed deployment loaded zero
+        rules and printed "sicario verify passed" over planted credentials.
+        CONTRIBUTING asks contributors to keep assets synchronized; nothing
+        enforced it, so it drifted silently from 0.5.0 onward.
+        """
+        root = Path(__file__).resolve().parents[1]
+        for source in sorted((root / "presets").glob("*/rules")):
+            preset = source.parent.name
+            packaged = root / "sicario_cli" / "assets" / "presets" / preset / "rules"
+            self.assertTrue(packaged.is_dir(), f"packaged assets missing rules for {preset}")
+            src = {p.name: p.read_bytes() for p in source.glob("*.rule.json")}
+            pkg = {p.name: p.read_bytes() for p in packaged.glob("*.rule.json")}
+            self.assertEqual(set(src), set(pkg), f"rule files differ between trees for {preset}")
+            for name in src:
+                self.assertEqual(src[name], pkg[name], f"{preset}/{name} drifted")
+
+    def test_a_run_that_loads_no_rules_fails_instead_of_passing(self) -> None:
+        """Zero rules loaded must be a finding, not a pass.
+
+        A run with no rules cannot produce a finding, so it reports success over
+        any repository whatsoever. This is the failure that made every installed
+        build inert while looking healthy.
+        """
+        with tempfile.TemporaryDirectory() as tmp:
+            target = Path(tmp) / "project"
+            self.assertEqual(0, main(["init", str(target), "--profile", "appsec"]))
+            # Point the engine at nothing by emptying both sources it can see.
+            import sicario_cli.cli as cli_mod
+
+            original = cli_mod._rule_sources
+            cli_mod._rule_sources = lambda root: ([], [])
+            try:
+                findings = verify_project(target, write=False)
+            finally:
+                cli_mod._rule_sources = original
+
+            codes = {f.code for f in findings}
+            self.assertIn("SICARIO-NO-RULES-LOADED", codes)
+            self.assertTrue(findings, "a zero-rule run must not report clean")
+
     def test_generated_files_contain_no_placeholder_secrets(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             target = Path(tmp) / "project"
@@ -1292,6 +1416,23 @@ def _write_matches_on(path: Path, lines: "list[int]", value: str = "z" * 20) -> 
     path.write_text("\n".join(body) + "\n", encoding="utf-8")
 
 
+def _write_bytes(path: Path, raw: bytes) -> None:
+    """Write exact bytes, bypassing every newline translation."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_bytes(raw)
+
+
+def _grep_line_number(raw: bytes, needle: bytes) -> int:
+    """The line number ``grep -n`` reports for ``needle`` in ``raw``.
+
+    Computed here rather than shelled out to: the gate is stdlib-only and
+    offline, and so is its test. The definition is the whole point — a line
+    terminator is ``\\n`` and nothing else, so a lone ``\\r`` does not start a
+    line and the ``\\r`` of a CRLF counts only because its ``\\n`` follows.
+    """
+    return raw.count(b"\n", 0, raw.index(needle)) + 1
+
+
 class RegexForbiddenCompletenessTests(unittest.TestCase):
     """Feature 006 — complete, bounded, deterministic secret-scan reporting.
 
@@ -1356,6 +1497,124 @@ class RegexForbiddenCompletenessTests(unittest.TestCase):
                 [("a.txt", 1), ("b.txt", 42), ("c.txt", 3)],
                 [(f["path"], f["line"]) for f in findings],
             )
+
+    # --- Line numbering agrees with `grep -n` for every line ending ----------
+
+    def _only_line(self, root: Path) -> int:
+        findings, _ = self._evaluate(root)
+        self.assertEqual(1, len(findings), f"expected exactly one finding, got {findings}")
+        return findings[0]["line"]
+
+    def test_lone_cr_is_not_counted_as_a_line_terminator(self) -> None:
+        """The reported off-by-one: a bare ``\\r`` inflated every later line.
+
+        ``Path.read_text`` applies universal-newline translation, so the ``\\r``
+        arrived as a ``\\n`` and was counted as a line break. ``grep -n``, git,
+        and SARIF consumers count only ``\\n``, so the annotation landed one
+        line below the credential.
+        """
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            secret = _secret_assignment().encode()
+            raw = b"alpha\rbeta\n" + secret + b"\n"
+            _write_bytes(root / "cr_midline.txt", raw)
+
+            self.assertEqual(2, _grep_line_number(raw, secret), "fixture is not what grep sees")
+            self.assertEqual(2, self._only_line(root))
+
+    def test_many_lone_crs_do_not_accumulate_drift(self) -> None:
+        """One ``\\r`` was one line off; a file full of them was off by all of them."""
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            secret = _secret_assignment().encode()
+            raw = b"a\rb\rc\rd\re\n" * 10 + secret + b"\n"
+            _write_bytes(root / "many_cr.txt", raw)
+
+            self.assertEqual(11, _grep_line_number(raw, secret))
+            self.assertEqual(11, self._only_line(root))
+
+    def test_crlf_line_endings_are_still_counted_exactly_once(self) -> None:
+        """Not translating ``\\r`` must not make CRLF count twice."""
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            secret = _secret_assignment().encode()
+            raw = b"alpha\r\nbeta\r\n" + secret + b"\r\n"
+            _write_bytes(root / "crlf.txt", raw)
+
+            self.assertEqual(3, _grep_line_number(raw, secret))
+            self.assertEqual(3, self._only_line(root))
+
+    def test_mixed_lf_crlf_and_lone_cr_in_one_file(self) -> None:
+        """All three endings at once: only the two ``\\n``-bearing ones count."""
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            secret = _secret_assignment().encode()
+            # Line 1 ends LF, line 2 ends CRLF, and the lone CR is mid-line 3.
+            raw = b"one\ntwo\r\nthree\rstill three " + secret + b"\n"
+            _write_bytes(root / "mixed.txt", raw)
+
+            self.assertEqual(3, _grep_line_number(raw, secret))
+            self.assertEqual(3, self._only_line(root))
+
+    def test_utf8_bom_does_not_shift_the_first_line(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            secret = _secret_assignment().encode()
+            raw = b"\xef\xbb\xbfalpha\n" + secret + b"\n"
+            _write_bytes(root / "bom.txt", raw)
+
+            self.assertEqual(2, _grep_line_number(raw, secret))
+            self.assertEqual(2, self._only_line(root))
+
+    def test_bom_on_a_match_on_the_very_first_line(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            secret = _secret_assignment().encode()
+            _write_bytes(root / "bom_first.txt", b"\xef\xbb\xbf" + secret + b"\n")
+            self.assertEqual(1, self._only_line(root))
+
+    def test_multibyte_characters_before_a_match_do_not_shift_the_line(self) -> None:
+        """Offsets are character offsets throughout, so wide characters are inert."""
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            secret = _secret_assignment().encode()
+            # Four-byte emoji, three-byte CJK, and a combining sequence.
+            raw = "🔐 密码 café\n".encode() * 3 + secret + b"\n"
+            _write_bytes(root / "multibyte.txt", raw)
+
+            self.assertEqual(4, _grep_line_number(raw, secret))
+            self.assertEqual(4, self._only_line(root))
+
+    def test_multibyte_and_lone_cr_together(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            secret = _secret_assignment().encode()
+            raw = "🔐\r密码\n".encode() + "café\r\n".encode() + secret
+            _write_bytes(root / "wide_cr.txt", raw)
+
+            self.assertEqual(3, _grep_line_number(raw, secret))
+            self.assertEqual(3, self._only_line(root))
+
+    def test_final_line_without_trailing_newline_is_reported(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            secret = _secret_assignment().encode()
+            raw = b"x\ny\n" + secret
+            _write_bytes(root / "no_trailing.txt", raw)
+
+            self.assertEqual(3, _grep_line_number(raw, secret))
+            self.assertEqual(3, self._only_line(root))
+
+    def test_file_ending_in_a_lone_cr_before_the_match(self) -> None:
+        """A trailing ``\\r`` on the previous line is not a line of its own."""
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            secret = _secret_assignment().encode()
+            raw = b"alpha\n" + secret + b"\r"
+            _write_bytes(root / "cr_tail.txt", raw)
+
+            self.assertEqual(2, _grep_line_number(raw, secret))
+            self.assertEqual(2, self._only_line(root))
 
     # --- FR-005 / FR-008: the line is its own value -------------------------
 
@@ -1762,6 +2021,98 @@ class RegexForbiddenCompletenessTests(unittest.TestCase):
                 [entry["path"] for entry in coverage["excluded_dirs"]],
             )
 
+    # --- The skip policy matches at any depth, deliberately -----------------
+
+    def test_every_skipped_name_is_excluded_at_any_depth(self) -> None:
+        """Depth is not a signal for any name in the set, build outputs included.
+
+        Anchoring `build`/`dist`/`generated` to the repository root has been
+        proposed on the theory that `src/dist/` is a source directory. It is
+        also what makes `docs-site/build/` — this repository's own Docusaurus
+        output, two levels down — get scanned, which produced three false
+        positives out of minified bundle content that is gitignored and cannot
+        be committed. Nesting a build output under a subproject is ordinary;
+        nesting a source directory called `dist` is not. See `_excluded_root`.
+
+        The concern behind the proposal is answered by the coverage record, not
+        by scanning: `test_files_under_an_excluded_dir_at_depth_are_counted`
+        asserts that a file under any of these is *counted and attributed*, so
+        an excluded file never reads as a cleared one.
+        """
+        from sicario_cli.rules.kinds.regex_forbidden import SKIPPED_DIR_NAMES
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            for name in sorted(SKIPPED_DIR_NAMES):
+                _write_matches_on(root / "a" / "b" / name / "creds.env", [1])
+            _write_matches_on(root / "visible.txt", [1])
+            findings, coverage = self._evaluate(root)
+
+            self.assertEqual(["visible.txt"], [f["path"] for f in findings])
+            self.assertEqual(1, coverage["files_scanned"])
+            self.assertEqual(len(SKIPPED_DIR_NAMES), coverage["files_excluded"])
+            self.assertEqual(
+                [f"a/b/{name}" for name in sorted(SKIPPED_DIR_NAMES)],
+                [entry["path"] for entry in coverage["excluded_dirs"]],
+            )
+
+    def test_node_modules_nested_inside_node_modules_stays_one_record(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            _write_matches_on(root / "node_modules" / "pkg" / "node_modules" / "dep" / "x.txt", [1])
+            _, coverage = self._evaluate(root)
+
+            self.assertEqual([{"path": "node_modules", "files": 1}], coverage["excluded_dirs"])
+
+    def test_coverage_accounting_identity_holds_with_all_three_counters_live(self) -> None:
+        """scanned + skipped + excluded accounts for every resolved file."""
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            resolved = [
+                "visible.txt",
+                "src/dist/x.txt",
+                "app/build/x.txt",
+                "docs/generated/x.txt",
+                "dist/x.txt",
+                "build/deep/x.txt",
+                "generated/x.txt",
+                "a/b/node_modules/x.txt",
+                "z/.git/objects/x.txt",
+            ]
+            for rel in resolved:
+                _write_matches_on(root / rel, [1])
+            # One file the scanner cannot decode, so all three counters are live.
+            _write_bytes(root / "undecodable.bin", b"\xff\xfe\x00binary")
+
+            _, coverage = self._evaluate(root)
+            self.assertEqual(
+                len(resolved) + 1,
+                coverage["files_scanned"] + coverage["files_skipped"] + coverage["files_excluded"],
+            )
+            self.assertEqual(1, coverage["files_scanned"])
+            self.assertEqual(1, coverage["files_skipped"])
+            self.assertEqual(8, coverage["files_excluded"])
+            self.assertEqual(
+                sum(entry["files"] for entry in coverage["excluded_dirs"]),
+                coverage["files_excluded"],
+            )
+
+    def test_skip_policy_and_line_numbering_are_byte_identical_across_runs(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            for rel in (
+                "src/dist/x.txt",
+                "dist/x.txt",
+                "app/build/x.txt",
+                "a/b/node_modules/x.txt",
+                "visible.txt",
+            ):
+                _write_matches_on(root / rel, [1])
+            _write_bytes(root / "cr.txt", b"alpha\rbeta\n" + _secret_assignment().encode() + b"\n")
+
+            renders = {json.dumps(self._evaluate(root), sort_keys=True) for _ in range(10)}
+            self.assertEqual(1, len(renders), "output varied across repeated runs")
+
     def test_gate_summary_carries_the_exclusion_tally(self) -> None:
         """FR-020 / SC-010: legible from the evidence file alone."""
         from sicario_cli.cli import verify_project
@@ -2103,6 +2454,289 @@ class RiskRowsValidCompletenessTests(unittest.TestCase):
                 [f.location for f in risk_findings[:1]],
             )
             self.assertEqual(1, main(["verify", str(target)]))
+
+
+# --- Rule precedence and override visibility ---------------------------------
+#
+# `docs/rule-engine.md` documents that a project disables or narrows a shipped
+# rule by reusing its `id`. The engine did the opposite: `verify_project` passed
+# the project directory FIRST while `load_rules` let the LAST file win, so the
+# shipped rule always beat the project rule and the documented capability was
+# unreachable — a project rule setting `enabled: false` on
+# SICARIO-HARDCODED-SECRET was ignored and the secret was still reported.
+#
+# The fix is the load ORDER, not the last-wins rule: `_rule_sources` returns
+# [shipped, project] so exactly one precedence rule remains. Because overriding
+# now works, and because it is also how an adopter could switch the secret scan
+# off, every override is recorded in `scan_coverage.overrides`. Overriding is a
+# legitimate documented action, so none of these tests expect a finding — the
+# control is visibility, not prohibition.
+
+
+def _shipped_rule_file(filename: str) -> dict:
+    return json.loads(
+        (PRESETS_ROOT / "sicario-core" / "rules" / filename).read_text(encoding="utf-8")
+    )
+
+
+def _write_project_rule(target: Path, filename: str, rule: dict) -> None:
+    rules = target / ".sicario" / "rules"
+    rules.mkdir(parents=True, exist_ok=True)
+    (rules / filename).write_text(json.dumps(rule, indent=2), encoding="utf-8")
+
+
+def _gate_summary(target: Path) -> dict:
+    return json.loads(
+        (target / "generated" / "sicario" / "gate-summary.json").read_text(encoding="utf-8")
+    )
+
+
+class RulePrecedenceAndOverrideEvidenceTests(unittest.TestCase):
+    def test_rule_sources_loads_the_project_directory_last(self) -> None:
+        """The ordering IS the fix. Pinned here so it cannot be quietly flipped."""
+        from sicario_cli.cli import _rule_sources
+
+        root = Path("/nonexistent/project")
+        rule_dirs, origins = _rule_sources(root)
+        self.assertEqual(len(rule_dirs), len(origins))
+        self.assertIn("shipped", origins)
+        self.assertEqual("project", origins[-1])
+        self.assertEqual(root / ".sicario" / "rules", rule_dirs[-1])
+        self.assertLess(origins.index("shipped"), origins.index("project"))
+
+    # --- The defect: a project rule with a shipped id must win ---------------
+
+    def test_project_rule_with_a_shipped_id_now_wins(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            target = Path(tmp) / "project"
+            self.assertEqual(0, main(["init", str(target), "--profile", "appsec"]))
+            _write_matches_on(target / "leak.txt", [1])
+            self.assertIn(
+                "SICARIO-HARDCODED-SECRET",
+                {f.code for f in verify_project(target, write=False)},
+                "the shipped secret rule did not fire on a planted secret",
+            )
+
+            # Narrow the shipped rule to a subtree that does not exist. Under the
+            # inverted precedence the shipped `**/*` won and the secret was still
+            # reported, so this assertion is the regression guard.
+            narrowed = _shipped_rule_file("040-secret-scan.rule.json")
+            narrowed["path"] = "no-such-directory/**"
+            _write_project_rule(target, "040-secret-scan.rule.json", narrowed)
+
+            self.assertNotIn(
+                "SICARIO-HARDCODED-SECRET",
+                {f.code for f in verify_project(target, write=False)},
+                "the project rule was ignored; shipped rules still override the project",
+            )
+
+    def test_project_rule_disabling_a_shipped_rule_takes_effect_and_is_recorded(self) -> None:
+        """The highest-risk override: it must work, and it must be impossible to hide."""
+        with tempfile.TemporaryDirectory() as tmp:
+            target = Path(tmp) / "project"
+            self.assertEqual(0, main(["init", str(target), "--profile", "appsec"]))
+            _write_matches_on(target / "leak.txt", [1])
+
+            off = _shipped_rule_file("040-secret-scan.rule.json")
+            off["enabled"] = False
+            _write_project_rule(target, "040-secret-scan.rule.json", off)
+
+            findings = verify_project(target, write=True)
+            codes = {f.code for f in findings}
+            self.assertNotIn("SICARIO-HARDCODED-SECRET", codes, "enabled: false was ignored")
+
+            summary = _gate_summary(target)
+            # The verdict is clean — which is exactly why the evidence must say
+            # loudly that the critical rule was switched off by the project.
+            self.assertEqual("pass", summary["status"])
+
+            self.assertIn(
+                {
+                    "id": "SICARIO-HARDCODED-SECRET",
+                    "severity": "critical",
+                    "kind": "regex-forbidden",
+                },
+                summary["scan_coverage"]["disabled_rules"],
+            )
+            overrides = summary["scan_coverage"]["overrides"]
+            record = next(o for o in overrides if o["rule_id"] == "SICARIO-HARDCODED-SECRET")
+            self.assertTrue(record["disables_rule"])
+            self.assertEqual("disables-critical-severity-rule", record["impact"])
+            self.assertEqual({"from": True, "to": False}, record["enabled"])
+
+            # An override is a documented, legitimate action: it is recorded, not
+            # punished. Nothing about it may reach the finding set.
+            self.assertEqual([], findings)
+            self.assertEqual(0, summary["finding_count"])
+
+    # --- The record names the rule, the files, and the change ---------------
+
+    def test_override_record_names_the_rule_the_files_and_what_changed(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            target = Path(tmp) / "project"
+            self.assertEqual(0, main(["init", str(target), "--profile", "appsec"]))
+
+            narrowed = _shipped_rule_file("012-file-glob.rule.json")
+            narrowed["path"] = "docs/diagrams/system-context.mmd"
+            _write_project_rule(target, "012-file-glob.rule.json", narrowed)
+
+            verify_project(target, write=True)
+            overrides = _gate_summary(target)["scan_coverage"]["overrides"]
+            record = next(o for o in overrides if o["rule_id"] == "SICARIO-MISSING-DIAGRAMS")
+
+            self.assertEqual("project", record["winning_origin"])
+            self.assertEqual("012-file-glob.rule.json", record["winning_file"])
+            self.assertEqual("shipped", record["superseded_origin"])
+            self.assertEqual("012-file-glob.rule.json", record["superseded_file"])
+            self.assertEqual(["path"], record["changed"])
+            self.assertTrue(record["material"])
+            self.assertFalse(record["disables_rule"])
+            self.assertEqual({"from": "medium", "to": "medium"}, record["severity"])
+
+    def test_disabling_a_critical_rule_does_not_read_like_narrowing_a_medium_one(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            target = Path(tmp) / "project"
+            self.assertEqual(0, main(["init", str(target), "--profile", "appsec"]))
+
+            off = _shipped_rule_file("040-secret-scan.rule.json")
+            off["enabled"] = False
+            _write_project_rule(target, "040-secret-scan.rule.json", off)
+
+            narrowed = _shipped_rule_file("012-file-glob.rule.json")
+            narrowed["path"] = "docs/diagrams/system-context.mmd"
+            _write_project_rule(target, "012-file-glob.rule.json", narrowed)
+
+            verify_project(target, write=True)
+            overrides = _gate_summary(target)["scan_coverage"]["overrides"]
+            by_id = {o["rule_id"]: o for o in overrides}
+            self.assertEqual({"SICARIO-HARDCODED-SECRET", "SICARIO-MISSING-DIAGRAMS"}, set(by_id))
+
+            secret = by_id["SICARIO-HARDCODED-SECRET"]
+            diagrams = by_id["SICARIO-MISSING-DIAGRAMS"]
+            self.assertEqual("disables-critical-severity-rule", secret["impact"])
+            self.assertEqual("modifies-medium-severity-rule", diagrams["impact"])
+            self.assertNotEqual(secret["impact"], diagrams["impact"])
+            self.assertTrue(secret["disables_rule"])
+            self.assertFalse(diagrams["disables_rule"])
+
+    def test_demoting_severity_cannot_disguise_a_disabled_critical_rule(self) -> None:
+        """Rank by the more severe of the two declarations, not the winner's."""
+        from sicario_cli.rules import RuleEngine
+
+        with tempfile.TemporaryDirectory() as tmp:
+            shipped = Path(tmp) / "shipped"
+            project = Path(tmp) / "project"
+            shipped.mkdir()
+            project.mkdir()
+
+            original = _shipped_rule_file("040-secret-scan.rule.json")
+            (shipped / "040-secret-scan.rule.json").write_text(
+                json.dumps(original), encoding="utf-8"
+            )
+            sneaky = dict(original)
+            sneaky["enabled"] = False
+            sneaky["severity"] = "low"
+            (project / "040-secret-scan.rule.json").write_text(json.dumps(sneaky), encoding="utf-8")
+
+            engine = RuleEngine()
+            engine.load_rules([shipped, project], origins=["shipped", "project"])
+            [record] = engine.overrides
+            self.assertEqual("disables-critical-severity-rule", record["impact"])
+            self.assertEqual({"from": "critical", "to": "low"}, record["severity"])
+            self.assertEqual(["enabled", "severity"], record["changed"])
+
+    # --- Two project rules with the same id ---------------------------------
+
+    def test_two_project_rules_with_the_same_id_resolve_deterministically(self) -> None:
+        """Documented resolution: within a directory, sorted file name order, last wins."""
+        from sicario_cli.rules import RuleEngine
+
+        with tempfile.TemporaryDirectory() as tmp:
+            rule_dir = Path(tmp) / "rules"
+            rule_dir.mkdir()
+            first = _shipped_rule_file("012-file-glob.rule.json")
+            first["path"] = "docs/first/*"
+            second = dict(first)
+            second["path"] = "docs/second/*"
+            # Written out of order on purpose: the load order is the sorted file
+            # name, never the filesystem's enumeration order.
+            (rule_dir / "200-second.rule.json").write_text(json.dumps(second), encoding="utf-8")
+            (rule_dir / "100-first.rule.json").write_text(json.dumps(first), encoding="utf-8")
+
+            for _ in range(5):
+                engine = RuleEngine()
+                rules = engine.load_rules([rule_dir], origins=["project"])
+                winner = next(r for r in rules if r["id"] == "SICARIO-MISSING-DIAGRAMS")
+                self.assertEqual("docs/second/*", winner["path"])
+                [record] = engine.overrides
+                self.assertEqual("100-first.rule.json", record["superseded_file"])
+                self.assertEqual("200-second.rule.json", record["winning_file"])
+                self.assertEqual("project", record["winning_origin"])
+                self.assertEqual("project", record["superseded_origin"])
+                self.assertEqual(["path"], record["changed"])
+
+    # --- No overrides: behavior, evidence, and verdict unchanged ------------
+
+    def test_no_project_rule_directory_leaves_behavior_and_evidence_unchanged(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            target = Path(tmp) / "project"
+            target.mkdir()
+            _write_matches_on(target / "leak.txt", [1])
+            self.assertFalse((target / ".sicario" / "rules").exists())
+
+            findings = verify_project(target, write=True)
+            self.assertIn("SICARIO-HARDCODED-SECRET", {f.code for f in findings})
+            coverage = _gate_summary(target)["scan_coverage"]
+            self.assertEqual([], coverage["overrides"])
+            self.assertEqual([], coverage["disabled_rules"])
+
+    def test_this_repository_has_no_project_rules_and_therefore_no_overrides(self) -> None:
+        """SicarioSpec's own verdict is untouched by the precedence change."""
+        from sicario_cli.cli import _rule_sources
+        from sicario_cli.rules import RuleEngine
+
+        repo_root = Path(__file__).resolve().parents[1]
+        self.assertFalse((repo_root / ".sicario" / "rules").exists())
+
+        rule_dirs, origins = _rule_sources(repo_root)
+        engine = RuleEngine()
+        rules = engine.load_rules(rule_dirs, origins=origins)
+        shipped = sorted((PRESETS_ROOT / "sicario-core" / "rules").glob("*.rule.json"))
+        self.assertEqual(len(shipped), len(rules))
+        self.assertEqual([], engine.overrides)
+        self.assertEqual([], engine.load_errors)
+
+    def test_an_identical_project_copy_is_not_reported_as_an_override(self) -> None:
+        """`sicario init` copies every shipped rule into `.sicario/rules/`.
+
+        Those copies collide by id but change nothing, so recording them would
+        add ~21 empty entries per run and bury the one override that matters.
+        """
+        with tempfile.TemporaryDirectory() as tmp:
+            target = Path(tmp) / "project"
+            self.assertEqual(0, main(["init", str(target), "--profile", "appsec"]))
+            self.assertTrue(
+                len(list((target / ".sicario" / "rules").glob("*.rule.json"))) >= 20,
+                "init no longer copies the shipped rules; this test's premise is stale",
+            )
+            verify_project(target, write=True)
+            self.assertEqual([], _gate_summary(target)["scan_coverage"]["overrides"])
+
+    def test_verdict_is_unchanged_for_a_project_with_no_overrides(self) -> None:
+        import contextlib
+        import io
+
+        with tempfile.TemporaryDirectory() as tmp:
+            target = Path(tmp) / "project"
+            self.assertEqual(0, main(["init", str(target), "--profile", "appsec"]))
+            self.assertEqual([], verify_project(target, write=True))
+
+            buf = io.StringIO()
+            with contextlib.redirect_stdout(buf):
+                rc = main(["verify", str(target)])
+            self.assertEqual(0, rc)
+            self.assertIn("sicario verify passed", buf.getvalue())
+            self.assertEqual([], _gate_summary(target)["scan_coverage"]["overrides"])
 
 
 if __name__ == "__main__":

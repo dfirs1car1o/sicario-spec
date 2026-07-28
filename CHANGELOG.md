@@ -8,8 +8,48 @@ improve the security model.
 
 ## [Unreleased]
 
+### Added
+
+- **Findings caps for `regex-forbidden`, with a mandatory overflow finding.**
+  `max_findings_per_file` (default 20) and `max_findings_per_rule` (default
+  200) bound the output of a `regex-forbidden` rule. The per-file cap applies
+  before the per-rule cap, so one flooded file cannot consume the whole budget
+  and hide findings in other files. Any suppression emits a
+  `SICARIO-FINDINGS-TRUNCATED` finding at the rule's severity carrying exact
+  reported / suppressed / total counts — counting continues after emission
+  stops, so the totals are not lower bounds — and the overflow finding cannot
+  itself be suppressed. Caps must be positive integers; anything else is
+  rejected at rule load. (`specs/006`)
+- **Scan-coverage evidence in `gate-summary.json`.** `sicario verify` now
+  writes a `scan_coverage` object: per-rule counts of files scanned, files
+  skipped because they could not be read or decoded (with paths), and files
+  excluded by the fixed skip-directory policy (with a per-directory tally,
+  itemised up to 50 directories while the file count stays exact), plus the
+  effective skip-directory set and the rules that were loaded but disabled. A
+  file the scanner did not inspect is no longer indistinguishable from a file
+  it cleared. Evidence only — nothing in it feeds the verdict.
+- **Override evidence.** Every project rule that replaces a shipped rule by
+  reusing its `id` is recorded in `scan_coverage.overrides`: which file won,
+  which was superseded, which fields changed, whether the change is material,
+  the enabled/severity transitions, and an `impact` string that carries the
+  higher of the two severities — so disabling a shipped `critical` rule always
+  reads `disables-critical-severity-rule`, even if the same edit demotes it.
+  An override never produces a finding or changes the verdict; the control is
+  visibility, not prohibition. Project copies identical to the shipped rule
+  (as written by `sicario init`) are not recorded.
+
 ### Changed
 
+- **`regex-forbidden` findings are now per matching line**, deduplicated
+  within a line, instead of one per rule. `finding_count` in
+  `gate-summary.json` will therefore be larger than before for affected
+  repositories; existing keys keep their names, types, and meanings.
+- **Rule precedence is documented and pinned: the last rule file loaded wins
+  for a given `id`.** Shipped rules (`presets/sicario-core/rules/`) load
+  first and the project's `.sicario/rules/` loads last, so a project rule
+  overrides the shipped rule of the same id. Within one directory, files load
+  in sorted file-name order, so collisions resolve deterministically rather
+  than by filesystem order.
 - **Control maps are now tiered supported vs experimental.** The 14 shipped
   maps no longer present as peers. `pci-dss`, `ai-rmf`, and `owasp-asvs` are
   labeled EXPERIMENTAL: PCI DSS resolves roughly 29% of its evidence to bare
@@ -24,6 +64,32 @@ improve the security model.
 
 ### Fixed
 
+- **Secret-scan line numbers were wrong in files containing a bare `\r`.** The
+  `regex-forbidden` evaluator read files with `Path.read_text()`, which applies
+  universal-newline translation and rewrites a lone `\r` into `\n`. A bare `\r`
+  is legal file content, so the scanner counted it as a line break and every
+  line number after it was one too high — putting SARIF annotations and
+  `path:line` output on the wrong line. Files are now read with newline
+  translation disabled (`newline=""`), and only `\n` starts a line, which is the
+  definition `grep -n`, git, and SARIF consumers use. Reported line numbers now
+  agree with `grep -n` for LF and CRLF files alike.
+- **`sicario verify --validate-rules` now validates the same file set the gate
+  loads.** It previously walked a different set than `load_rules`; it now shares
+  `_rule_sources` and globs `*.rule.json` non-recursively, matching the engine,
+  so validation can no longer report "valid" for rule files the gate would never
+  load. Rule files found in subdirectories of a rules directory are not silently
+  passed over either: they are printed as ignored, with the reason, and counted
+  in the success line. They do not fail validation — the point is that a rule
+  which will never run cannot sit in a subdirectory looking installed.
+- **Project rules can now actually override shipped rules.** The project rule
+  directory was loaded first while the engine's last-loaded-wins precedence
+  applied, so the shipped rule silently won every collision and the documented
+  override capability was unreachable. The project directory now loads last.
+- **`--format json` and `--format sarif` output is parseable.** The human
+  summary line was printed to stdout after the JSON or SARIF document, so
+  `sicario verify --format sarif | jq` failed on every run. stdout now carries
+  only the artifact; the summary goes to stderr. Text format keeps the summary
+  on stdout, and the exit code remains the authoritative verdict.
 - **Backup ignore rule is now verified as effective, not merely present.** Git
   applies the last matching pattern, so a `.gitignore` containing
   `*.sicario-bak.*` followed by a negation re-included backups while a
@@ -49,6 +115,13 @@ improve the security model.
 
 ### Security
 
+- **A rule that fails to load now fails the gate.** A rule file that cannot be
+  parsed or fails validation — including a zero, negative, or non-integer
+  findings cap — is rejected at rule load and the rule does not run. That gap
+  is surfaced as a critical `SICARIO-RULE-INVALID` (or
+  `SICARIO-RULE-UNREADABLE`) finding instead of being dropped silently, so a
+  one-token typo can no longer disable the secret scan while the gate still
+  reports "pass".
 - **Three documented secret patterns were enforced by nothing.** The 0.5.0
   rule-engine migration moved every check into declarative `.rule.json` files
   but left `SECRET_PATTERNS` behind in `cli.py` with no remaining reference.
@@ -60,6 +133,27 @@ improve the security model.
   `SICARIO-PRIVATE-KEY-MATERIAL`), verified by a regression test that plants one
   of each. The dead constants are removed and `USAGE.md` now lists what is
   actually enforced.
+- **Detection narrowed for the `AKIA…` and `sk-…` secret rules: both now require
+  a left token boundary.** `SICARIO-HARDCODED-AWS-KEY` and
+  `SICARIO-HARDCODED-PROVIDER-TOKEN` gained a `(?<![A-Za-z0-9])` lookbehind, so
+  the prefix must not be preceded by a letter or digit. **This changes what two
+  `critical` rules detect** and is recorded here for that reason, not as a
+  cosmetic tweak.
+
+  Without a left boundary, `sk-[A-Za-z0-9_-]{20,}` matched inside ordinary
+  words. `docs/risk/risk-security-exceptions-register` contains `sk-security-
+  exceptions-register` as a substring and was reported as a committed provider
+  token. This is a governance tool, and the repositories it runs against are
+  full of `risk-*` identifiers, so the rule fired on its own subject matter —
+  the false positives were concentrated exactly where the tool is used most.
+
+  A key or token that stands on its own, or follows whitespace, a quote, `=`,
+  `:`, `/`, or any other non-alphanumeric character, still matches. Only the
+  mid-word class of match is removed. If a repository has been relying on
+  matches inside larger alphanumeric runs, those will no longer be reported.
+  Note also that `regex-forbidden` patterns are compiled case-insensitively and
+  cannot be made case-sensitive, which is now documented in
+  `docs/rule-engine.md`.
 
 - **Backups are no longer committable.** `sicario init` now adds
   `*.sicario-bak.*` to the target repository's `.gitignore` before taking the
@@ -68,6 +162,56 @@ improve the security model.
   secrets or internal content that was never meant to be committed. The rule is
   written idempotently and never clobbers an existing `.gitignore`. The same
   pattern was added to this repository's own `.gitignore`.
+
+### Documentation
+
+- **Corrected: rules are not validated against `schema.json`.**
+  `docs/rule-engine.md` said rule files are "validated against a schema". They
+  are not. Validation is `_validate_rule` in `sicario_cli/rules/engine.py`, a
+  hand-written function; the package declares no dependencies and does not
+  import `jsonschema`. `schema.json` is loaded into memory and never read back.
+  The doc now describes it as documentation of intent rather than an enforced
+  contract, and lists precisely what `_validate_rule` does and does not check —
+  including that unknown top-level fields, unknown `params` keys, non-object
+  `fix` values, and `"min_count": 0` all pass validation despite the schema
+  forbidding them, and that an uncompilable regex is caught only at evaluation.
+- **Corrected: `SICARIO-MISSING-CONTROL-MAPS` conditionality and paths.**
+  `USAGE.md` said it fires "only when no framework selector is configured" and
+  that it accepts `docs/compliance/control-maps` *or* `control_maps`. Both were
+  wrong. It is a shipped rule that runs on every verify regardless of the
+  selector, and it accepts only `docs/compliance/control-maps/`. The
+  selector-conditional behavior and the `control_maps/` fallback belong to
+  `SICARIO-MISSING-FRAMEWORK-MAP`. The two codes are now distinguished
+  explicitly, in `USAGE.md` and `README.md`.
+- **Corrected: risk-register finding codes.**
+  `SICARIO-MISSING-RISK-REGISTER` was documented as covering "a `docs/risk/*`
+  register file"; it covers only `docs/risk/risk-register.md`.
+  `SICARIO-MISSING-SECURITY-EXCEPTIONS` and
+  `SICARIO-MISSING-ACCEPTED-RISK-LOG` were emitted by rules 031 and 032 but
+  documented nowhere. Both are now listed.
+- **Clarified: `SICARIO-MISSING-DIAGRAMS` also fires on an empty directory.**
+  Rule 012 is a `file-glob` with `min_count: 1`, so an existing but empty
+  `docs/diagrams/` fails it. The docs described only the missing-directory case.
+- **Clarified: override evidence covers every `id` collision.**
+  `docs/rule-engine.md`, `README.md`, and `examples/custom-rules/README.md`
+  described overrides as applying to "a shipped rule". The engine records
+  replacements by `id` regardless of origin, so a project rule superseded by
+  another project rule is recorded too, with `superseded_origin: "project"`.
+- **Corrected: the `keyword-absent` kind was described backwards.**
+  `docs/rule-engine.md` said it fails "when forbidden keywords appear". It does
+  the opposite — it fails when **none** of `params.keywords` is found, in files
+  that first match `params.condition_keywords`. The two shipped rules using it
+  (`SICARIO-AI-GUARDRAIL-MISSING`, `SICARIO-FLEET-GUARDRAIL-MISSING`) require
+  guardrail text to be present, which the old description inverted. The
+  undocumented `condition_keywords` parameter is now described, as is the fact
+  that `match_all` is read by `keyword-exists` only and is inert on
+  `keyword-absent` — both shipped `keyword-absent` rules set it with no effect.
+- **Documented: `regex-forbidden` is always case-insensitive.** Patterns are
+  compiled with `re.IGNORECASE` unconditionally, with no way to disable it from
+  a rule file. This was stated nowhere, so an author could write a
+  case-sensitive pattern and not get one. `regex-required`, by contrast, honors
+  a `case_insensitive` parameter (default `true`) that is absent from
+  `schema.json`. Both are now in the rule-parameter reference.
 
 ## [0.5.1] - 2026-06-25
 

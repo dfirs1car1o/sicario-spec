@@ -1,0 +1,20 @@
+{
+  "id": "SICARIO-TASKS-SECTION",
+  "severity": "high",
+  "kind": "keyword-exists",
+  "path": "specs/**/tasks.md",
+  "params": {
+    "keywords": [
+      "security test",
+      "negative",
+      "classification",
+      "tagging",
+      "docs impact",
+      "evidence",
+      "threat model"
+    ],
+    "match_all": true
+  },
+  "message": "tasks.md missing required keyword",
+  "enabled": true
+}
