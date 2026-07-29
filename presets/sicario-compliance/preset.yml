@@ -3,7 +3,7 @@ schema_version: "1.0"
 preset:
   id: "sicario-compliance"
   name: "SicarioSpec Compliance"
-  version: "0.5.1"
+  version: "0.6.0"
   description: "Evidence readiness profile for regulated and audit-driven environments."
   author: "SicarioSpec Contributors"
   repository: "https://github.com/dfirs1car1o/sicario-spec"

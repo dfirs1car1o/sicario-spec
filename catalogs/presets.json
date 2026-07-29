@@ -1,15 +1,15 @@
 {
   "schema_version": "1.0",
-  "updated_at": "2026-07-27T00:00:00Z",
+  "updated_at": "2026-07-28T00:00:00Z",
   "catalog_url": "https://raw.githubusercontent.com/dfirs1car1o/sicario-spec/main/catalogs/presets.json",
   "presets": {
     "sicario-agent-fleet": {
       "name": "SicarioSpec Agent Fleet",
       "id": "sicario-agent-fleet",
-      "version": "0.5.1",
+      "version": "0.6.0",
       "description": "Governance for multi-agent, worker, queue, workflow, SOAR, and orchestration systems.",
       "author": "SicarioSpec Contributors",
-      "download_url": "https://github.com/dfirs1car1o/sicario-spec/releases/download/v0.5.1/sicario-agent-fleet-0.5.1.zip",
+      "download_url": "https://github.com/dfirs1car1o/sicario-spec/releases/download/v0.6.0/sicario-agent-fleet-0.6.0.zip",
       "repository": "https://github.com/dfirs1car1o/sicario-spec",
       "homepage": "https://dfirs1car1o.github.io/sicario-spec/",
       "documentation": "https://github.com/dfirs1car1o/sicario-spec/blob/main/presets/sicario-agent-fleet/README.md",
@@ -32,15 +32,15 @@
         "workers"
       ],
       "created_at": "2026-06-25T00:00:00Z",
-      "updated_at": "2026-07-27T00:00:00Z"
+      "updated_at": "2026-07-28T00:00:00Z"
     },
     "sicario-ai-system": {
       "name": "SicarioSpec AI System",
       "id": "sicario-ai-system",
-      "version": "0.5.1",
+      "version": "0.6.0",
       "description": "AI, agent, RAG, MCP, LLM, and tool-use security profile.",
       "author": "SicarioSpec Contributors",
-      "download_url": "https://github.com/dfirs1car1o/sicario-spec/releases/download/v0.5.1/sicario-ai-system-0.5.1.zip",
+      "download_url": "https://github.com/dfirs1car1o/sicario-spec/releases/download/v0.6.0/sicario-ai-system-0.6.0.zip",
       "repository": "https://github.com/dfirs1car1o/sicario-spec",
       "homepage": "https://dfirs1car1o.github.io/sicario-spec/",
       "documentation": "https://github.com/dfirs1car1o/sicario-spec/blob/main/presets/sicario-ai-system/README.md",
@@ -60,15 +60,15 @@
         "nist-ai-rmf"
       ],
       "created_at": "2026-06-25T00:00:00Z",
-      "updated_at": "2026-07-27T00:00:00Z"
+      "updated_at": "2026-07-28T00:00:00Z"
     },
     "sicario-appsec": {
       "name": "SicarioSpec AppSec",
       "id": "sicario-appsec",
-      "version": "0.5.1",
+      "version": "0.6.0",
       "description": "Application security profile for apps, APIs, and services.",
       "author": "SicarioSpec Contributors",
-      "download_url": "https://github.com/dfirs1car1o/sicario-spec/releases/download/v0.5.1/sicario-appsec-0.5.1.zip",
+      "download_url": "https://github.com/dfirs1car1o/sicario-spec/releases/download/v0.6.0/sicario-appsec-0.6.0.zip",
       "repository": "https://github.com/dfirs1car1o/sicario-spec",
       "homepage": "https://dfirs1car1o.github.io/sicario-spec/",
       "documentation": "https://github.com/dfirs1car1o/sicario-spec/blob/main/presets/sicario-appsec/README.md",
@@ -87,15 +87,15 @@
         "secure-coding"
       ],
       "created_at": "2026-06-25T00:00:00Z",
-      "updated_at": "2026-07-27T00:00:00Z"
+      "updated_at": "2026-07-28T00:00:00Z"
     },
     "sicario-cloud-iac": {
       "name": "SicarioSpec Cloud IaC",
       "id": "sicario-cloud-iac",
-      "version": "0.5.1",
+      "version": "0.6.0",
       "description": "Multi-cloud infrastructure-as-code profile for Terraform/OpenTofu, Azure Verified Modules, Azure Bicep, AWS, GCP, Kubernetes, containers, and policy-as-code.",
       "author": "SicarioSpec Contributors",
-      "download_url": "https://github.com/dfirs1car1o/sicario-spec/releases/download/v0.5.1/sicario-cloud-iac-0.5.1.zip",
+      "download_url": "https://github.com/dfirs1car1o/sicario-spec/releases/download/v0.6.0/sicario-cloud-iac-0.6.0.zip",
       "repository": "https://github.com/dfirs1car1o/sicario-spec",
       "homepage": "https://dfirs1car1o.github.io/sicario-spec/",
       "documentation": "https://github.com/dfirs1car1o/sicario-spec/blob/main/presets/sicario-cloud-iac/README.md",
@@ -123,15 +123,15 @@
         "policy-as-code"
       ],
       "created_at": "2026-06-25T00:00:00Z",
-      "updated_at": "2026-07-27T00:00:00Z"
+      "updated_at": "2026-07-28T00:00:00Z"
     },
     "sicario-compliance": {
       "name": "SicarioSpec Compliance",
       "id": "sicario-compliance",
-      "version": "0.5.1",
+      "version": "0.6.0",
       "description": "Evidence readiness profile for regulated and audit-driven environments.",
       "author": "SicarioSpec Contributors",
-      "download_url": "https://github.com/dfirs1car1o/sicario-spec/releases/download/v0.5.1/sicario-compliance-0.5.1.zip",
+      "download_url": "https://github.com/dfirs1car1o/sicario-spec/releases/download/v0.6.0/sicario-compliance-0.6.0.zip",
       "repository": "https://github.com/dfirs1car1o/sicario-spec",
       "homepage": "https://dfirs1car1o.github.io/sicario-spec/",
       "documentation": "https://github.com/dfirs1car1o/sicario-spec/blob/main/presets/sicario-compliance/README.md",
@@ -151,15 +151,15 @@
         "risk-acceptance"
       ],
       "created_at": "2026-06-25T00:00:00Z",
-      "updated_at": "2026-07-27T00:00:00Z"
+      "updated_at": "2026-07-28T00:00:00Z"
     },
     "sicario-core": {
       "name": "SicarioSpec Core",
       "id": "sicario-core",
-      "version": "0.5.1",
+      "version": "0.6.0",
       "description": "Baseline secure-by-default Spec Kit governance profile.",
       "author": "SicarioSpec Contributors",
-      "download_url": "https://github.com/dfirs1car1o/sicario-spec/releases/download/v0.5.1/sicario-core-0.5.1.zip",
+      "download_url": "https://github.com/dfirs1car1o/sicario-spec/releases/download/v0.6.0/sicario-core-0.6.0.zip",
       "repository": "https://github.com/dfirs1car1o/sicario-spec",
       "homepage": "https://dfirs1car1o.github.io/sicario-spec/",
       "documentation": "https://github.com/dfirs1car1o/sicario-spec/blob/main/presets/sicario-core/README.md",
@@ -178,15 +178,15 @@
         "evidence"
       ],
       "created_at": "2026-06-25T00:00:00Z",
-      "updated_at": "2026-07-27T00:00:00Z"
+      "updated_at": "2026-07-28T00:00:00Z"
     },
     "sicario-docs": {
       "name": "SicarioSpec Docs And Diagrams",
       "id": "sicario-docs",
-      "version": "0.5.1",
+      "version": "0.6.0",
       "description": "Documentation, diagram, docs-impact, and docs-site governance profile.",
       "author": "SicarioSpec Contributors",
-      "download_url": "https://github.com/dfirs1car1o/sicario-spec/releases/download/v0.5.1/sicario-docs-0.5.1.zip",
+      "download_url": "https://github.com/dfirs1car1o/sicario-spec/releases/download/v0.6.0/sicario-docs-0.6.0.zip",
       "repository": "https://github.com/dfirs1car1o/sicario-spec",
       "homepage": "https://dfirs1car1o.github.io/sicario-spec/",
       "documentation": "https://github.com/dfirs1car1o/sicario-spec/blob/main/presets/sicario-docs/README.md",
@@ -206,15 +206,15 @@
         "evidence"
       ],
       "created_at": "2026-06-25T00:00:00Z",
-      "updated_at": "2026-07-27T00:00:00Z"
+      "updated_at": "2026-07-28T00:00:00Z"
     },
     "sicario-enterprise-strict": {
       "name": "SicarioSpec Enterprise Strict",
       "id": "sicario-enterprise-strict",
-      "version": "0.5.1",
+      "version": "0.6.0",
       "description": "High-assurance enterprise profile for approval, release, and exception governance.",
       "author": "SicarioSpec Contributors",
-      "download_url": "https://github.com/dfirs1car1o/sicario-spec/releases/download/v0.5.1/sicario-enterprise-strict-0.5.1.zip",
+      "download_url": "https://github.com/dfirs1car1o/sicario-spec/releases/download/v0.6.0/sicario-enterprise-strict-0.6.0.zip",
       "repository": "https://github.com/dfirs1car1o/sicario-spec",
       "homepage": "https://dfirs1car1o.github.io/sicario-spec/",
       "documentation": "https://github.com/dfirs1car1o/sicario-spec/blob/main/presets/sicario-enterprise-strict/README.md",
@@ -233,15 +233,15 @@
         "release-governance"
       ],
       "created_at": "2026-06-25T00:00:00Z",
-      "updated_at": "2026-07-27T00:00:00Z"
+      "updated_at": "2026-07-28T00:00:00Z"
     },
     "sicario-saas": {
       "name": "SicarioSpec SaaS",
       "id": "sicario-saas",
-      "version": "0.5.1",
+      "version": "0.6.0",
       "description": "SaaS-hardened profile - read-only-SaaS, tenant/data-boundary, and mission-supremacy invariants for systems that connect to SaaS tenants.",
       "author": "SicarioSpec Contributors",
-      "download_url": "https://github.com/dfirs1car1o/sicario-spec/releases/download/v0.5.1/sicario-saas-0.5.1.zip",
+      "download_url": "https://github.com/dfirs1car1o/sicario-spec/releases/download/v0.6.0/sicario-saas-0.6.0.zip",
       "repository": "https://github.com/dfirs1car1o/sicario-spec",
       "homepage": "https://dfirs1car1o.github.io/sicario-spec/",
       "documentation": "https://github.com/dfirs1car1o/sicario-spec/blob/main/presets/sicario-saas/README.md",
@@ -262,15 +262,15 @@
         "mission-supremacy"
       ],
       "created_at": "2026-06-25T00:00:00Z",
-      "updated_at": "2026-07-27T00:00:00Z"
+      "updated_at": "2026-07-28T00:00:00Z"
     },
     "sicario-security-toolchain": {
       "name": "SicarioSpec Security Toolchain",
       "id": "sicario-security-toolchain",
-      "version": "0.5.1",
+      "version": "0.6.0",
       "description": "Security scanning, SBOM, policy-as-code, and CI evidence profile.",
       "author": "SicarioSpec Contributors",
-      "download_url": "https://github.com/dfirs1car1o/sicario-spec/releases/download/v0.5.1/sicario-security-toolchain-0.5.1.zip",
+      "download_url": "https://github.com/dfirs1car1o/sicario-spec/releases/download/v0.6.0/sicario-security-toolchain-0.6.0.zip",
       "repository": "https://github.com/dfirs1car1o/sicario-spec",
       "homepage": "https://dfirs1car1o.github.io/sicario-spec/",
       "documentation": "https://github.com/dfirs1car1o/sicario-spec/blob/main/presets/sicario-security-toolchain/README.md",
@@ -292,15 +292,15 @@
         "sca"
       ],
       "created_at": "2026-06-25T00:00:00Z",
-      "updated_at": "2026-07-27T00:00:00Z"
+      "updated_at": "2026-07-28T00:00:00Z"
     },
     "sicario-supply-chain": {
       "name": "SicarioSpec Supply Chain",
       "id": "sicario-supply-chain",
-      "version": "0.5.1",
+      "version": "0.6.0",
       "description": "Build and release integrity profile with SBOM, SCA, provenance, and SLSA-style checks.",
       "author": "SicarioSpec Contributors",
-      "download_url": "https://github.com/dfirs1car1o/sicario-spec/releases/download/v0.5.1/sicario-supply-chain-0.5.1.zip",
+      "download_url": "https://github.com/dfirs1car1o/sicario-spec/releases/download/v0.6.0/sicario-supply-chain-0.6.0.zip",
       "repository": "https://github.com/dfirs1car1o/sicario-spec",
       "homepage": "https://dfirs1car1o.github.io/sicario-spec/",
       "documentation": "https://github.com/dfirs1car1o/sicario-spec/blob/main/presets/sicario-supply-chain/README.md",
@@ -320,7 +320,7 @@
         "provenance"
       ],
       "created_at": "2026-06-25T00:00:00Z",
-      "updated_at": "2026-07-27T00:00:00Z"
+      "updated_at": "2026-07-28T00:00:00Z"
     }
   }
 }

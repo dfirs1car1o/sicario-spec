@@ -3,7 +3,7 @@ schema_version: "1.0"
 preset:
   id: "sicario-cloud-iac"
   name: "SicarioSpec Cloud IaC"
-  version: "0.5.1"
+  version: "0.6.0"
   description: "Multi-cloud infrastructure-as-code profile for Terraform/OpenTofu, Azure Verified Modules, Azure Bicep, AWS, GCP, Kubernetes, containers, and policy-as-code."
   author: "SicarioSpec Contributors"
   repository: "https://github.com/dfirs1car1o/sicario-spec"

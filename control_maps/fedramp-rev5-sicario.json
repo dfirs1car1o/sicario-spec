@@ -1,7 +1,7 @@
 {
   "id": "fedramp-rev5-sicario",
   "name": "FedRAMP Rev. 5 Baselines to SicarioSpec Evidence Map",
-  "version": "0.5.1",
+  "version": "0.6.0",
   "framework": {
     "name": "Federal Risk and Authorization Management Program Rev. 5 Baselines",
     "abbreviation": "FedRAMP Rev. 5",

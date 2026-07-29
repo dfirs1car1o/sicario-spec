@@ -1,3 +1,15 @@
+## 0.6.0 - 2026-07-28
+
+- Three new critical secret rules (041 AWS access key ids, 042 provider
+  tokens, 043 private key material), with left-boundary guards so `risk-*`
+  identifiers no longer false-positive.
+- Rule files now ship inside the packaged assets, so pip installs enforce the
+  full rule set (previously the installed build loaded zero rules).
+- Templates are complete standalone documents in every preset; a preset's
+  template can win the resolution race without weakening the gate.
+- Caps (`max_findings_per_file` / `max_findings_per_rule`) documented in the
+  schema; invalid caps fail the gate as `SICARIO-RULE-INVALID`.
+
 # Changelog
 
 All notable changes to the SicarioSpec Core preset are tracked here.

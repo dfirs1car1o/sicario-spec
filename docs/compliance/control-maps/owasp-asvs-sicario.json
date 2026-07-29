@@ -1,7 +1,7 @@
 {
   "id": "owasp-asvs-sicario",
   "name": "OWASP ASVS to SicarioSpec Evidence Map",
-  "version": "0.5.1",
+  "version": "0.6.0",
   "framework": {
     "name": "OWASP Application Security Verification Standard",
     "abbreviation": "OWASP ASVS",

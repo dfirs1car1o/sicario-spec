@@ -3,7 +3,7 @@ schema_version: "1.0"
 preset:
   id: "sicario-agent-fleet"
   name: "SicarioSpec Agent Fleet"
-  version: "0.5.1"
+  version: "0.6.0"
   description: "Governance for multi-agent, worker, queue, workflow, SOAR, and orchestration systems."
   author: "SicarioSpec Contributors"
   repository: "https://github.com/dfirs1car1o/sicario-spec"

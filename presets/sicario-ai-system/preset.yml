@@ -3,7 +3,7 @@ schema_version: "1.0"
 preset:
   id: "sicario-ai-system"
   name: "SicarioSpec AI System"
-  version: "0.5.1"
+  version: "0.6.0"
   description: "AI, agent, RAG, MCP, LLM, and tool-use security profile."
   author: "SicarioSpec Contributors"
   repository: "https://github.com/dfirs1car1o/sicario-spec"

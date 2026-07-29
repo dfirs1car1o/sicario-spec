@@ -3,7 +3,7 @@ schema_version: "1.0"
 preset:
   id: "sicario-docs"
   name: "SicarioSpec Docs And Diagrams"
-  version: "0.5.1"
+  version: "0.6.0"
   description: "Documentation, diagram, docs-impact, and docs-site governance profile."
   author: "SicarioSpec Contributors"
   repository: "https://github.com/dfirs1car1o/sicario-spec"
