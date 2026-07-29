@@ -40,6 +40,19 @@ jobs:
           tmpdir="$(mktemp -d)"
           python -m pip wheel . -w "$tmpdir/wheelhouse"
           python -m venv "$tmpdir/venv"
+          # The wheel must contain the preset modules and packaged rules. An
+          # earlier setup.py drifted from pyproject and silently excluded the
+          # presets package, so installed builds could not generate governance
+          # docs; content is asserted so that class of drift fails CI.
+          python - "$tmpdir"/wheelhouse/sicario_spec-*.whl <<'EOF'
+          import sys, zipfile
+          names = zipfile.ZipFile(sys.argv[1]).namelist()
+          mods = [n for n in names if n.startswith("presets/") and n.endswith(".py")]
+          rules = [n for n in names if "assets" in n and n.endswith(".rule.json")]
+          assert len(mods) >= 3, f"presets modules missing from wheel: {mods}"
+          assert len(rules) >= 21, f"packaged rules missing from wheel: {len(rules)}"
+          print(f"wheel content ok: {len(mods)} preset modules, {len(rules)} rules")
+          EOF
           "$tmpdir/venv/bin/pip" install "$tmpdir"/wheelhouse/sicario_spec-*.whl
           "$tmpdir/venv/bin/sicario" --version
           "$tmpdir/venv/bin/sicario" init "$tmpdir/project" --profile appsec,cloud-iac,security-toolchain,compliance
