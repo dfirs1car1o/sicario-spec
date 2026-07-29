@@ -3,7 +3,7 @@ schema_version: "1.0"
 extension:
   id: "sicario-guard"
   name: "SicarioSpec Guard"
-  version: "0.5.1"
+  version: "0.6.0"
   description: "Commands and hooks for secure-by-default Spec Kit verification."
   author: "SicarioSpec Contributors"
   repository: "https://github.com/dfirs1car1o/sicario-spec"

@@ -3,7 +3,7 @@ schema_version: "1.0"
 preset:
   id: "sicario-enterprise-strict"
   name: "SicarioSpec Enterprise Strict"
-  version: "0.5.1"
+  version: "0.6.0"
   description: "High-assurance enterprise profile for approval, release, and exception governance."
   author: "SicarioSpec Contributors"
   repository: "https://github.com/dfirs1car1o/sicario-spec"

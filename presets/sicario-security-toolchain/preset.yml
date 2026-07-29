@@ -3,7 +3,7 @@ schema_version: "1.0"
 preset:
   id: "sicario-security-toolchain"
   name: "SicarioSpec Security Toolchain"
-  version: "0.5.1"
+  version: "0.6.0"
   description: "Security scanning, SBOM, policy-as-code, and CI evidence profile."
   author: "SicarioSpec Contributors"
   repository: "https://github.com/dfirs1car1o/sicario-spec"

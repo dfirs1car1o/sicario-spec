@@ -8,6 +8,21 @@ improve the security model.
 
 ## [Unreleased]
 
+No unreleased changes yet.
+
+## [0.6.0] - 2026-07-28
+
+### Security
+
+- **Wheels built through the legacy `setup.py` path shipped without the
+  preset classes.** `setup.py` had drifted from `pyproject.toml` and
+  excluded the `presets` package, and its arguments override pyproject on
+  the legacy build path older pips use. Installed builds from such wheels
+  could not generate governance docs, so a freshly initialized project
+  failed its own gate with eight findings. `setup.py` now mirrors
+  pyproject exactly, states that pyproject is the source of truth, and CI
+  asserts the built wheel's contents so this drift class fails the build.
+
 ### Added
 
 - **Findings caps for `regex-forbidden`, with a mandatory overflow finding.**

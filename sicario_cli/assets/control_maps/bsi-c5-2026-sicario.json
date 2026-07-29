@@ -1,7 +1,7 @@
 {
   "id": "bsi-c5-2026-sicario",
   "name": "BSI C5:2026 Cloud Computing Compliance Criteria to SicarioSpec Evidence Map",
-  "version": "0.5.1",
+  "version": "0.6.0",
   "framework": {
     "name": "BSI Cloud Computing Compliance Criteria Catalogue",
     "abbreviation": "BSI C5",

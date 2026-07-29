@@ -3,7 +3,7 @@ schema_version: "1.0"
 preset:
   id: "sicario-saas"
   name: "SicarioSpec SaaS"
-  version: "0.5.1"
+  version: "0.6.0"
   description: "SaaS-hardened profile - read-only-SaaS, tenant/data-boundary, and mission-supremacy invariants for systems that connect to SaaS tenants."
   author: "SicarioSpec Contributors"
   repository: "https://github.com/dfirs1car1o/sicario-spec"

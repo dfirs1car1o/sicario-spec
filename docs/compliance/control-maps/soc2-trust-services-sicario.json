@@ -1,7 +1,7 @@
 {
   "id": "soc2-trust-services-sicario",
   "name": "SOC 2 Trust Services Criteria to SicarioSpec Evidence Map",
-  "version": "0.5.1",
+  "version": "0.6.0",
   "framework": {
     "name": "AICPA Trust Services Criteria for Security, Availability, Processing Integrity, Confidentiality, and Privacy",
     "abbreviation": "SOC 2 TSC",
