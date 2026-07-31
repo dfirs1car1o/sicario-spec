@@ -53,9 +53,17 @@ shipped metadata at every release under the release checklist discipline.
 
 A profile is a named composition of **presets**. Every preset layers onto
 the five governed Spec Kit templates (spec, plan, tasks, checklist,
-constitution); `sicario-core` replaces the stock templates with governed
-ones, and every other preset **appends** its domain's sections and guidance
-onto them. Two consequences before you choose:
+constitution). How they combine depends on the adoption path. On the
+**`sicario init` path**, template resolution is last-preset-wins: the most
+specialized preset in your profile supplies each live template *whole*.
+Every shipped template is **gate-complete** — a test guarantees any winner
+passes every rule the gate applies to documents made from it — but
+specialized templates can carry fewer of core's non-gated sections (the
+appsec template, for example, omits the Security Evidence Chain section;
+tracked as [#73](https://github.com/dfirs1car1o/sicario-spec/issues/73)).
+The winning preset's wording is what you get, verbatim. On the
+**native Spec Kit bundle path**, presets declare `strategy: "append"` and
+Spec Kit layers them. Two consequences before you choose:
 
 1. **Every profile includes the baseline.** All profiles compose
    `sicario-core` + `sicario-docs`, so every choice lands: the governed
@@ -108,13 +116,14 @@ of the `public-core` composition):
 | `security-toolchain` | Security scanning/tooling repositories (SAST, SCA, secrets, IaC scanning) | + sicario-security-toolchain | none (coarse control-map check only) |
 | `enterprise-strict` | High-assurance enterprise: approval, release, and exception governance | sicario-core, sicario-docs, sicario-appsec, sicario-ai-system, sicario-agent-fleet, sicario-security-toolchain, sicario-supply-chain, sicario-compliance, sicario-enterprise-strict | the 11 supported maps (see Step 4) |
 
-What each composed preset concretely adds (all append to the five governed
-templates unless noted):
+What each composed preset concretely contributes (its own gate-complete
+template set, which wins when it is the most specialized in your profile,
+plus the files listed):
 
 | Preset | What it adds to the target |
 |---|---|
 | `sicario-core` | Replaces the five Spec Kit templates with governed ones; ships the entire rule pack into `.sicario/rules/`; writes `SICARIO.md`, the baseline docs set (`docs/security/`, `docs/governance/`, `docs/risk/`, `docs/compliance/` including control maps, `docs/architecture/`, `docs/diagrams/`, `docs/docs-impact.md`), agent-integration files, and the `sicario-verify.yml` / `docs-site.yml` workflows |
-| `sicario-docs` | Docs-as-code governance appended to all five templates (docs-impact, diagram source control, generated-docs drift, ADRs); Docusaurus docs-site scaffold (`docs-site/`) |
+| `sicario-docs` | Docs-as-code governance sections in all five templates (docs-impact, diagram source control, generated-docs drift, ADRs); Docusaurus docs-site scaffold (`docs-site/`) |
 | `sicario-appsec` | AppSec sections: authn/authz, session and token handling, input validation, API security, secure errors, audit logging |
 | `sicario-ai-system` | AI security sections: prompt injection, tool boundaries, model routing, memory poisoning, data leakage, AIBOM, AI evals |
 | `sicario-agent-fleet` | Orchestration sections: workflow state, durable execution, queue/worker safety, idempotency, retry and dead-letter, distributed permissions |
@@ -177,11 +186,11 @@ nist-800-53) effective defaults.
 
 A typo in the profile name is a hard error, never a silent fallback:
 
-```bash
+```bash sicario-cmd=initial-setup-selection/sel-02
 sicario init . --profile web
 ```
 
-```text title="Verified output" sicario-output=verified sicario-block=initial-setup-selection/sel-02
+```text title="Verified output" sicario-output=verified sicario-block=initial-setup-selection/sel-02 sicario-stream=stderr
 Unknown profile(s): web. Known profiles: agent-fleet, ai-system, appsec, cloud-iac, compliance, core, docs, enterprise-strict, public-core, saas, security-toolchain, supply-chain
 ```
 
@@ -213,9 +222,14 @@ The tier default rule, precisely:
 The selection is recorded in `.sicario/frameworks.txt`, one key per line;
 `sicario verify` then fails with `SICARIO-MISSING-FRAMEWORK-MAP` for any
 selected framework whose control map is absent. The file init wrote for the
-`appsec,cloud-iac` composition above:
+`appsec,cloud-iac` composition above (running the real, non-dry-run init
+shown in step 3 first):
 
-```bash
+```bash sicario-cmd=setup
+sicario init . --profile appsec,cloud-iac
+```
+
+```bash sicario-cmd=initial-setup-selection/sel-03
 cat .sicario/frameworks.txt
 ```
 
@@ -283,7 +297,13 @@ Shown with this playbook's worked composition — substitute your own
 
 ```bash
 sicario init . --profile appsec,cloud-iac --dry-run
+```
+
+```bash sicario-cmd=setup
 sicario init . --profile appsec,cloud-iac
+```
+
+```bash sicario-cmd=initial-setup-selection/sel-04
 sicario verify .
 ```
 

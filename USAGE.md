@@ -1,5 +1,7 @@
 # Using SicarioSpec
 
+> Learning rather than looking up? Take the [six-lesson path](docs/guides/start-here.md) first.
+
 A copy-pasteable quickstart. If you read nothing else, read the mental model.
 
 ## The mental model (read this first)

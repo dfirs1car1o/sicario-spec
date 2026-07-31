@@ -51,6 +51,11 @@ screenshots (stated per the visual-asset policy).
   `python3 -m sicario_cli.cli init . --profile public-core`, where
   `python3 -m sicario_cli.cli verify .` passes.
 
+  ```bash sicario-cmd=setup
+  python3 -m sicario_cli.cli init . --profile public-core
+  python3 -m sicario_cli.cli verify .
+  ```
+
 How overriding works: rules load from the shipped directory first, then from
 the project's `.sicario/rules/`, and **for a given `id` the last rule file
 loaded wins**. `sicario init` copies every shipped rule verbatim into
@@ -59,7 +64,7 @@ changes nothing, so it is not recorded. The moment you edit your copy so it
 differs from the shipped definition, your definition wins and the run records
 an override. Confirm the clean baseline:
 
-```bash
+```bash sicario-cmd=override-shipped-rule/00-baseline
 python3 -c "
 import json
 d = json.load(open('generated/sicario/gate-summary.json'))
@@ -78,7 +83,7 @@ print(json.dumps(d['scan_coverage']['overrides']))
 Create a fixture whose value is a placeholder, not a working credential —
 built here with `printf` so the fake value is assembled at run time:
 
-```bash
+```bash sicario-cmd=override-shipped-rule/01-red
 mkdir -p tests/fixtures
 printf 'password = "%s"\n' "placeholder-fixture-value" > tests/fixtures/sample-config.yaml
 python3 -m sicario_cli.cli verify .
@@ -105,9 +110,23 @@ tree:
 ```
 
 Leave `id`, `severity`, `kind`, `params`, and `message` exactly as shipped.
+Reproducible as:
+
+```bash sicario-cmd=setup
+python3 - <<'PY'
+import json
+from pathlib import Path
+
+p = Path(".sicario/rules/040-secret-scan.rule.json")
+rule = json.loads(p.read_text())
+rule["path"] = "src/**/*"
+p.write_text(json.dumps(rule, indent=2) + "\n")
+PY
+```
+
 Re-run:
 
-```bash
+```bash sicario-cmd=override-shipped-rule/02-green
 python3 -m sicario_cli.cli verify .
 ```
 
@@ -122,7 +141,7 @@ step exists.
 
 ### 3. Read the override record
 
-```bash
+```bash sicario-cmd=override-shipped-rule/03-record
 python3 -c "
 import json
 d = json.load(open('generated/sicario/gate-summary.json'))
@@ -190,7 +209,8 @@ finding.
 
 ### 4. Confirm the narrowed rule still enforces its remaining scope
 
-```bash
+```bash sicario-cmd=override-shipped-rule/04-src-covered
+mkdir -p src
 printf 'password = "%s"\n' "placeholder-not-a-real-value" > src/settings.py
 python3 -m sicario_cli.cli verify .
 ```
@@ -203,19 +223,36 @@ sicario verify failed with 1 finding(s)
 The rule is alive inside `src/**/*`. Remove the probe file
 (`rm src/settings.py`) before continuing.
 
+```bash sicario-cmd=setup
+rm src/settings.py
+```
+
 ### 5. The disable case — and the reviewer's grep
 
 Now the version of this action a reviewer most needs to catch: turning the
 rule off. Restore your copy to the shipped content first (the pristine copy
 is staged in your own repository), then set `"enabled": false` in it:
 
-```bash
+```bash sicario-cmd=setup
 cp .specify/presets/sicario-core/rules/040-secret-scan.rule.json .sicario/rules/040-secret-scan.rule.json
 ```
 
-Edit `.sicario/rules/040-secret-scan.rule.json` so `"enabled": false`, then:
+Edit `.sicario/rules/040-secret-scan.rule.json` so `"enabled": false`.
+Reproducible as:
 
-```bash
+```bash sicario-cmd=setup
+python3 - <<'PY'
+import json
+from pathlib import Path
+
+p = Path(".sicario/rules/040-secret-scan.rule.json")
+rule = json.loads(p.read_text())
+rule["enabled"] = False
+p.write_text(json.dumps(rule, indent=2) + "\n")
+PY
+```
+
+```bash sicario-cmd=override-shipped-rule/05-disabled-green
 python3 -m sicario_cli.cli verify .
 ```
 
@@ -228,7 +265,7 @@ still in the tree, and the gate is green — a red gate made green by turning
 the check off. Nothing in the verdict distinguishes this from a clean
 repository. The evidence does:
 
-```bash
+```bash sicario-cmd=override-shipped-rule/05-disable-record
 python3 -c "
 import json
 d = json.load(open('generated/sicario/gate-summary.json'))
@@ -272,7 +309,7 @@ The rule also appears in `disabled_rules`, the list of loaded-but-not-run
 rules, carrying its *original* severity. This is the one-line search a
 reviewer (or CI annotation) runs across evidence:
 
-```bash
+```bash sicario-cmd=override-shipped-rule/05-grep
 grep -rn "disables-critical" generated/
 ```
 
@@ -290,7 +327,7 @@ remains in the repository should be recorded in
 `docs/risk/security-exceptions.md` (created by `init`), which requires an
 owner, an expiry, an approval, and a compensating control:
 
-```bash
+```bash sicario-cmd=override-shipped-rule/06-register
 grep -A2 "| Exception ID" docs/risk/security-exceptions.md
 ```
 
@@ -311,7 +348,7 @@ For this playbook's fixture there is a better fix than any override: make the
 placeholder not credential-shaped at all. Restore the shipped rule and
 replace the fixture value with a short angle-bracket placeholder:
 
-```bash
+```bash sicario-cmd=override-shipped-rule/07-end
 cp .specify/presets/sicario-core/rules/040-secret-scan.rule.json .sicario/rules/040-secret-scan.rule.json
 printf 'password = "%s"\n' "<from-env>" > tests/fixtures/sample-config.yaml
 python3 -m sicario_cli.cli verify .
