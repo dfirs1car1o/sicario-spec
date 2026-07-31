@@ -70,11 +70,14 @@ jobs:
     name: SicarioSpec verify
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.11"
-      - run: python -m pip install -e .
+      # Installs SicarioSpec itself (not this repository) pinned to the
+      # release your governance is authored against. The pin IS the version
+      # whose rules you get: bump the tag here when you upgrade SicarioSpec.
+      - run: python -m pip install "git+https://github.com/dfirs1car1o/sicario-spec.git@v0.6.0"
       - run: sicario verify .
 ```
 
@@ -105,18 +108,20 @@ Four facts matter:
   exit code alone is what fails the job. There is no separate reporting
   layer to disagree with your local run: CI red means the same command you
   run locally would be red.
-- **The install step assumes `sicario` becomes available.** As shipped,
-  `python -m pip install -e .` installs *your* project; the `sicario` CLI
-  is then present only if your project declares `sicario-spec` as a
-  dependency (or the repo is SicarioSpec itself). If neither holds, pin
-  the release the repository is governed by:
+- **The install step installs SicarioSpec itself, pinned.** `python -m pip
+  install "git+https://github.com/dfirs1car1o/sicario-spec.git@v0.6.0"`
+  installs the gate regardless of what your own repository's packaging
+  declares, and pins it to the release your repository is governed by — an
+  unpinned install could otherwise pull a newer gate whose findings differ
+  from the version your repository was authored against. Bump the `@v0.6.0`
+  ref when you deliberately upgrade SicarioSpec.
 
-```yaml
-      - run: python -m pip install "git+https://github.com/dfirs1car1o/sicario-spec.git@v0.6.0"
-```
-
-  Pinning matters: an unpinned install can pull a newer gate whose findings
-  differ from the version your repository was authored against.
+If your `.github/workflows/sicario-verify.yml` still reads
+`python -m pip install -e .`, it was copied from a template shipped before
+0.6.1: that line installed *your* project, not SicarioSpec, and the
+`sicario` command was absent unless your project happened to declare
+`sicario-spec` as a dependency. Replace it with the pinned install line
+above.
 
 ### 3. Commit, push, and watch the first green check
 

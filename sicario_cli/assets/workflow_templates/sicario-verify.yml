@@ -14,10 +14,13 @@ jobs:
     name: SicarioSpec verify
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: "3.11"
-      - run: python -m pip install -e .
+      # Installs SicarioSpec itself (not this repository) pinned to the
+      # release your governance is authored against. The pin IS the version
+      # whose rules you get: bump the tag here when you upgrade SicarioSpec.
+      - run: python -m pip install "git+https://github.com/dfirs1car1o/sicario-spec.git@v0.6.0"
       - run: sicario verify .
 
