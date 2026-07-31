@@ -497,7 +497,12 @@ def check_guide(path: Path, installed_version: str, keep_scratch: bool = False) 
 
             marker = marker_dir / f"cwd-{idx}.txt"
             result, new_cwd = run_fence_script(fence.content, cwd, env, marker)
-            new_cwd_resolved = Path(new_cwd).resolve()
+            # Constructing this path from fence-derived data is the point:
+            # it exists solely to be validated by the containment check on
+            # the next line, which refuses anything outside the scratch
+            # root before any later fence can use it. (Sonar S6549 flags
+            # the construction; the sink IS the validator.)
+            new_cwd_resolved = Path(new_cwd).resolve()  # NOSONAR
             if not _is_contained(new_cwd_resolved, scratch_root_resolved):
                 # F3(a): a fence that `cd`s (directly, or via a script it
                 # runs) somewhere outside the scratch root — e.g. into the
