@@ -163,7 +163,9 @@ jobs:
 
       - name: Smoke test Spec Kit bundle install
         env:
-          SPEC_KIT_REF: main
+          # Pinned upstream commit (tag v0.15.1). A moving ref in the release path
+          # is a supply-chain door; bump deliberately, with the tag in the comment.
+          SPEC_KIT_REF: 6f600b996905cc37b02662f128e84a7c0b7656a0
         run: |
           python -m pip install "git+https://github.com/github/spec-kit.git@$SPEC_KIT_REF"
 
