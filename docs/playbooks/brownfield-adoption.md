@@ -56,7 +56,7 @@ these three governance files, all committed:
 
 `.specify/memory/constitution.md` — the project's own constitution:
 
-```markdown
+```markdown sicario-write=.specify/memory/constitution.md
 # payments-api Constitution
 
 ## Principle I — Boring Technology
@@ -66,10 +66,32 @@ We choose proven components over novel ones.
 Every change lands through a reviewed pull request.
 ```
 
-`.specify/templates/spec-template.md` — the project's own minimal template
-(`# Feature Spec: [NAME]` with `## Problem`, `## Approach`, `## Rollout`
-sections), and `CLAUDE.md` — agent instructions ("Prefer small, reviewable
-diffs. Never commit generated artifacts.").
+`.specify/templates/spec-template.md` — the project's own minimal template:
+
+```markdown sicario-write=.specify/templates/spec-template.md
+# Feature Spec: [NAME]
+
+## Problem
+
+## Approach
+
+## Rollout
+```
+
+and `CLAUDE.md` — agent instructions:
+
+```markdown sicario-write=CLAUDE.md
+Prefer small, reviewable diffs. Never commit generated artifacts.
+```
+
+The remaining seed files (their content is not asserted by anything below):
+
+```bash sicario-cmd=setup
+printf '# payments-api\n' > README.md
+mkdir -p src
+printf 'def main():\n    pass\n' > src/app.py
+printf '__pycache__/\n*.pyc\n' > .gitignore
+```
 
 ## Steps
 
@@ -128,7 +150,7 @@ were all found, and the mode switched to `brownfield-safe
 
 ### 2. Adopt for real
 
-```bash
+```bash sicario-cmd=setup
 python3 -m sicario_cli.cli init . --profile public-core
 ```
 
@@ -143,7 +165,7 @@ Next: cd into the project and run `sicario verify`.
 
 ### 3. Inspect the overlay: your content is untouched above the markers
 
-```bash
+```bash sicario-cmd=brownfield-adoption/03-overlay
 sed -n '1,16p' .specify/memory/constitution.md
 ```
 
@@ -172,7 +194,7 @@ subordinate to your existing principles and to the instruction files it
 detected (`CLAUDE.md` here). The overlay ends with an
 `<!-- END SICARIO-SPEC OVERLAY -->` marker:
 
-```bash
+```bash sicario-cmd=brownfield-adoption/03-markers
 grep -n "SICARIO-SPEC OVERLAY" .specify/memory/constitution.md
 ```
 
@@ -206,7 +228,7 @@ things that were never meant to be committed. So before the first backup was
 taken, `init` appended an ignore rule to your `.gitignore` (your existing
 entries untouched):
 
-```bash
+```bash sicario-cmd=brownfield-adoption/04-gitignore
 cat .gitignore
 ```
 
@@ -273,7 +295,7 @@ No new backups are taken on a converged re-run.
 
 ### 6. Run the gate
 
-```bash
+```bash sicario-cmd=brownfield-adoption/06-verify
 python3 -m sicario_cli.cli verify .
 ```
 

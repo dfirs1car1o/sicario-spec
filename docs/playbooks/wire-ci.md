@@ -36,13 +36,20 @@ a known failure on purpose.
 Assumed platform: macOS or Linux with a POSIX shell and git. GitHub Actions
 behavior is platform-independent.
 
+Reconstructed exactly for the local (non-GitHub) parts of this playbook —
+this is also what the docs verification runner does, see FR-051:
+
+```bash sicario-cmd=setup
+sicario init . --profile appsec
+```
+
 ## Steps
 
 ### 1. Confirm the workflow is present — or wire it in
 
 `sicario init` installs the CI workflow for you. Check:
 
-```bash
+```bash sicario-cmd=wire-ci/step-1
 cat .github/workflows/sicario-verify.yml
 ```
 
@@ -124,14 +131,9 @@ The **Checks** panel on the PR shows `sicario-verify / SicarioSpec verify`.
 This surface is graphical — the capture below comes from the reference
 repository's Actions run.
 
-:::info Tool capture pending
-`docs/assets/guides/wire-ci/pr-checks-panel--v0.6.0.png` — capture class
-**tool-captured** (FR-030b): the pull-request checks panel showing the
-`sicario-verify` check. Awaits the hosted reference-run repository's real
-Actions run; GitHub Actions cannot execute in the local capture
-environment, and fabricating the surface is prohibited. The local-verify
-equivalents below are the text-class captures from the same reference run.
-:::
+![The pull-request checks panel: the SicarioSpec verify check green on the fix PR](../assets/guides/wire-ci/pr-checks-panel--v0.6.0.png)
+
+*Capture class: **tool-captured** (FR-030b) — automated browser capture of the real rendered page, taken logged-out. Reference run: [`SiCar10mw/sicario-refrun-wire-ci`](https://github.com/SiCar10mw/sicario-refrun-wire-ci), captured 2026-07-30 at captured-version 0.6.0; PR [#1](https://github.com/SiCar10mw/sicario-refrun-wire-ci/pull/1) — the reference run's fix branch is named `restore-threat-model` where this playbook uses `demo/red-gate`. Re-performable by re-running the reference repository's documented steps and re-capturing.*
 
 ### 4. Stage a failing finding and watch the check go red
 
@@ -147,9 +149,13 @@ git push -u origin demo/red-gate
 
 Open a pull request from `demo/red-gate`. The `sicario-verify` check fails.
 What CI ran is exactly what you can run locally; the job log's final step
-shows:
+shows (reproduced, for the local parts only, as):
 
-```bash
+```bash sicario-cmd=setup
+rm docs/security/threat-model.md
+```
+
+```bash sicario-cmd=wire-ci/step-4
 sicario verify .
 ```
 
@@ -161,13 +167,9 @@ sicario verify failed with 1 finding(s)
 The command exits `1`, the step fails, and the job — therefore the check —
 goes red. Each finding line reads: severity, finding code, path, message.
 
-:::info Tool capture pending
-`docs/assets/guides/wire-ci/ci-run-failing--v0.6.0.png` — capture class
-**tool-captured**: the Actions run view of the failing `SicarioSpec verify`
-job with the finding line visible in the log. Awaits the hosted
-reference-run repository's real Actions run (same reason as step 3's
-capture).
-:::
+![The Actions run view of the failing SicarioSpec verify job, exit code 1 in the annotations](../assets/guides/wire-ci/ci-run-failing--v0.6.0.png)
+
+*Capture class: **tool-captured** (FR-030b) — automated browser capture of the real rendered page, taken logged-out. Reference run: [`SiCar10mw/sicario-refrun-wire-ci`](https://github.com/SiCar10mw/sicario-refrun-wire-ci), captured 2026-07-30 at captured-version 0.6.0; run [30563433822](https://github.com/SiCar10mw/sicario-refrun-wire-ci/actions/runs/30563433822) — in the reference run the failure was staged by a push to `main` rather than a PR branch; same workflow, same red, same exit-code-1 annotation. Re-performable by re-running the reference repository's documented steps and re-capturing.*
 
 ### 5. Fix and re-run to green
 
@@ -179,9 +181,14 @@ git commit -am "demo: restore threat model"
 git push
 ```
 
-The local equivalent of what CI now runs:
+The local equivalent of what CI now runs (reproduced, for the local parts
+only, by re-running the idempotent `init` that recreates the missing file):
 
-```bash
+```bash sicario-cmd=setup
+sicario init . --profile appsec
+```
+
+```bash sicario-cmd=wire-ci/step-5
 sicario verify .
 ```
 
@@ -191,11 +198,9 @@ sicario verify passed
 
 Exit code `0`; the `sicario-verify` check on the pull request turns green.
 
-:::info Tool capture pending
-`docs/assets/guides/wire-ci/ci-run-passing--v0.6.0.png` — capture class
-**tool-captured**: the Actions run view of the passing `SicarioSpec verify`
-job. Awaits the hosted reference-run repository's real Actions run.
-:::
+![The Actions run view of the passing SicarioSpec verify job](../assets/guides/wire-ci/ci-run-passing--v0.6.0.png)
+
+*Capture class: **tool-captured** (FR-030b) — automated browser capture of the real rendered page, taken logged-out. Reference run: [`SiCar10mw/sicario-refrun-wire-ci`](https://github.com/SiCar10mw/sicario-refrun-wire-ci), captured 2026-07-30 at captured-version 0.6.0; run [30563339414](https://github.com/SiCar10mw/sicario-refrun-wire-ci/actions/runs/30563339414) — the reference run's wired-baseline passing run of this same job; its *post-fix* green appears as the check in the PR-panel capture above. Re-performable by re-running the reference repository's documented steps and re-capturing.*
 
 ### 6. Know where the evidence artifacts land in CI
 
@@ -253,6 +258,7 @@ captured from a reference run on a net-new repository (`refrun-ci`, run
 date 2026-07-28, SicarioSpec 0.6.0, module form `python3 -m sicario_cli.cli`
 from the source checkout), with working-directory paths normalized to
 `~/work/<repo>`. The three GitHub Actions surfaces are graphical and carry
-pending tool-captured asset slots (named above per the asset convention)
-until the hosted reference-run repository's real Actions run supplies them;
+tool-captured assets from the hosted reference-run repository
+`SiCar10mw/sicario-refrun-wire-ci` (captured 2026-07-30, logged-out browser
+automation of the public pages);
 no step depends on those images.

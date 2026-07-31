@@ -58,7 +58,7 @@ to `.gitignore`, and then:
    forbids unresolved security TODO markers (deliberately small caps so this
    playbook can show truncation):
 
-   ```json
+   ```json sicario-write=.sicario/rules/210-todo-security.rule.json
    {
      "id": "ACME-TODO-SECURITY",
      "severity": "medium",
@@ -84,11 +84,47 @@ to `.gitignore`, and then:
    function with nine `# TODO(security): validate signer for step N` comment
    lines (N from 0 to 8).
 
+Reconstructed exactly as a script (this is also what the docs verification
+runner does — see FR-051); `src/webhooks.py` is trivial filler and
+`src/jobs.py`'s nine TODO markers are laid out so the first five the scanner
+meets are on lines 2–6, matching the truncation shown in step 5:
+
+```bash sicario-cmd=setup
+git init -q
+sicario init . --profile public-core
+printf 'generated/\n' >> .gitignore
+mkdir -p specs/001-payment-webhooks
+cp .specify/templates/spec-template.md specs/001-payment-webhooks/spec.md
+mkdir -p src
+printf 'def handle_webhook(payload):\n    return {"ok": True}\n' > src/webhooks.py
+mkdir -p assets
+python3 -c "open('assets/diagram.png', 'wb').write(bytes([0x89, 0x50, 0x4E, 0x47, 0x00, 0xFF, 0xFE, 0x01]))"
+mkdir -p build
+printf 'built\n' > build/output.txt
+git add -A
+git commit -q -m "chore: staged baseline"
+python3 - <<'PY'
+import re
+from pathlib import Path
+
+p = Path("specs/001-payment-webhooks/spec.md")
+text = p.read_text()
+text = re.sub(r"\n## Misuse / Abuse Cases\n.*?(?=\n## )", "\n", text, flags=re.S)
+p.write_text(text)
+PY
+rm docs/security/threat-model.md
+printf 'def process_jobs():\n' > src/jobs.py
+for n in 0 1 2 3 4 5 6 7 8; do
+  printf '    # TODO(security): validate signer for step %s\n' "$n" >> src/jobs.py
+done
+printf '    return True\n' >> src/jobs.py
+```
+
 ## Steps
 
 ### 1. Run the gate locally and read the human output
 
-```bash
+```bash sicario-cmd=investigate-failing-gate/01-red
 python3 -m sicario_cli.cli verify .
 ```
 
@@ -137,7 +173,7 @@ engine-emitted overflow (`SICARIO-FINDINGS-TRUNCATED`).
   are defined by your own repository. Find the defining rule file — the code
   is the rule's `id`:
 
-  ```bash
+  ```bash sicario-cmd=investigate-failing-gate/02-grep-rule
   grep -rl "ACME-TODO-SECURITY" .sicario/rules/
   ```
 
@@ -153,7 +189,7 @@ engine-emitted overflow (`SICARIO-FINDINGS-TRUNCATED`).
 
 ### 3. Switch to machine output when you need it
 
-```bash
+```bash sicario-cmd=investigate-failing-gate/03-json,investigate-failing-gate/03-stderr
 python3 -m sicario_cli.cli verify . --format json | head -20
 ```
 
@@ -187,7 +223,7 @@ full document.) Three things to know about the machine formats
 - stdout carries **only** the document, so you can pipe it straight into
   `jq` or an uploader; the human summary line goes to stderr:
 
-  ```text title="Verified output" sicario-output=verified sicario-block=investigate-failing-gate/03-stderr
+  ```text title="Verified output" sicario-output=verified sicario-block=investigate-failing-gate/03-stderr sicario-stream=stderr
   sicario verify failed with 8 finding(s)
   ```
 
@@ -200,7 +236,7 @@ full document.) Three things to know about the machine formats
 
 Every run (any format) writes `generated/sicario/gate-summary.json`:
 
-```bash
+```bash sicario-cmd=investigate-failing-gate/04-summary-keys
 python3 -c "
 import json
 d = json.load(open('generated/sicario/gate-summary.json'))
@@ -233,7 +269,7 @@ core reading skill:
 The overflow finding said `reported 5 of 9`. The coverage record for the
 truncated rule carries the exact accounting:
 
-```bash
+```bash sicario-cmd=investigate-failing-gate/05-truncation
 python3 -c "
 import json
 d = json.load(open('generated/sicario/gate-summary.json'))
@@ -361,7 +397,7 @@ reference run went:
 Restore the deleted threat model (it is tracked, so restore from git — or
 recreate it):
 
-```bash
+```bash sicario-cmd=investigate-failing-gate/07-fix1
 git restore docs/security/threat-model.md
 python3 -m sicario_cli.cli verify . | tail -2
 ```
@@ -374,7 +410,7 @@ sicario verify failed with 7 finding(s)
 Restore the spec's deleted section (again from git; when writing a spec for
 real, put the section back with real content):
 
-```bash
+```bash sicario-cmd=investigate-failing-gate/07-fix2
 git restore specs/001-payment-webhooks/spec.md
 python3 -m sicario_cli.cli verify . | tail -2
 ```
@@ -388,9 +424,21 @@ Resolve the TODO markers — actually resolve them (do the work or file a
 tracked issue and reference it), don't reword them into a spelling the
 pattern misses. The reference run replaced `src/jobs.py` with a version
 whose docstring references the tracking issue and contains no
-`TODO(security)` markers. Then:
+`TODO(security)` markers. Reproducible as:
 
-```bash
+```bash sicario-cmd=setup
+cat > src/jobs.py <<'PY'
+"""Job processing; signer validation tracked in JIRA-1234."""
+
+
+def process_jobs():
+    return True
+PY
+```
+
+Then:
+
+```bash sicario-cmd=investigate-failing-gate/07-green
 python3 -m sicario_cli.cli verify .
 ```
 
@@ -400,7 +448,7 @@ sicario verify passed
 
 Exit code `0`, and the evidence agrees:
 
-```bash
+```bash sicario-cmd=investigate-failing-gate/07-evidence
 python3 -c "
 import json
 d = json.load(open('generated/sicario/gate-summary.json'))

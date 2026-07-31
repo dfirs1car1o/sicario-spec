@@ -37,11 +37,41 @@ viewer works.
   from scanning by policy.
 - A shell with `python3` and `grep`.
 
+Reconstructed exactly (this is also what the docs verification runner does —
+see FR-051): an `appsec`-profile init, one vendored file under
+`node_modules/`, and a project rule reusing the shipped
+`SICARIO-HARDCODED-SECRET` id with `"enabled": false`.
+
+```bash sicario-cmd=setup
+python3 -m sicario_cli.cli init . --profile appsec
+mkdir -p node_modules/left-pad
+printf 'module.exports = function leftPad() {};\n' > node_modules/left-pad/index.js
+python3 - <<'PY'
+import json
+
+rule = {
+    "id": "SICARIO-HARDCODED-SECRET",
+    "severity": "critical",
+    "kind": "regex-forbidden",
+    "path": "**/*",
+    "params": {
+        "pattern": "(?i)\\b(api[_-]?key|secret|token|password)\\b\\s*[:=]\\s*['\"][^'\"]{12,}['\"]"
+    },
+    "message": "Potential hardcoded secret",
+    "enabled": False,
+}
+with open(".sicario/rules/zzz-disable-secret-scan.rule.json", "w") as f:
+    json.dump(rule, f, indent=2)
+    f.write("\n")
+PY
+python3 -m sicario_cli.cli verify .
+```
+
 ## Steps
 
 ### 1. Read the verdict — then distrust it politely
 
-```bash
+```bash sicario-cmd=read-evidence-as-reviewer/step-1
 python3 -c "
 import json
 d = json.load(open('generated/sicario/gate-summary.json'))
@@ -69,12 +99,12 @@ narrow a noisy rule, or illegitimately, to switch off the secret scan. The
 gate does not forbid it; it records it, in `scan_coverage.overrides`. Start
 with the one-line search a reviewer should run on any evidence file:
 
-```bash
-grep -n "disables-critical" generated/sicario/gate-summary.json
+```bash sicario-cmd=read-evidence-as-reviewer/step-2a
+grep -Hn "disables-critical" generated/sicario/gate-summary.json
 ```
 
 ```text title="Verified output" sicario-output=verified sicario-block=read-evidence-as-reviewer/step-2a sicario-normalize=line-numbers
-130:        "impact": "disables-critical-severity-rule",
+generated/sicario/gate-summary.json:130:        "impact": "disables-critical-severity-rule",
 ```
 
 A hit means a rule whose original severity is `critical` is now turned
@@ -82,7 +112,7 @@ off. (Across a fleet, run the same grep over every collected evidence file
 — `grep -rn "disables-critical" <evidence-dir>` — it is cheap and it is
 the needle that matters most.) Now read the full record:
 
-```bash
+```bash sicario-cmd=read-evidence-as-reviewer/step-2b
 python3 -c "
 import json
 d = json.load(open('generated/sicario/gate-summary.json'))
@@ -155,7 +185,7 @@ override workflow and its evidence trail are walked end-to-end in the
 
 ### 3. See which rules did not run
 
-```bash
+```bash sicario-cmd=read-evidence-as-reviewer/step-3
 python3 -c "
 import json
 d = json.load(open('generated/sicario/gate-summary.json'))
@@ -230,7 +260,7 @@ makes that visible:
 Each content-scanning rule gets a per-rule record in
 `scan_coverage.rules`. Pull one:
 
-```bash
+```bash sicario-cmd=read-evidence-as-reviewer/step-5
 python3 -c "
 import json
 d = json.load(open('generated/sicario/gate-summary.json'))

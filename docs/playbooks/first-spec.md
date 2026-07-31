@@ -19,9 +19,9 @@ staged step — and end at `sicario verify passed`, with the passing spec
 reflected in the evidence artifact reviewers will read.
 
 This playbook covers the *loop*. What a complete section should *contain*,
-section by section, is the depth companion — the spec-authoring playbook
-planned for this guide set (not yet published) — which you do not need in
-order to finish here.
+section by section, is the depth companion —
+[authoring a feature spec that passes the gate](spec-authoring.md) — which
+you do not need in order to finish here.
 
 ## Prerequisites
 
@@ -48,9 +48,15 @@ a reference run: a net-new repository `payments-api`, initialized with
 
 ## Starting State
 
-An initialized repository at its root, gate green:
+An initialized repository at its root, gate green. Reconstructed exactly
+(this is also what the docs verification runner does — see FR-051):
+`sicario init . --profile appsec`, matching the reference run.
 
-```bash
+```bash sicario-cmd=setup
+sicario init . --profile appsec
+```
+
+```bash sicario-cmd=first-spec/fs-01
 sicario verify .
 ```
 
@@ -64,7 +70,7 @@ Feature directories live under `specs/`, named `<NNN-short-name>` — a
 three-digit sequence number and a short kebab-case name. The worked example
 is a refund-export feature:
 
-```bash
+```bash sicario-cmd=setup
 mkdir -p specs/001-refund-export
 ```
 
@@ -74,7 +80,7 @@ No output on success.
 
 Copy the shipped spec template into the feature directory as `spec.md`:
 
-```bash
+```bash sicario-cmd=setup
 cp .specify/templates/spec-template.md specs/001-refund-export/spec.md
 ```
 
@@ -104,7 +110,7 @@ on:
 
 Run the gate before writing a single word:
 
-```bash
+```bash sicario-cmd=first-spec/fs-02
 sicario verify .
 ```
 
@@ -131,9 +137,27 @@ Make the two edits a half-finished spec most often exhibits. In
 2. delete the `- Classification owner:` line from the
    `## Data Classification` section.
 
+Reproducible as a script, for both practice and this playbook's automated
+verification:
+
+```bash sicario-cmd=setup
+python3 - <<'PY'
+import re
+from pathlib import Path
+
+p = Path("specs/001-refund-export/spec.md")
+text = p.read_text()
+text = re.sub(r"\n## Trust Boundaries\n.*?(?=\n## )", "\n", text, flags=re.S)
+text = "\n".join(
+    line for line in text.splitlines() if not line.strip().startswith("- Classification owner:")
+) + "\n"
+p.write_text(text)
+PY
+```
+
 Then run the gate:
 
-```bash
+```bash sicario-cmd=first-spec/fs-03
 sicario verify .
 ```
 
@@ -162,7 +186,7 @@ non-zero exit code that CI gates on.
 Nothing real has been written yet, so the fix is to restore the complete
 form — re-copy the template:
 
-```bash
+```bash sicario-cmd=first-spec/fs-04
 cp .specify/templates/spec-template.md specs/001-refund-export/spec.md
 sicario verify .
 ```
@@ -229,7 +253,7 @@ seconds after the edit, instead of in CI. Two cautions with real teeth:
 
 Checkpoint after the final section:
 
-```bash
+```bash sicario-cmd=first-spec/fs-06
 sicario verify .
 ```
 
@@ -243,7 +267,7 @@ The loop ends at the artifact reviewers will read, not at your terminal.
 Every verify run rewrites `generated/sicario/gate-summary.json`; confirm
 the passing spec is reflected there:
 
-```bash
+```bash sicario-cmd=first-spec/fs-07
 python3 -c "import json; d = json.load(open('generated/sicario/gate-summary.json')); print(json.dumps({'status': d['status'], 'finding_count': d['finding_count']}, indent=2))"
 ```
 

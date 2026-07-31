@@ -30,7 +30,7 @@ const PLAYBOOK_ORDER = [
   'initial-setup-selection',
   'brownfield-adoption',
   'first-spec',
-  'author-a-passing-spec',
+  'spec-authoring',
   'custom-rule',
   'override-shipped-rule',
   'investigate-failing-gate',
@@ -44,14 +44,39 @@ const GUIDE_ORDER = ['getting-started'];
 const guideItems = presentDocs('guides', GUIDE_ORDER);
 const playbookItems = presentDocs('playbooks', PLAYBOOK_ORDER);
 
+// The lesson path (maintainer feedback 2026-07-31; count set by curriculum
+// analysis, not by fiat): six lessons. Lessons 5 and 6 are promoted because
+// the product's own thesis (spec 004) is that the gate checks vocabulary and
+// the HUMAN supplies substance — a path ending at "green in CI" trains
+// people to trust exactly the signal the docs say not to trust alone.
+// Everything else is task-shaped under "When you need it".
+const LESSONS_LABEL = 'Start Here — Six Lessons';
+const LESSONS = [
+  { id: 'guides/start-here', label: 'Start here: six lessons' },
+  { id: 'guides/getting-started', label: 'Lesson 1 · Install, reach a green gate' },
+  { id: 'playbooks/initial-setup-selection', label: 'Lesson 2 · Choose your profile' },
+  { id: 'playbooks/first-spec', label: 'Lesson 3 · Write your first spec' },
+  { id: 'playbooks/wire-ci', label: 'Lesson 4 · Put the gate in CI' },
+  { id: 'playbooks/spec-authoring', label: 'Lesson 5 · Write a spec worth reviewing' },
+  { id: 'playbooks/read-evidence-as-reviewer', label: 'Lesson 6 · Review a gate you did not run' },
+];
+const lessonIds = new Set(LESSONS.map((l) => l.id));
+const lessonItems = LESSONS.filter((l) =>
+  [...guideItems, ...playbookItems].includes(l.id)
+).map((l) => ({ type: 'doc', id: l.id, label: l.label }));
+
+const whenNeededItems = [...guideItems, ...playbookItems].filter(
+  (id) => !lessonIds.has(id)
+);
+
 const learningSections = [
-  ...(guideItems.length ? [['Guides', guideItems]] : []),
-  ...(playbookItems.length ? [['Playbooks', playbookItems]] : []),
+  ...(lessonItems.length ? [[LESSONS_LABEL, lessonItems]] : []),
+  ...(whenNeededItems.length ? [['When You Need It', whenNeededItems]] : []),
 ];
 
 const docSections = [
   [
-    'Start Here',
+    'Overview & Reference',
     ['getting-started', 'bundle-walkthrough', 'architecture', 'profiles', 'presets', 'rule-engine'],
   ],
   [
@@ -103,11 +128,11 @@ const docSections = [
   ],
 ];
 
-// Learning categories sit right after Start Here, before the reference
-// sections, and stay expanded — they are the new-user path.
-const allSections = [docSections[0], ...learningSections, ...docSections.slice(1)];
+// Learning categories come FIRST (the old 'Start Here' reference category
+// is now 'Overview & Reference') and stay expanded — they are the new-user path.
+const allSections = [...learningSections, ...docSections];
 
-const EXPANDED = new Set(['Start Here', 'Guides', 'Playbooks', 'Security Evidence Chain']);
+const EXPANDED = new Set([LESSONS_LABEL, 'When You Need It']);
 
 /** @type {import('@docusaurus/plugin-content-docs').SidebarsConfig} */
 const sidebars = {

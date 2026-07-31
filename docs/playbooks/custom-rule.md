@@ -44,6 +44,10 @@ screenshots (stated per the visual-asset policy).
   `python3 -m sicario_cli.cli init . --profile public-core`, where
   `python3 -m sicario_cli.cli verify .` already passes.
 
+  ```bash sicario-cmd=setup
+  python3 -m sicario_cli.cli init . --profile public-core
+  ```
+
 Two facts about where rules live, so the rest of the playbook makes sense.
 `sicario verify` loads rules from two directories, in order: the shipped
 rules, then the project's `.sicario/rules/`. For a given rule `id`, the last
@@ -60,7 +64,7 @@ Create `.sicario/rules/200-no-staging-hostname.rule.json`. The file name must
 end in `.rule.json`; the leading number only controls load order within the
 directory.
 
-```json
+```json sicario-write=.sicario/rules/200-no-staging-hostname.rule.json
 {
   "id": "ACME-NO-STAGING-HOSTNAME",
   "severity": "high",
@@ -94,7 +98,7 @@ Field notes:
 
 ### 2. Validate before running
 
-```bash
+```bash sicario-cmd=custom-rule/02-validate
 python3 -m sicario_cli.cli verify . --validate-rules
 ```
 
@@ -113,7 +117,7 @@ be enforced", not merely "parses".
 Stage a violation the way it would really arrive — a runbook that names the
 staging host. Create `docs/runbooks/deploy.md`:
 
-```markdown
+```markdown sicario-write=docs/runbooks/deploy.md
 # Deploy runbook
 
 1. Push the image.
@@ -122,7 +126,7 @@ staging host. Create `docs/runbooks/deploy.md`:
 
 Run the gate:
 
-```bash
+```bash sicario-cmd=custom-rule/03-firing
 python3 -m sicario_cli.cli verify .
 ```
 
@@ -140,9 +144,23 @@ rule that matches sensitive content cannot leak it.
 
 Replace the hostname in the runbook with the service-discovery name (line 4
 becomes "Smoke-test against the staging service name from service discovery
-before promoting."), then re-run:
+before promoting."), then re-run. Reproducible as:
 
-```bash
+```bash sicario-cmd=setup
+python3 - <<'PY'
+from pathlib import Path
+
+p = Path("docs/runbooks/deploy.md")
+p.write_text(
+    p.read_text().replace(
+        "2. Smoke-test against staging.internal.example.com before promoting.\n",
+        "2. Smoke-test against the staging service name from service discovery before promoting.\n",
+    )
+)
+PY
+```
+
+```bash sicario-cmd=custom-rule/04-green
 python3 -m sicario_cli.cli verify .
 ```
 
@@ -183,7 +201,7 @@ Rule files load **only from the top level of a rules directory** —
 subdirectories are never loaded. This is the mistake that fails silently, so
 stage it deliberately. Move the rule into a subdirectory:
 
-```bash
+```bash sicario-cmd=custom-rule/05-subdir
 mkdir -p .sicario/rules/drafts
 mv .sicario/rules/200-no-staging-hostname.rule.json .sicario/rules/drafts/
 python3 -m sicario_cli.cli verify . --validate-rules
@@ -198,7 +216,7 @@ all rules valid (42 file(s); 1 ignored in subdirectories)
 no such warning — the rule simply does not run, and a violation sails
 through. Prove it: re-add the hostname while the rule is parked in `drafts/`:
 
-```bash
+```bash sicario-cmd=custom-rule/05-silent-pass
 printf '\nTest note: staging.internal.example.com\n' >> docs/runbooks/deploy.md
 python3 -m sicario_cli.cli verify .
 ```
@@ -211,7 +229,7 @@ A green gate, with the violation sitting in the tree — silent
 non-enforcement, which is why validating after any rules-directory change is
 worth the habit. Move the rule back and enforcement returns immediately:
 
-```bash
+```bash sicario-cmd=custom-rule/05-back
 mv .sicario/rules/drafts/200-no-staging-hostname.rule.json .sicario/rules/
 rmdir .sicario/rules/drafts
 python3 -m sicario_cli.cli verify .
@@ -222,7 +240,24 @@ HIGH ACME-NO-STAGING-HOSTNAME docs/runbooks/deploy.md:6: Internal staging hostna
 sicario verify failed with 1 finding(s)
 ```
 
-Delete the test note line from the runbook to get back to green.
+Delete the test note line from the runbook to get back to green. Reproducible
+as:
+
+```bash sicario-cmd=setup
+python3 - <<'PY'
+from pathlib import Path
+
+p = Path("docs/runbooks/deploy.md")
+p.write_text(
+    "".join(
+        line
+        for line in p.read_text().splitlines(keepends=True)
+        if line.strip() and "Test note" not in line
+    )
+    + "\n"
+)
+PY
+```
 
 ### 6. What a malformed rule does
 
@@ -230,7 +265,7 @@ Create a deliberately broken rule,
 `.sicario/rules/201-block-debug-flag.rule.json`, with an invalid severity and
 a zero findings cap:
 
-```json
+```json sicario-write=.sicario/rules/201-block-debug-flag.rule.json
 {
   "id": "ACME-NO-DEBUG-FLAG",
   "severity": "blocker",
@@ -244,7 +279,7 @@ a zero findings cap:
 }
 ```
 
-```bash
+```bash sicario-cmd=custom-rule/06-invalid
 python3 -m sicario_cli.cli verify . --validate-rules
 ```
 
@@ -258,7 +293,7 @@ Exit code `1`, with every error named per file. And if you skip validation
 and run the gate anyway, the gate fails closed rather than silently
 enforcing less:
 
-```bash
+```bash sicario-cmd=custom-rule/06-fail-closed
 python3 -m sicario_cli.cli verify .
 ```
 
@@ -270,9 +305,22 @@ sicario verify failed with 1 finding(s)
 A rule that cannot run is a gap in enforcement, so it is a critical finding —
 a cap of `0` on a scan rule must never quietly turn into "scan nothing and
 pass". Fix the file (severity `high`, `max_findings_per_file` of `20`) and
-both commands go green:
+both commands go green. Reproducible as:
 
-```bash
+```bash sicario-cmd=setup
+python3 - <<'PY'
+import json
+from pathlib import Path
+
+p = Path(".sicario/rules/201-block-debug-flag.rule.json")
+rule = json.loads(p.read_text())
+rule["severity"] = "high"
+rule["params"]["max_findings_per_file"] = 20
+p.write_text(json.dumps(rule, indent=2) + "\n")
+PY
+```
+
+```bash sicario-cmd=custom-rule/06-fixed
 python3 -m sicario_cli.cli verify . --validate-rules
 python3 -m sicario_cli.cli verify .
 ```

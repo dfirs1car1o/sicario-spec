@@ -40,6 +40,24 @@ this playbook is the workflow.
 Assumed platform: macOS or Linux with a POSIX shell. On Windows, use
 forward-slash paths in commands and adjust `cat`/`cp` to your shell.
 
+Reconstructed exactly (this is also what the docs verification runner does —
+see FR-051): init, then prune `docs/compliance/control-maps/` down to the two
+enforced maps (`ssdf`, `iso27001`) — a common hygiene move, and the starting
+state step 4 assumes.
+
+```bash sicario-cmd=setup
+sicario init . --profile appsec
+python3 - <<'PY'
+from pathlib import Path
+
+keep = {"ssdf-800-218-sicario.json", "iso-27001-2022-sicario.json"}
+maps_dir = Path("docs/compliance/control-maps")
+for f in maps_dir.glob("*.json"):
+    if f.name not in keep:
+        f.unlink()
+PY
+```
+
 ## How framework selection works (one paragraph)
 
 The selection lives in one plain-text file, `.sicario/frameworks.txt`, one
@@ -60,7 +78,7 @@ explicitly.
 
 ### 1. Read the current selection
 
-```bash
+```bash sicario-cmd=select-frameworks/step-1
 cat .sicario/frameworks.txt
 ```
 
@@ -89,7 +107,7 @@ never enters your enforced set unless you name it yourself (step 6).
 The init report states the effective selection and labels experimental
 keys. A `--dry-run` re-run prints that report without writing anything:
 
-```bash
+```bash sicario-cmd=select-frameworks/step-2
 sicario init . --profile appsec --dry-run | grep '^frameworks'
 ```
 
@@ -108,7 +126,7 @@ says so.
 The selection file is the interface: add one key per line. Suppose the
 project now owes GDPR evidence:
 
-```bash
+```bash sicario-cmd=select-frameworks/step-3
 printf 'gdpr\n' >> .sicario/frameworks.txt
 tail -3 .sicario/frameworks.txt
 ```
@@ -130,7 +148,7 @@ This reference run's repository had pruned `docs/compliance/control-maps/`
 down to the two enforced maps — a common hygiene move. Selecting `gdpr`
 without its map present makes the gate fail:
 
-```bash
+```bash sicario-cmd=select-frameworks/step-4
 sicario verify .
 ```
 
@@ -160,7 +178,7 @@ merged file-by-file. Restore the map explicitly, as in step 5.
 The shipped maps live with your SicarioSpec installation. Ask the CLI where
 that is, then copy the map in:
 
-```bash
+```bash sicario-cmd=select-frameworks/step-5
 MAPS="$(python3 -c "from sicario_cli.cli import CONTROL_MAPS_ROOT; print(CONTROL_MAPS_ROOT)")"
 cp "$MAPS/gdpr-cpra-sicario.json" docs/compliance/control-maps/
 sicario verify .
@@ -180,7 +198,7 @@ installable and, once listed, enforced **exactly like any other key**. The
 only behavioral difference is that no profile default will ever add them
 for you. To enforce OWASP ASVS:
 
-```bash
+```bash sicario-cmd=select-frameworks/step-6a
 printf 'owasp-asvs\n' >> .sicario/frameworks.txt
 MAPS="$(python3 -c "from sicario_cli.cli import CONTROL_MAPS_ROOT; print(CONTROL_MAPS_ROOT)")"
 cp "$MAPS/owasp-asvs-sicario.json" docs/compliance/control-maps/
@@ -193,7 +211,7 @@ sicario verify passed
 
 Now re-check the effective selection report from step 2:
 
-```bash
+```bash sicario-cmd=select-frameworks/step-6b
 sicario init . --profile appsec --dry-run | grep '^frameworks'
 ```
 

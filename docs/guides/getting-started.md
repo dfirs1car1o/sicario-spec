@@ -97,7 +97,7 @@ Successfully installed sicario-spec-0.6.0
 
 Confirm the install worked:
 
-```bash
+```bash sicario-cmd=getting-started/gs-01
 sicario --version
 ```
 
@@ -174,7 +174,7 @@ install Path A as well. The rest of this walkthrough uses the Path A CLI.
 
 The walkthrough's scenario is a small Python API service — a payments API.
 
-```bash
+```bash sicario-cmd=setup
 mkdir payments-api
 cd payments-api
 ```
@@ -262,7 +262,7 @@ never selected implicitly — see the selection playbook.
 
 Now run it for real:
 
-```bash
+```bash sicario-cmd=setup
 sicario init . --profile appsec
 ```
 
@@ -284,16 +284,13 @@ including the control maps), the framework selector
 
 ## Step 5 — First Verify: Green
 
-```bash
+```bash sicario-cmd=getting-started/gs-06,getting-started/gs-07
 sicario verify .
+echo $?
 ```
 
 ```text title="Verified output" sicario-output=verified sicario-block=getting-started/gs-06
 sicario verify passed
-```
-
-```bash
-echo $?
 ```
 
 ```text title="Verified output" sicario-output=verified sicario-block=getting-started/gs-07
@@ -312,7 +309,7 @@ stake. The most common real-world red gate is a required governance artifact
 that went missing or was never committed, so stage exactly that — delete the
 threat model:
 
-```bash
+```bash sicario-cmd=getting-started/gs-08
 rm docs/security/threat-model.md
 sicario verify .
 ```
@@ -337,7 +334,7 @@ The command exits `1`. Read the finding line left to right:
 what is missing and leaves your existing files alone. That makes it the fix
 here:
 
-```bash
+```bash sicario-cmd=setup
 sicario init . --profile appsec
 ```
 
@@ -353,16 +350,13 @@ repository: the one missing file is `[created]`, the governed templates it
 manages are `[merged-overlaid]`, and everything else you already have is
 `[preserved]` — nothing clobbered.
 
-```bash
+```bash sicario-cmd=getting-started/gs-10,getting-started/gs-11
 sicario verify .
+echo $?
 ```
 
 ```text title="Verified output" sicario-output=verified sicario-block=getting-started/gs-10
 sicario verify passed
-```
-
-```bash
-echo $?
 ```
 
 ```text title="Verified output" sicario-output=verified sicario-block=getting-started/gs-11
@@ -376,7 +370,7 @@ That exit code `0` is the contract: it is what CI will gate on.
 Every verify run writes evidence to `generated/sicario/gate-summary.json`.
 Print the verdict fields:
 
-```bash
+```bash sicario-cmd=getting-started/gs-12
 python3 -c "import json; d = json.load(open('generated/sicario/gate-summary.json')); print(json.dumps({'status': d['status'], 'finding_count': d['finding_count']}, indent=2))"
 ```
 

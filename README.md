@@ -32,7 +32,9 @@ The core preset is built around a Security Evidence Chain: material risks and
 security decisions trace to a control or requirement, test/gate, evidence path,
 owner, and approval or accepted-risk state.
 
-> **New here? Read [USAGE.md](USAGE.md).** It is the copy-pasteable quickstart
+> **New here? Start with the [six-lesson path](docs/guides/start-here.md)**
+> (about three hours, zero to a reviewed, CI-enforced gate), then keep
+> [USAGE.md](USAGE.md) for lookup. It is the copy-pasteable quickstart
 > and explains the one thing people miss: SicarioSpec does **not** give you a
 > "threat-model command." Security and threat modeling are *enforced as
 > mandatory spec/plan sections* and checked by `sicario verify` — a
