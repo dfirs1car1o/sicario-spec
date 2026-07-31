@@ -12,4 +12,5 @@
 | 2026-07-27 | Secret-scan rules 041-043 shipped (AWS access key, provider token, private-key material) with pattern boundary fix; `--validate-rules` repaired; `SICARIO-RULE-INVALID` / `SICARIO-RULE-UNREADABLE` / `SICARIO-NO-RULES-LOADED` fail-closed findings | `docs/rule-engine.md`, `docs/completeness-matrix.md`, `docs/compliance/evidence-index.md` | Required |
 | 2026-07-27 | Rule precedence flip (project `.sicario/rules/` overrides shipped rules by id) with override evidence in `scan_coverage.overrides` | `docs/rule-engine.md` override-evidence section, `docs/security-model.md`, `docs/bundle-walkthrough.md`, `docs/security/threat-model.md`, `docs/security/abuse-cases.md` | Required |
 | 2026-07-27 | `scan_coverage.asset_root` resolution evidence and `SICARIO-ASSET-ROOT-OVERRIDE` finding for `SICARIO_ASSET_ROOT` redirects | `docs/rule-engine.md` asset-root section | Required |
+| 2026-07-31 | Fix #68: shipped CI template installs pinned SicarioSpec instead of `-e .`; actions SHA-pinned | `docs/playbooks/wire-ci.md` step 1 verified block and step 2 remedy note updated | Required |
 

@@ -8,7 +8,19 @@ improve the security model.
 
 ## [Unreleased]
 
-No unreleased changes yet.
+### Fixed
+
+- **Shipped CI template installed the wrong package.** `workflow_templates/sicario-verify.yml`
+  ran `python -m pip install -e .`, which installs the *adopting* repository,
+  not SicarioSpec — the `sicario` command never existed for a normal adopter
+  unless their own project happened to declare `sicario-spec` as a
+  dependency. The template (and its packaged mirror used by `sicario init`
+  for installed, non-source-checkout adopters) now installs SicarioSpec
+  explicitly, pinned to a release:
+  `python -m pip install "git+https://github.com/dfirs1car1o/sicario-spec.git@v0.6.0"`.
+  `actions/checkout` and `actions/setup-python` in the template are also now
+  SHA-pinned with version comments, matching the discipline this repository
+  already holds itself to in `.github/workflows/`. (#68)
 
 ## [0.6.0] - 2026-07-28
 

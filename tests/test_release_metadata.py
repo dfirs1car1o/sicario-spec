@@ -203,6 +203,45 @@ class ReleaseMetadataTests(unittest.TestCase):
         self.assertIn("id-token: write", workflow)
         self.assertIn("security-events: write", workflow)
 
+    def test_shipped_ci_template_installs_pinned_sicario_and_sha_pins_actions(self) -> None:
+        # Regression test for #68: the CI template shipped to adopters must
+        # install SicarioSpec itself, pinned, and must hold this repo's own
+        # SHA-pinning discipline (see test_pypi_publish_workflow_uses_trusted_publishing
+        # for why the regex is version-agnostic rather than hardcoding a SHA that
+        # a legitimate Dependabot bump would then break).
+        for relative in (
+            "workflow_templates/sicario-verify.yml",
+            # Packaged mirror used by `sicario init` for installed (non-source-checkout)
+            # adopters — see sicario_cli.cli._resolve_asset_root. Both copies must ship
+            # the fix, or only in-repo dogfooding gets it.
+            "sicario_cli/assets/workflow_templates/sicario-verify.yml",
+        ):
+            workflow = (ROOT / relative).read_text(encoding="utf-8")
+
+            # Actions are SHA-pinned (40-hex) with a trailing version comment, not a
+            # bare tag pin like `@v4`.
+            self.assertRegex(workflow, r"actions/checkout@[0-9a-f]{40} # v[0-9.]+", relative)
+            self.assertRegex(workflow, r"actions/setup-python@[0-9a-f]{40} # v[0-9.]+", relative)
+            self.assertNotRegex(workflow, r"actions/checkout@v\d", relative)
+            self.assertNotRegex(workflow, r"actions/setup-python@v\d", relative)
+
+            # The install step installs SicarioSpec itself from a pinned ref, not
+            # the adopting repository via `-e .`.
+            self.assertRegex(
+                workflow,
+                r"pip install \"git\+https://github\.com/dfirs1car1o/sicario-spec\.git@v[0-9.]+\"",
+                relative,
+            )
+            self.assertNotIn("pip install -e .", workflow, relative)
+
+        # Both copies must agree, or only the source-checkout path gets the fix.
+        self.assertEqual(
+            (ROOT / "workflow_templates" / "sicario-verify.yml").read_text(encoding="utf-8"),
+            (
+                ROOT / "sicario_cli" / "assets" / "workflow_templates" / "sicario-verify.yml"
+            ).read_text(encoding="utf-8"),
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
