@@ -4,6 +4,8 @@ description: "SicarioSpec security toolchain task list template"
 
 # Tasks: [FEATURE NAME]
 
+**Input**: `spec.md`, `plan.md`, `research.md`, `data-model.md`, contracts
+
 ## Phase 1: Setup
 
 - [ ] T001 Configure local test command
@@ -30,15 +32,30 @@ description: "SicarioSpec security toolchain task list template"
 - [ ] T016 Run policy-as-code checks if applicable
 - [ ] T017 Store evidence under documented paths
 
-## Phase 4: Tests And Verification
+## Phase 4: Tests First
 
-- [ ] T018 Add functional tests
-- [ ] T019 Add negative/security tests
-- [ ] T020 Run `sicario verify`
-- [ ] T021 Obtain human review for high-risk changes
+- [ ] T018 Add functional tests for the primary story
+- [ ] T019 Add negative/security tests for misuse and abuse cases
+- [ ] T020 Verify tests fail before implementation where practical
+
+## Phase 5: Implementation
+
+- [ ] T021 Implement the smallest independently testable slice
+- [ ] T022 Add audit logging without sensitive data
+- [ ] T023 Keep external systems read-only unless explicit approval is documented
+
+## Phase 6: Evidence And Verification
+
+- [ ] T024 Populate the Security Evidence Chain with risk, control, gate, evidence, owner, and approval entries
+- [ ] T025 Run the configured project verification gate
+- [ ] T026 Run `sicario verify` if SicarioSpec CLI is installed for this project
+- [ ] T027 Record docs impact or no-docs-impact decision
+- [ ] T028 Obtain human review for high-risk changes
 
 ## Dependencies
 
+- Security foundation blocks implementation.
 - Classification and tagging decisions block evidence storage and release packaging.
 - Toolchain evidence blocks release.
+- Negative/security tests must exist before final verification.
 - Human approval blocks high-impact write, release, and exception tasks.

@@ -44,6 +44,16 @@
 - Required controls:
 - Residual risks:
 
+## Security Evidence Chain
+
+Use this table as the delivery handoff between engineering, security, and
+operations. Every high-impact decision, accepted risk, or material control should
+have a chain entry.
+
+| Chain ID | Risk / Decision | Control / Requirement | Test / Gate | Evidence Path | Owner | Approval / Accepted Risk |
+|---|---|---|---|---|---|---|
+| SEC-001 | TBD | TBD | TBD | TBD | TBD | TBD |
+
 ## Architecture / Security Decision Record
 
 - Decision:
@@ -94,6 +104,13 @@
 - Break-glass owner:
 - Audit trail:
 
+## Authn / Authz Design
+
+- Identity source:
+- Authorization checks:
+- Privilege boundaries:
+- Negative tests:
+
 ## Data Flow And Trust Boundaries
 
 ```text
@@ -108,6 +125,15 @@ event -> queue/state -> orchestrator -> worker/agent -> tool/action -> evidence
 - Pinned actions/images:
 - Build provenance:
 
+## Cloud / IaC Risk
+
+- IAM:
+- Network exposure:
+- Encryption:
+- Secrets:
+- Logging:
+- Drift/policy checks:
+
 ## AI / Tool Boundary
 
 - Prompt injection controls:
@@ -116,6 +142,14 @@ event -> queue/state -> orchestrator -> worker/agent -> tool/action -> evidence
 - Memory controls:
 - Human approval gates:
 - Evals/red-team tests:
+
+## Operational Readiness
+
+- Required telemetry:
+- Detection or alert rule:
+- Triage and response owner:
+- Runbook or rollback link:
+- Evidence retention:
 
 ## Test Strategy
 
@@ -156,6 +190,7 @@ event -> queue/state -> orchestrator -> worker/agent -> tool/action -> evidence
 - Queue and worker inventory:
 - Control applicability:
 - Evidence index:
+- Security Evidence Chain:
 - Gate summary:
 - Reviewer approval:
 
@@ -174,6 +209,7 @@ event -> queue/state -> orchestrator -> worker/agent -> tool/action -> evidence
 | Least privilege | TBD | TBD |
 | Deterministic authority | TBD | TBD |
 | Evidence integrity | TBD | TBD |
+| Security Evidence Chain | TBD | TBD |
 | Trust-boundary sanitization | TBD | TBD |
 | Source-of-truth authority | TBD | TBD |
 | Quality gates | TBD | TBD |

@@ -35,6 +35,10 @@ def _docusaurus_config() -> str:
   presets: [
     ['classic', {
       docs: {
+        // Serve docs at the site root: the theme's navbar title links to '/',
+        // and without a page there the generated site fails its own
+        // onBrokenLinks: 'throw' on the very first build (issue #72, layer 3).
+        routeBasePath: '/',
         sidebarPath: require.resolve('./sidebars.js')
       },
       blog: false,
@@ -59,7 +63,11 @@ def _docusaurus_sidebars() -> str:
 
 
 def _docusaurus_intro() -> str:
-    return """# Project Documentation
+    return """---
+slug: /
+---
+
+# Project Documentation
 
 This site is generated from repository documentation. Keep docs and diagrams
 current as part of every change.

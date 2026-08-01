@@ -24,12 +24,18 @@ jobs:
       run:
         working-directory: docs-site
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7
+      # No cache/cache-dependency-path here: `sicario init` generates
+      # docs-site/package.json without a package-lock.json (init cannot
+      # assume npm is available on the adopter's machine to produce one),
+      # and setup-node's cache input errors out before any step runs if the
+      # lockfile it would key on doesn't exist. If you commit a lockfile,
+      # you can add `cache: npm` / `cache-dependency-path` back yourself and
+      # switch the install step below to `npm ci`.
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: "20"
-          cache: npm
-          cache-dependency-path: docs-site/package-lock.json
-      - run: npm ci
+      # `npm install` (not `npm ci`) because `npm ci` refuses to run without
+      # an existing lockfile, which a fresh `sicario init` never generates.
+      - run: npm install
       - run: npm run build
-

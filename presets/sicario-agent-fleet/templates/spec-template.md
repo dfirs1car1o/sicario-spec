@@ -66,6 +66,25 @@
 - Rate limiting / abuse prevention:
 - Secure error handling:
 
+## Privacy Requirements
+
+- Data minimization:
+- Purpose limitation:
+- Consent or notice requirements:
+- Redaction requirements:
+
+## Compliance / Control Applicability
+
+Map applicable requirements without claiming certification.
+
+| Domain | Applicable? | Rationale | Evidence |
+|---|---:|---|---|
+| AppSec / ASVS | TBD | TBD | TBD |
+| NIST SSDF | TBD | TBD | TBD |
+| Supply Chain / SLSA | TBD | TBD | TBD |
+| AI Risk / NIST AI RMF | TBD | TBD | TBD |
+| Cloud/IaC | TBD | TBD | TBD |
+
 ## Fleet / Orchestration Risk
 
 Complete this section for LangGraph-style state graphs, Temporal-style durable
@@ -121,6 +140,14 @@ tool calling, autonomous workflows, or generated code.
 - Retention:
 - Alerting:
 
+## Operational Signal / Response Path
+
+- Signals this feature should emit:
+- Detection or alert logic:
+- Triage owner:
+- Response or rollback action:
+- Evidence retention location:
+
 ## Misuse / Abuse Cases
 
 - Abuse case 1:
@@ -140,6 +167,15 @@ tool calling, autonomous workflows, or generated code.
 - **SA-004**: Orchestrated work MUST be idempotent or explicitly compensating.
 - **SA-005**: High-impact autonomous actions MUST require human approval.
 
+## Security Evidence Chain
+
+Every material risk should trace to a control, verification gate, evidence path,
+owner, and approval or accepted-risk decision.
+
+| Chain ID | Risk / Decision | Control / Requirement | Test / Gate | Evidence Path | Owner | Approval / Accepted Risk |
+|---|---|---|---|---|---|---|
+| SEC-001 | TBD | TBD | TBD | TBD | TBD | TBD |
+
 ## Evidence To Produce
 
 - Threat model update:
@@ -148,6 +184,7 @@ tool calling, autonomous workflows, or generated code.
 - Tagging taxonomy updates:
 - Workflow/state graph:
 - Queue and worker inventory:
+- Security Evidence Chain:
 - Tests:
 - Gate summary:
 - Control applicability:

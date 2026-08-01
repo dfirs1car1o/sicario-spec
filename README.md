@@ -8,6 +8,7 @@
 
 <p align="center">
   <a href="https://github.com/dfirs1car1o/sicario-spec/actions/workflows/test.yml"><img alt="CI" src="https://github.com/dfirs1car1o/sicario-spec/actions/workflows/test.yml/badge.svg"></a>
+  <a href="https://github.com/dfirs1car1o/sicario-spec/actions/workflows/test.yml"><img alt="Tests" src="https://img.shields.io/endpoint?url=https%3A%2F%2Fdfirs1car1o.github.io%2Fsicario-spec%2Fbadges%2Ftests.json"></a>
   <a href="https://github.com/dfirs1car1o/sicario-spec/actions/workflows/codeql.yml"><img alt="CodeQL" src="https://github.com/dfirs1car1o/sicario-spec/actions/workflows/codeql.yml/badge.svg"></a>
   <a href="https://github.com/dfirs1car1o/sicario-spec/actions/workflows/release.yml"><img alt="Release packaging" src="https://github.com/dfirs1car1o/sicario-spec/actions/workflows/release.yml/badge.svg"></a>
   <br>

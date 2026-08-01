@@ -271,27 +271,38 @@ python3 -m sicario_cli.cli init . --profile public-core
 
 ```text title="Illustrative output (representative, not exact)" sicario-output=illustrative sicario-block=brownfield-adoption/05-rerun
 gitignore already ignores *.sicario-bak.*
+overlay already present in ~/refrun-rules/brownfield-app/.specify/templates/plan-template.md
 overlay already present in ~/refrun-rules/brownfield-app/.specify/templates/spec-template.md
+overlay already present in ~/refrun-rules/brownfield-app/.specify/templates/tasks-template.md
+overlay already present in ~/refrun-rules/brownfield-app/.specify/memory/constitution.md
 ...
-  summary: 2 merged-overlaid, 35 preserved
+  summary: 37 preserved
 ```
 
-Nothing you own is touched again: files with the overlay marker report
-`overlay already present`, directories report `skip existing`, and generated
-files report `preserve existing`. One wrinkle, reported honestly because the
-reference run observed it: the second run appends the overlay marker block to
-`plan-template.md` and `tasks-template.md` — the two templates the *first*
-run created without markers — which is why this run still shows
-`2 merged-overlaid`. From the second run onward the state is stable; a third
-run is a pure no-op:
+Nothing you own is touched again, and nothing SicarioSpec wrote is touched
+again either: files with the overlay marker report `overlay already present`,
+directories report `skip existing`, and generated files report `preserve
+existing`. The re-run converges immediately — the very first re-run after
+adoption reports `37 preserved` with zero new backups, and every run after
+that reports exactly the same thing:
 
-*Illustrative output — third run's summary line.*
+*Illustrative output — third run's summary line, identical to the second.*
 
 ```text title="Illustrative output (representative, not exact)" sicario-output=illustrative sicario-block=brownfield-adoption/05-third-run
   summary: 37 preserved
 ```
 
-No new backups are taken on a converged re-run.
+No new backups are taken on any re-run after adoption.
+
+> **Pre-0.6.1 adopters**: before this fix, `init` wrote `plan-template.md` and
+> `tasks-template.md` (and, on a greenfield init, every Spec Kit template and
+> the constitution) without stamping the overlay marker onto them, so the
+> *first* re-run mistook those files for pre-existing content, appended the
+> overlay block on top, and took a backup — reporting `2 merged-overlaid, 35
+> preserved` instead of `37 preserved`. Only the *second* re-run (the
+> project's third `init`) was a true no-op. If you adopted before 0.6.1, your
+> next re-run will do that one-time overlay-and-backup pass; every run after
+> that converges like the one shown above.
 
 ### 6. Run the gate
 

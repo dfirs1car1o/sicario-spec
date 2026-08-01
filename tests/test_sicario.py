@@ -3,6 +3,7 @@ from __future__ import annotations
 import importlib
 import json
 import os
+import re
 import shutil
 import tempfile
 import unittest
@@ -352,12 +353,14 @@ class SicarioCliBehaviorTests(unittest.TestCase):
             appsec_spec = (
                 PRESETS_ROOT / "sicario-appsec" / "templates" / "spec-template.md"
             ).read_text(encoding="utf-8")
-            self.assertEqual(
-                appsec_spec,
-                (target / ".specify" / "templates" / "spec-template.md").read_text(
-                    encoding="utf-8"
-                ),
+            written_spec = (target / ".specify" / "templates" / "spec-template.md").read_text(
+                encoding="utf-8"
             )
+            # The source template is written verbatim, with the overlay marker
+            # stamped on so a later run recognizes this as its own output
+            # instead of overlaying it a second time (issue #70).
+            self.assertIn(appsec_spec.strip(), written_spec)
+            self.assertIn(SICARIO_OVERLAY_BEGIN, written_spec)
 
     def test_init_no_apply_to_speckit_skips_live_paths(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -806,6 +809,122 @@ class BrownfieldSafeAdoptionTests(unittest.TestCase):
             self.assertEqual(claude_first, claude_second)
             self.assertEqual(1, after_second.count(SICARIO_OVERLAY_BEGIN))
             self.assertEqual(1, claude_second.count(SICARIO_OVERLAY_BEGIN))
+
+    def test_brownfield_run2_and_run3_are_pure_no_ops(self) -> None:
+        """Issue #70: run 1 creates plan/tasks templates with full governed
+
+        content but no overlay marker; run 2 then mistook them for pre-existing
+        user content, appended the overlay, and reported spurious
+        ``merged-overlaid`` outcomes with backups for files SicarioSpec itself
+        just wrote. Only run 3+ used to be a true no-op. Run 2 must now be a
+        no-op too, with zero new backups, immediately after a fresh brownfield
+        init.
+        """
+        import io
+        from contextlib import redirect_stdout
+
+        with tempfile.TemporaryDirectory() as tmp:
+            target = Path(tmp) / "project"
+            target.mkdir()
+            # Deliberately does NOT seed plan-template.md/tasks-template.md, so
+            # they are created by the full-content path in run 1 -- the exact
+            # scenario reported in issue #70.
+            self._seed_brownfield(target)
+            plan_template = target / ".specify" / "templates" / "plan-template.md"
+            tasks_template = target / ".specify" / "templates" / "tasks-template.md"
+            self.assertFalse(plan_template.exists())
+            self.assertFalse(tasks_template.exists())
+
+            def run() -> str:
+                buffer = io.StringIO()
+                with redirect_stdout(buffer):
+                    code = main(
+                        ["init", str(target), "--profile", "appsec", "--integration", "claude"]
+                    )
+                self.assertEqual(0, code)
+                return buffer.getvalue()
+
+            def backups() -> set:
+                return {str(p) for p in target.glob("**/*.sicario-bak.*")}
+
+            output_1 = run()
+            self.assertIn("[created]", output_1)
+            # Run 1 creates plan/tasks templates with full governed content,
+            # stamped with the overlay marker so run 2 recognizes its own output.
+            self.assertTrue(plan_template.exists())
+            self.assertTrue(tasks_template.exists())
+            self.assertIn(SICARIO_OVERLAY_BEGIN, plan_template.read_text(encoding="utf-8"))
+            self.assertIn(SICARIO_OVERLAY_BEGIN, tasks_template.read_text(encoding="utf-8"))
+            backups_after_1 = backups()
+            self.assertTrue(
+                backups_after_1, "run 1 seeded files should still be overlaid+backed up"
+            )
+
+            output_2 = run()
+            self.assertNotIn("merged-overlaid", output_2)
+            self.assertIn("preserved", output_2)
+            backups_after_2 = backups()
+            self.assertEqual(
+                backups_after_1,
+                backups_after_2,
+                "run 2 must take zero new backups over a fresh brownfield init",
+            )
+
+            output_3 = run()
+            self.assertNotIn("merged-overlaid", output_3)
+            backups_after_3 = backups()
+            self.assertEqual(backups_after_1, backups_after_3)
+
+            # Run 2 and run 3 report identically -- convergence is immediate,
+            # not delayed to the third run.
+            def summary_line(output: str) -> str:
+                (line,) = [ln for ln in output.splitlines() if "summary:" in ln]
+                return line
+
+            self.assertEqual(summary_line(output_2), summary_line(output_3))
+
+    def test_greenfield_rerun_is_idempotent_with_no_backups(self) -> None:
+        """The full-content create path has no brownfield seed to hide behind.
+
+        On a greenfield init every Spec Kit template and the constitution are
+        created via the same full-content path exercised in issue #70, so this
+        checks the same latent bug is not present when there is no pre-existing
+        governance at all: run 2 must report zero merged-overlaid files and
+        take zero backups.
+        """
+        import io
+        from contextlib import redirect_stdout
+
+        with tempfile.TemporaryDirectory() as tmp:
+            target = Path(tmp) / "project"
+
+            def run() -> str:
+                buffer = io.StringIO()
+                with redirect_stdout(buffer):
+                    code = main(
+                        ["init", str(target), "--profile", "appsec", "--integration", "claude"]
+                    )
+                self.assertEqual(0, code)
+                return buffer.getvalue()
+
+            output_1 = run()
+            self.assertIn("mode: greenfield", output_1)
+            for template in ("plan-template.md", "tasks-template.md", "spec-template.md"):
+                content = (target / ".specify" / "templates" / template).read_text(encoding="utf-8")
+                self.assertIn(SICARIO_OVERLAY_BEGIN, content)
+            constitution = (target / ".specify" / "memory" / "constitution.md").read_text(
+                encoding="utf-8"
+            )
+            self.assertIn(SICARIO_OVERLAY_BEGIN, constitution)
+            self.assertFalse(list(target.glob("**/*.sicario-bak.*")))
+
+            output_2 = run()
+            self.assertNotIn("merged-overlaid", output_2)
+            self.assertIn("preserved", output_2)
+            self.assertFalse(
+                list(target.glob("**/*.sicario-bak.*")),
+                "a greenfield re-run must never take backups of its own output",
+            )
 
     def test_brownfield_dry_run_writes_nothing(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -3430,5 +3549,132 @@ class AssetRootEvidenceTests(unittest.TestCase):
             os.chdir(saved_cwd)
 
 
+_TEMPLATE_KINDS = ("spec", "plan", "tasks")
+# Numbered task phases ("Phase 1: Setup") are ordinal position, not the
+# section concept itself. A preset that inserts a domain phase (e.g.
+# sicario-agent-fleet's "Phase 3: Orchestration Foundation") legitimately
+# renumbers every phase after it; stripping the "Phase N:" prefix compares
+# the phase's descriptive label instead of its position.
+_PHASE_NUMBER_PREFIX = re.compile(r"^Phase\s+\d+:\s*")
+
+
+def _template_headings(path: Path) -> list[str]:
+    return [
+        _PHASE_NUMBER_PREFIX.sub("", line[3:].strip())
+        for line in path.read_text(encoding="utf-8").splitlines()
+        if line.startswith("## ")
+    ]
+
+
+class PresetTemplateCoreSectionSupersetTests(unittest.TestCase):
+    """Issue #73: a more specialized `--profile` must not yield a less
+    complete template.
+
+    Template resolution is last-preset-wins, and `test_every_preset_template_
+    passes_the_gate_when_it_wins` already proves every preset's spec/plan/
+    tasks template satisfies the GATE when it becomes the live template. But
+    the gate only checks a handful of fuzzy-matched section substrings
+    (`050-spec-sections.rule.json`, `060-plan-sections.rule.json`); it does
+    not check that every one of sicario-core's `## ` headings survived. Two
+    specialized presets silently dropped core sections the gate never
+    noticed: sicario-appsec (and five presets sharing its templates byte-for-
+    byte) lacked `## Security Evidence Chain` and
+    `## Operational Signal / Response Path` in spec-template.md, and
+    sicario-security-toolchain's spec/plan templates carried roughly 9
+    sections against sicario-core's ~20. `--profile appsec` is the
+    getting-started default, so that gap was the worst possible one.
+
+    This test defines sicario-core's spec/plan/tasks template headings as
+    the floor: every preset's corresponding template must be a superset.
+    Extra domain sections and reordering are fine; a missing core heading
+    is not. This is the enforcement the issue's acceptance criteria demand
+    so a future preset cannot regress the floor again.
+    """
+
+    def test_every_preset_template_contains_every_core_heading(self) -> None:
+        core_dir = PRESETS_ROOT / "sicario-core" / "templates"
+        core_headings = {
+            kind: _template_headings(core_dir / f"{kind}-template.md") for kind in _TEMPLATE_KINDS
+        }
+        # Premise check: core actually declares sections worth enforcing.
+        for kind, headings in core_headings.items():
+            self.assertGreater(len(headings), 5, f"sicario-core {kind}-template.md looks empty")
+
+        presets = sorted(
+            p
+            for p in PRESETS_ROOT.iterdir()
+            if p.is_dir() and p.name != "sicario-core" and (p / "templates").is_dir()
+        )
+        self.assertGreaterEqual(len(presets), 8)
+
+        for preset in presets:
+            for kind in _TEMPLATE_KINDS:
+                template = preset / "templates" / f"{kind}-template.md"
+                if not template.exists():
+                    continue
+                headings = _template_headings(template)
+                missing = [h for h in core_headings[kind] if h not in headings]
+                self.assertEqual(
+                    [],
+                    missing,
+                    f"{preset.name}/{kind}-template.md drops core section(s): {missing}",
+                )
+
+    def test_packaged_template_assets_mirror_the_source_presets_byte_for_byte(self) -> None:
+        """The packaged asset tree (what a pip install resolves to) must carry
+        every preset's spec/plan/tasks template identically to `presets/`.
+
+        `test_packaged_assets_carry_the_shipped_rules` proves this for
+        `rules/`; nothing proved it for `templates/`, so a template fix
+        applied only under `presets/` could silently ship the old,
+        core-incomplete template to every installed user.
+        """
+        root = Path(__file__).resolve().parents[1]
+        for preset_dir in sorted((root / "presets").iterdir()):
+            if not (preset_dir / "templates").is_dir():
+                continue
+            packaged_templates = (
+                root / "sicario_cli" / "assets" / "presets" / preset_dir.name / "templates"
+            )
+            self.assertTrue(
+                packaged_templates.is_dir(),
+                f"packaged assets missing templates dir for {preset_dir.name}",
+            )
+            for kind in _TEMPLATE_KINDS:
+                source = preset_dir / "templates" / f"{kind}-template.md"
+                if not source.exists():
+                    continue
+                packaged = packaged_templates / f"{kind}-template.md"
+                self.assertTrue(
+                    packaged.exists(),
+                    f"packaged assets missing {preset_dir.name}/templates/{kind}-template.md",
+                )
+                self.assertEqual(
+                    source.read_bytes(),
+                    packaged.read_bytes(),
+                    f"{preset_dir.name}/{kind}-template.md drifted from its packaged mirror",
+                )
+
+
 if __name__ == "__main__":
     unittest.main()
+
+
+class GeneratedDocsSiteScaffoldTests(unittest.TestCase):
+    def test_generated_site_serves_a_page_at_the_root(self) -> None:
+        """The scaffold's theme links to '/'; something must resolve there.
+
+        Issue #72, layer 3: with the workflow itself fixed, a fresh adopter's
+        docs build still failed — Docusaurus's own onBrokenLinks: 'throw'
+        rejected the generated site because the navbar title links to '/' and
+        the scaffold served nothing at the root. Docs are now served at the
+        root with intro as the index; proven by building a freshly generated
+        site end-to-end on the reference repository (both workflows green).
+        """
+        with tempfile.TemporaryDirectory() as tmp:
+            target = Path(tmp) / "project"
+            self.assertEqual(0, main(["init", str(target), "--profile", "docs"]))
+            config = (target / "docs-site" / "docusaurus.config.js").read_text(encoding="utf-8")
+            self.assertIn("routeBasePath: '/'", config)
+            intro = (target / "docs-site" / "docs" / "intro.md").read_text(encoding="utf-8")
+            self.assertTrue(intro.startswith("---\nslug: /\n---"), intro[:40])

@@ -10,6 +10,29 @@ improve the security model.
 
 ### Fixed
 
+- **`sicario init` generated a docs-site workflow that failed on every fresh
+  project's first push.** `workflow_templates/docs-site.yml` configured
+  `actions/setup-node` with `cache: npm` and
+  `cache-dependency-path: docs-site/package-lock.json`, but `sicario init`
+  generates `docs-site/package.json` without a lockfile (init cannot assume
+  npm is available on the adopter's machine to produce one). The cache input
+  errored out before any step ran, and `npm ci` would separately have refused
+  to run without a lockfile — so every fresh adopter's first CI experience
+  included an unrelated red workflow next to their gate. The template (and
+  its packaged mirror used by `sicario init` for installed,
+  non-source-checkout adopters) now drops the lockfile-keyed cache and uses
+  `npm install` instead of `npm ci`, with a comment explaining the tradeoff
+  for adopters who later commit a lockfile. `actions/checkout` and
+  `actions/setup-node` in the template are also now SHA-pinned with version
+  comments, matching the discipline already applied to
+  `sicario-verify.yml` (#68) and held by this repository's own
+  `.github/workflows/`. The byte-identical-copies test now covers every file
+  in `workflow_templates/`, not just `sicario-verify.yml`. (#72) The fix ran three layers deep, each proven on the reference
+  repository's real Actions: the cache input, `npm ci` refusing to run
+  without a lockfile, and the generated site linking its navbar to a
+  root page that did not exist — docs are now served at the site root
+  with the intro page as the index.
+
 - **Shipped CI template installed the wrong package.** `workflow_templates/sicario-verify.yml`
   ran `python -m pip install -e .`, which installs the *adopting* repository,
   not SicarioSpec — the `sicario` command never existed for a normal adopter
@@ -21,6 +44,60 @@ improve the security model.
   `actions/checkout` and `actions/setup-python` in the template are also now
   SHA-pinned with version comments, matching the discipline this repository
   already holds itself to in `.github/workflows/`. (#68)
+
+- **A brownfield `init`'s first re-run was not actually a no-op.** On a
+  brownfield adoption, run 1 creates `.specify/templates/plan-template.md` and
+  `tasks-template.md` (and, on greenfield, every Spec Kit template and the
+  constitution) via the full-content write path in `_overlay_text`, which
+  wrote the complete governed document but stamped no
+  `BEGIN SICARIO-SPEC OVERLAY` marker onto it. `_overlay_text`'s idempotency
+  check keys on that marker, so run 2 mistook the tool's own output for
+  pre-existing user content, appended the overlay block on top of it, took a
+  needless `*.sicario-bak` backup, and reported spurious `merged-overlaid`
+  outcomes (e.g. `2 merged-overlaid, 35 preserved`) — only run 3 and later
+  were a true no-op. Files created via the full-content path (fresh or
+  `--force`-overwritten) are now stamped with the same overlay marker,
+  wrapped entirely in HTML comments so it is invisible in rendered Markdown
+  and inert if a template is later copied into a real spec/plan/tasks
+  document. Run 2 immediately after any fresh init — brownfield or
+  greenfield — is now a pure no-op with zero new backups. Existing projects
+  adopted before this fix carry no marker on those files; their next `init`
+  re-run will do the one-time overlay-and-backup this fix eliminates for new
+  adopters, after which it too converges. (#70)
+
+- **A more specialized `--profile` silently produced a less complete spec/plan
+  template.** Template resolution is last-preset-wins, and every preset's
+  spec/plan/tasks template already had to pass the GATE when it won
+  (`test_every_preset_template_passes_the_gate_when_it_wins`) — but that gate
+  only checks a handful of substrings, not every `## ` heading sicario-core
+  ships. `sicario-appsec` (and the five presets sharing its templates
+  byte-for-byte: `sicario-ai-system`, `sicario-cloud-iac`,
+  `sicario-compliance`, `sicario-enterprise-strict`, `sicario-saas`,
+  `sicario-supply-chain`) shipped a spec-template.md missing
+  `## Security Evidence Chain` and `## Operational Signal / Response Path`,
+  and a plan-template.md missing `## Security Evidence Chain` and
+  `## Operational Readiness` — silent on `--profile appsec`, the
+  getting-started default. `sicario-security-toolchain`'s spec/plan
+  templates carried roughly 9 sections against sicario-core's ~20, and
+  `sicario-agent-fleet`'s spec/plan templates were each missing a handful of
+  core sections. Every deficient preset's spec/plan/tasks template has been
+  brought up to sicario-core's section floor: missing sections were inserted
+  at their structurally correct position (matching core's wording), not
+  appended, and each preset's own domain sections and voice were preserved.
+  `sicario-security-toolchain`'s tasks-template.md was also split from 4
+  phases into core's 5 (Setup, Security Foundation, Tests First,
+  Implementation, Evidence And Verification) with its Toolchain phase kept
+  as an inserted extra. Scope: this fix covers spec/plan/tasks templates only,
+  per the issue's acceptance criteria — constitution and checklist templates
+  are unchanged. A new invariant test,
+  `PresetTemplateCoreSectionSupersetTests.test_every_preset_template_contains_every_core_heading`,
+  now enforces that every preset's spec/plan/tasks template is a `## `
+  heading superset of sicario-core's, so a future preset cannot regress the
+  floor; a companion test extends the packaged-assets mirror-parity coverage
+  (previously rules-only) to templates. `docs/playbooks/spec-authoring.md`
+  quoted the appsec profile's exact heading count ("eighteen headings", "the
+  remaining eleven"); both counts are updated (twenty and thirteen) along
+  with the enumerated list of ungoverned sections. (#73)
 
 ## [0.6.0] - 2026-07-28
 
