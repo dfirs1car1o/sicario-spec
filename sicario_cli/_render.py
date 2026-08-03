@@ -10,13 +10,14 @@ import shutil
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import List, Optional, Sequence
+from typing import List, Optional, Sequence, Tuple
 
 
 # Per-file outcome codes used in the final report.
 OUTCOME_CREATED = "created"
 OUTCOME_MERGED = "merged-overlaid"
 OUTCOME_PRESERVED = "preserved"
+OUTCOME_RESTORED = "restored"
 OUTCOME_OVERWRITTEN = "overwritten"
 OUTCOME_SKIPPED = "skipped"
 
@@ -187,6 +188,76 @@ def _ensure_gitignore_rule(
     gitignore.write_text(block, encoding="utf-8")
 
 
+def _merge_tree(
+    src: Path,
+    dst: Path,
+    *,
+    dry_run: bool,
+    actions: List[str],
+    reports: Optional[List[FileReport]] = None,
+) -> None:
+    """Restore only the shipped files that are MISSING from an existing directory.
+
+    Issue #69: skipping wholesale at the directory level meant that deleting one
+    file inside a SicarioSpec-managed directory -- one control map out of
+    ``docs/compliance/control-maps/``, one rule out of ``.sicario/rules/`` -- was
+    unrepairable by a plain re-run. ``init`` reported the directory as preserved
+    and never noticed the hole; only ``--force`` fixed it, and only by replacing
+    the adopter's whole directory.
+
+    The merge is deliberately one-directional and additive:
+
+    - A shipped file with no counterpart at the destination is copied and
+      reported as ``restored`` -- the missing-file repair.
+    - A shipped file that DOES exist at the destination is never read, compared,
+      or written. Whether the adopter edited it is irrelevant and unknowable to
+      this function by design: local customization is exactly what the
+      brownfield-safe default protects, and reading it to diff would invite a
+      "helpful" overwrite later.
+    - A file the adopter added that SicarioSpec does not ship is never touched
+      and never reported. It is not ours to have an opinion about.
+
+    ``--force`` (handled by the caller) keeps its unchanged meaning: replace the
+    whole directory after taking a timestamped backup.
+    """
+    missing: List[Tuple[Path, Path]] = []
+    present = 0
+    for source_file in sorted(path for path in src.rglob("*") if path.is_file()):
+        destination = dst / source_file.relative_to(src)
+        # is_symlink() catches a broken symlink, which exists() reports as absent:
+        # copying over it would write through to wherever it points.
+        if destination.exists() or destination.is_symlink():
+            present += 1
+        else:
+            missing.append((source_file, destination))
+
+    if missing:
+        actions.append(f"merge into existing {dst}: restore {len(missing)} missing file(s)")
+        detail = (
+            f"directory exists; {present} file(s) left untouched, "
+            f"{len(missing)} missing shipped file(s) restored"
+        )
+    else:
+        actions.append(f"skip existing {dst}")
+        detail = "directory exists; left untouched (use --force to replace)"
+    if reports is not None:
+        _record(reports, dst, OUTCOME_PRESERVED, detail)
+
+    for source_file, destination in missing:
+        actions.append(f"restore missing {destination}")
+        if reports is not None:
+            _record(
+                reports,
+                destination,
+                OUTCOME_RESTORED,
+                "shipped file was missing from an existing managed directory",
+            )
+        if dry_run:
+            continue
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(source_file, destination)
+
+
 def _copy_tree(
     src: Path,
     dst: Path,
@@ -199,13 +270,19 @@ def _copy_tree(
     if not src.exists():
         raise SystemExit(f"Source does not exist: {src}")
     if dst.exists() and not force:
+        if dst.is_dir() and not dst.is_symlink():
+            _merge_tree(src, dst, dry_run=dry_run, actions=actions, reports=reports)
+            return
+        # The destination exists but is not a directory we can merge into (a file,
+        # or a symlink pointing outside the project). Preserve it exactly as before
+        # rather than guessing what the adopter meant.
         actions.append(f"skip existing {dst}")
         if reports is not None:
             _record(
                 reports,
                 dst,
                 OUTCOME_PRESERVED,
-                "directory exists; left untouched (use --force to replace)",
+                "exists and is not a directory; left untouched (use --force to replace)",
             )
         return
     backup = None
@@ -373,7 +450,15 @@ def _overlay_text(
 
 
 def _print_report(reports: Sequence[FileReport], *, dry_run: bool, force: bool) -> None:
-    """Print a clear per-file REPORT: created / merged-overlaid / preserved / overwritten."""
+    """Print a clear per-file REPORT.
+
+    Outcomes: created / merged-overlaid / preserved / restored / overwritten.
+    ``restored`` is deliberately distinct from ``created``: the file is one
+    SicarioSpec ships into a directory the adopter already had, and it went
+    missing (issue #69). A reader scanning the report can tell "my
+    customizations were kept" (preserved) from "a managed file was repaired"
+    (restored) without diffing anything.
+    """
     if not reports:
         return
     header = "SicarioSpec adoption report"
@@ -382,7 +467,7 @@ def _print_report(reports: Sequence[FileReport], *, dry_run: bool, force: bool) 
     elif force:
         header += " (--force full-overwrite; backups taken)"
     else:
-        header += " (brownfield-safe: merge/overlay/preserve)"
+        header += " (brownfield-safe: merge/overlay/preserve/restore)"
     print("")
     print(header)
     print("-" * len(header))

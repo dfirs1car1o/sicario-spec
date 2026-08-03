@@ -1630,6 +1630,165 @@ def _grep_line_number(raw: bytes, needle: bytes) -> int:
     return raw.count(b"\n", 0, raw.index(needle)) + 1
 
 
+class ManagedDirectoryRestoreTests(unittest.TestCase):
+    """Issue #69 — a deleted shipped file is repaired by a plain re-run.
+
+    Before this, ``_copy_tree`` skipped wholesale at the directory level: an
+    existing managed directory was reported "preserved" and never inspected, so
+    deleting one control map or one rule inside it was unrepairable without
+    ``--force`` (which replaces the adopter's whole directory). These tests pin
+    the four properties of the per-file merge that replaced that skip: missing
+    shipped files come back, existing files -- customized or not -- are never
+    touched, purely local files are never touched and never reported, and an
+    intact project still converges to zero restored.
+    """
+
+    ARGS = ("--profile", "appsec", "--integration", "claude")
+
+    def _init(self, target: Path, *extra: str) -> str:
+        """Run init, asserting success, and return everything it printed."""
+        import io
+        from contextlib import redirect_stdout
+
+        buffer = io.StringIO()
+        with redirect_stdout(buffer):
+            code = main(["init", str(target), *self.ARGS, *extra])
+        self.assertEqual(0, code)
+        return buffer.getvalue()
+
+    @staticmethod
+    def _report_lines(output: str, outcome: str) -> "list[str]":
+        return [line for line in output.splitlines() if line.strip().startswith(f"[{outcome}]")]
+
+    def test_deleted_control_map_is_restored_on_reinit(self) -> None:
+        """The exact scenario in the issue: one map deleted out of a managed directory."""
+        with tempfile.TemporaryDirectory() as tmp:
+            target = Path(tmp) / "project"
+            self._init(target)
+
+            maps_dir = target / "docs" / "compliance" / "control-maps"
+            victim = sorted(maps_dir.glob("*.json"))[0]
+            original = victim.read_bytes()
+            victim.unlink()
+            self.assertFalse(victim.exists())
+
+            output = self._init(target)
+
+            self.assertTrue(victim.exists(), "a deleted shipped map must be restored")
+            self.assertEqual(original, victim.read_bytes())
+            # The report must name it as restored, not as preserved: "preserved"
+            # would tell the reader nothing was written when something was.
+            restored = self._report_lines(output, "restored")
+            self.assertTrue(any(str(victim) in line for line in restored))
+            self.assertIn("restored", output)
+
+    def test_deleted_rule_in_nested_subdirectory_is_restored(self) -> None:
+        """Shipped presets nest; the merge must recurse, not stop at the top level."""
+        with tempfile.TemporaryDirectory() as tmp:
+            target = Path(tmp) / "project"
+            self._init(target)
+
+            nested = target / ".specify" / "presets" / "sicario-core" / "rules"
+            self.assertTrue(nested.is_dir(), "expected a nested subdirectory to exercise")
+            victim = sorted(nested.glob("*.json"))[0]
+            original = victim.read_bytes()
+            victim.unlink()
+
+            output = self._init(target)
+
+            self.assertTrue(victim.exists(), "a file nested inside a managed directory counts")
+            self.assertEqual(original, victim.read_bytes())
+            self.assertTrue(
+                any(str(victim) in line for line in self._report_lines(output, "restored"))
+            )
+
+    def test_restoring_one_file_leaves_local_edits_and_additions_untouched(self) -> None:
+        """Repair must not become a back-door overwrite of the adopter's work."""
+        with tempfile.TemporaryDirectory() as tmp:
+            target = Path(tmp) / "project"
+            self._init(target)
+
+            maps_dir = target / "docs" / "compliance" / "control-maps"
+            shipped = sorted(maps_dir.glob("*sicario.json"))
+            victim, customized = shipped[0], shipped[1]
+
+            victim.unlink()
+            # A shipped file the adopter edited, and a file only they have --
+            # both in the same directory the merge is about to walk.
+            customized.write_text('{"local": "edited by the adopter"}\n', encoding="utf-8")
+            local_only = maps_dir / "our-own-internal-map.json"
+            local_only.write_text('{"ours": true}\n', encoding="utf-8")
+            customized_bytes = customized.read_bytes()
+            local_bytes = local_only.read_bytes()
+
+            output = self._init(target)
+
+            self.assertTrue(victim.exists())
+            self.assertEqual(customized_bytes, customized.read_bytes())
+            self.assertEqual(local_bytes, local_only.read_bytes())
+            # A local addition is not ours to report on, in either direction.
+            self.assertNotIn(str(local_only), output)
+            # And no backup was taken: nothing existing was modified.
+            self.assertFalse(list(maps_dir.glob("*.sicario-bak.*")))
+
+    def test_intact_project_reinit_restores_nothing(self) -> None:
+        """#70's convergence invariant: an untouched project has nothing to repair."""
+        with tempfile.TemporaryDirectory() as tmp:
+            target = Path(tmp) / "project"
+            self._init(target)
+
+            output_2 = self._init(target)
+            output_3 = self._init(target)
+
+            for output in (output_2, output_3):
+                self.assertEqual([], self._report_lines(output, "restored"))
+                self.assertNotIn("[restored]", output)
+                (summary,) = [ln for ln in output.splitlines() if "summary:" in ln]
+                self.assertNotIn("restored", summary)
+            self.assertFalse(list(target.glob("**/*.sicario-bak.*")))
+
+    def test_dry_run_reports_the_restore_without_writing_it(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            target = Path(tmp) / "project"
+            self._init(target)
+            victim = sorted((target / "docs" / "compliance" / "control-maps").glob("*.json"))[0]
+            victim.unlink()
+
+            output = self._init(target, "--dry-run")
+
+            self.assertTrue(
+                any(str(victim) in line for line in self._report_lines(output, "restored"))
+            )
+            self.assertFalse(victim.exists(), "--dry-run must write nothing, including repairs")
+
+    def test_force_still_replaces_the_whole_directory_with_a_backup(self) -> None:
+        """--force keeps its old meaning; the merge is the no-flag path only."""
+        with tempfile.TemporaryDirectory() as tmp:
+            target = Path(tmp) / "project"
+            self._init(target)
+
+            maps_dir = target / "docs" / "compliance" / "control-maps"
+            customized = sorted(maps_dir.glob("*sicario.json"))[0]
+            customized.write_text('{"local": "edited"}\n', encoding="utf-8")
+
+            output = self._init(target, "--force")
+
+            # The edit is gone from the live tree (replaced wholesale)...
+            self.assertNotIn("edited", customized.read_text(encoding="utf-8"))
+            # ...but survives in the timestamped backup of the whole directory.
+            backups = list(maps_dir.parent.glob("control-maps.sicario-bak.*"))
+            self.assertEqual(1, len(backups))
+            self.assertIn(
+                "edited",
+                (backups[0] / customized.name).read_text(encoding="utf-8"),
+            )
+            # --force never restores file-by-file; it overwrites directory-wide.
+            self.assertEqual([], self._report_lines(output, "restored"))
+            self.assertTrue(
+                any(str(maps_dir) in ln for ln in self._report_lines(output, "overwritten"))
+            )
+
+
 class RegexForbiddenCompletenessTests(unittest.TestCase):
     """Feature 006 — complete, bounded, deterministic secret-scan reporting.
 
