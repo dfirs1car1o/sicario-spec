@@ -46,6 +46,13 @@ except ImportError:
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
+# Repeated path-component/glob literals (S1192): defined once so the many
+# call sites that build project-relative paths and rule-file globs cannot
+# drift out of sync with each other.
+SICARIO_DIR = ".sicario"
+SPECIFY_DIR = ".specify"
+RULE_FILE_GLOB = "*.rule.json"
+
 
 @dataclass(frozen=True)
 class AssetRootResolution:
@@ -245,7 +252,7 @@ def _framework_label(key: str) -> str:
 
 
 # The project config file that records the selected subset (one key per line).
-FRAMEWORKS_CONFIG = Path(".sicario") / "frameworks.txt"
+FRAMEWORKS_CONFIG = Path(SICARIO_DIR) / "frameworks.txt"
 
 # Default framework subset per profile. The default = the profile's natural set
 # (`public-core` carries no compliance obligation; compliance-shaped profiles
@@ -585,10 +592,10 @@ def detect_existing_governance(target: Path) -> "dict[str, List[str]]":
         "instructions": [],
         "mission": [],
     }
-    constitution = target / ".specify" / "memory" / "constitution.md"
+    constitution = target / SPECIFY_DIR / "memory" / "constitution.md"
     if constitution.exists():
         found["constitution"].append(str(constitution.relative_to(target)))
-    templates_dir = target / ".specify" / "templates"
+    templates_dir = target / SPECIFY_DIR / "templates"
     if templates_dir.exists():
         for template in SPECKIT_TEMPLATE_FILES + [
             "checklist-template.md",
@@ -724,7 +731,7 @@ def _init_write_interactive_config(
     """Persist the interactive wizard's answers to .sicario/config.json, if run."""
     if interactive_config is None:
         return
-    sicario_dir = target / ".sicario"
+    sicario_dir = target / SICARIO_DIR
     if not args.dry_run:
         sicario_dir.mkdir(parents=True, exist_ok=True)
     _write_text(
@@ -799,7 +806,7 @@ def init_project(args: argparse.Namespace) -> int:
     for preset in selected_presets:
         _copy_tree(
             PRESETS_ROOT / preset,
-            target / ".specify" / "presets" / preset,
+            target / SPECIFY_DIR / "presets" / preset,
             force=args.force,
             dry_run=args.dry_run,
             actions=actions,
@@ -820,7 +827,7 @@ def init_project(args: argparse.Namespace) -> int:
     if shipped_rules.is_dir():
         _copy_tree(
             shipped_rules,
-            target / ".sicario" / "rules",
+            target / SICARIO_DIR / "rules",
             force=args.force,
             dry_run=args.dry_run,
             actions=actions,
@@ -834,7 +841,7 @@ def init_project(args: argparse.Namespace) -> int:
 
     _copy_tree(
         EXTENSIONS_ROOT / "sicario-guard",
-        target / ".specify" / "extensions" / "sicario-guard",
+        target / SPECIFY_DIR / "extensions" / "sicario-guard",
         force=args.force,
         dry_run=args.dry_run,
         actions=actions,
@@ -842,7 +849,7 @@ def init_project(args: argparse.Namespace) -> int:
     )
 
     _write_text(
-        target / ".specify" / "extensions.yml",
+        target / SPECIFY_DIR / "extensions.yml",
         _extensions_yml(),
         force=args.force,
         dry_run=args.dry_run,
@@ -1152,7 +1159,7 @@ def _rule_sources(root: Path) -> "tuple[List[Path], List[str]]":
     if shipped.is_dir():
         rule_dirs.append(shipped)
         origins.append("shipped")
-    rule_dirs.append(root / ".sicario" / "rules")
+    rule_dirs.append(root / SICARIO_DIR / "rules")
     origins.append("project")
     return rule_dirs, origins
 
@@ -1348,7 +1355,7 @@ def _scan_coverage(rule_report) -> dict:
             "redirected_by_env": ASSET_ROOT_RESOLUTION.redirected,
             "shipped_rules_dir": str(shipped_rules_dir),
             "shipped_rule_file_count": (
-                len(list(shipped_rules_dir.glob("*.rule.json")))
+                len(list(shipped_rules_dir.glob(RULE_FILE_GLOB)))
                 if shipped_rules_dir.is_dir()
                 else 0
             ),
@@ -1488,7 +1495,7 @@ def _validate_rules_command(root: Path) -> int:
         # Non-recursive, matching `load_rules`, which globs a single level.
         # Validating recursively would clear rule files the gate never loads,
         # reporting "valid" for a rule that silently does not run.
-        for rule_file in sorted(rule_dir.glob("*.rule.json")):
+        for rule_file in sorted(rule_dir.glob(RULE_FILE_GLOB)):
             checked += 1
             data = _load_rule_file(rule_file)
             if data is None:
@@ -1500,7 +1507,7 @@ def _validate_rules_command(root: Path) -> int:
         # a subdirectory would now get no signal from either side. Silence is
         # the failure mode this gate exists to avoid, so name them.
         unreachable.extend(
-            p for p in sorted(rule_dir.rglob("*.rule.json")) if p.parent != rule_dir
+            p for p in sorted(rule_dir.rglob(RULE_FILE_GLOB)) if p.parent != rule_dir
         )
 
     for path in unreachable:
@@ -1672,7 +1679,7 @@ def _run_hook_event_commands(commands: List[str], root: Path) -> "tuple[bool, bo
 
 def hooks_command(args: argparse.Namespace) -> int:
     root = Path(args.path).expanduser().resolve()
-    extensions_yml = root / ".specify" / "extensions.yml"
+    extensions_yml = root / SPECIFY_DIR / "extensions.yml"
     events = _parse_hook_commands(extensions_yml)
     requested = [args.event] if args.event else HOOK_EVENTS
     exit_code = 0
