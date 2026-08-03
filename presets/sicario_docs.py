@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import List, Sequence
+from typing import List
 
 
 def _docs_site_package_json() -> str:
@@ -103,17 +103,16 @@ class SicarioDocsPreset:
     def write(
         self,
         target: Path,
-        presets_root: Path,
-        workflows_root: Path,
-        selected_presets: Sequence[str],
-        integration: str,
-        apply_to_speckit: bool,
-        deferrals: Sequence[str],
         *,
         force: bool,
         dry_run: bool,
         actions: List[str],
         reports: List,
+        # SicarioDocsPreset needs none of the preset-orchestration context
+        # (presets_root, workflows_root, selected_presets, integration,
+        # apply_to_speckit, deferrals, speckit_template_files, ...) that
+        # cli.py's polymorphic `cls().write(...)` call passes to every
+        # preset class uniformly; **kwargs absorbs it (S1172).
         **kwargs: object,
     ) -> None:
         from sicario_cli._render import _write_text
