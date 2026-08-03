@@ -142,6 +142,12 @@ Read the plan through the three per-file states:
   it is left untouched and reported. (You will see this state on re-runs in
   step 5; `--force` is the explicit opt-in to full overwrite instead, and it
   still takes backups first.)
+- **restored** — a file SicarioSpec ships into a directory you already have
+  went missing, and this run copied it back (issue #69). It never appears on
+  a repository nothing has been deleted from, which is why step 5's converged
+  re-run shows only `preserved`. Everything else in that directory — your
+  edits to shipped files, and files only you have — stays byte-for-byte
+  untouched.
 
 Note the detection line: your constitution, your template, and `CLAUDE.md`
 were all found, and the mode switched to `brownfield-safe
@@ -281,7 +287,8 @@ overlay already present in ~/refrun-rules/brownfield-app/.specify/memory/constit
 
 Nothing you own is touched again, and nothing SicarioSpec wrote is touched
 again either: files with the overlay marker report `overlay already present`,
-directories report `skip existing`, and generated files report `preserve
+directories report `skip existing` (they are walked file by file, and nothing
+inside them is missing), and generated files report `preserve
 existing`. The re-run converges immediately — the very first re-run after
 adoption reports `37 preserved` with zero new backups, and every run after
 that reports exactly the same thing:

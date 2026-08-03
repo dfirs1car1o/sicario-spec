@@ -272,6 +272,132 @@ def _new_coverage(rule: Dict[str, Any], per_file_cap: int, per_rule_cap: int) ->
     }
 
 
+def _invalid_pattern_result(
+    rule: Dict[str, Any], pattern_str: str, coverage: Dict[str, Any]
+) -> Tuple[List[Dict[str, Any]], Dict[str, Any]]:
+    """Build the ``(findings, coverage)`` result for an unparseable pattern."""
+    coverage["invalid_pattern"] = True
+    coverage["findings_reported"] = 1
+    return (
+        [
+            {
+                "severity": "high",
+                "code": rule["id"],
+                "message": f"Invalid regex pattern: {pattern_str}",
+                "path": rule["path"],
+            }
+        ],
+        coverage,
+    )
+
+
+def _scan_target_file(
+    target: Path,
+    root: Path,
+    pattern: "re.Pattern[str]",
+    per_file_cap: int,
+    coverage: Dict[str, Any],
+) -> "Tuple[List[Tuple[str, int, int]], int]":
+    """Scan one target file for pattern matches.
+
+    Returns ``(kept candidates, suppressed count)`` for this file, and mutates
+    ``coverage``'s scanned/skipped/matched/occurrence counters as a side
+    effect (same bookkeeping the inline loop used to do directly).
+    """
+    if target.is_dir():
+        return [], 0
+    try:
+        # Lexically repository-relative: never escapes the project root,
+        # including via a symlink, because the path is not resolved
+        # (SEC-014).
+        rel = target.relative_to(root).as_posix()
+    except ValueError:
+        return [], 0
+    try:
+        text = _read_untranslated(target)
+    except (OSError, ValueError):
+        # UnicodeDecodeError is a ValueError subclass; listing it separately
+        # was redundant (S5713). A file the scanner could not inspect is
+        # never indistinguishable from a file the scanner cleared (SEC-011).
+        coverage["files_skipped"] += 1
+        coverage["skipped_files"].append(rel)
+        return [], 0
+    coverage["files_scanned"] += 1
+
+    # One pass over the file's text; line offsets are computed only for
+    # files that actually match (FR-009).
+    first_column_by_line: Dict[int, int] = {}
+    line_starts: Optional[List[int]] = None
+    match_count = 0
+    for match in pattern.finditer(text):
+        match_count += 1
+        if line_starts is None:
+            line_starts = _line_starts(text)
+        line, column = _position(line_starts, match.start())
+        # Two matches on one line are one remediation action (FR-003).
+        if line not in first_column_by_line:
+            first_column_by_line[line] = column
+    if not first_column_by_line:
+        return [], 0
+
+    coverage["files_matched"] += 1
+    coverage["total_matches"] += match_count
+    occurrences = sorted(first_column_by_line.items())
+    coverage["total_occurrences"] += len(occurrences)
+    # Per-file cap first, so no single file can consume the whole per-rule
+    # budget (FR-011, AC-004).
+    kept = occurrences[:per_file_cap]
+    suppressed = len(occurrences) - len(kept)
+    candidates = [(rel, line, column) for line, column in kept]
+    return candidates, suppressed
+
+
+def _truncation_finding(
+    rule: Dict[str, Any],
+    coverage: Dict[str, Any],
+    reported_count: int,
+    per_file_suppressed: int,
+    per_rule_suppressed: int,
+    per_file_cap: int,
+    per_rule_cap: int,
+) -> Optional[Dict[str, Any]]:
+    """Build the mandatory overflow finding, recording truncation in coverage.
+
+    Returns ``None`` when nothing was suppressed (coverage's
+    ``findings_reported``/``occurrences_suppressed`` are still updated either
+    way, matching the original inline behavior).
+    """
+    suppressed = per_file_suppressed + per_rule_suppressed
+    coverage["findings_reported"] = reported_count
+    coverage["occurrences_suppressed"] = suppressed
+    if not suppressed:
+        return None
+
+    scopes: List[str] = []
+    if per_file_suppressed:
+        scopes.append("per-file")
+    if per_rule_suppressed:
+        scopes.append("per-rule")
+    coverage["truncated"] = True
+    coverage["truncation_scopes"] = scopes
+    # Mandatory and unsuppressible: appended after every cap has been
+    # applied, so no cap, parameter, or repository content can remove it
+    # (FR-013, FR-014, SEC-003, AC-006). Severity is inherited from the
+    # truncated rule (SEC-004).
+    return {
+        "severity": rule["severity"],
+        "code": TRUNCATION_FINDING_CODE,
+        "message": (
+            f"Findings truncated for {rule['id']}: reported {reported_count} of "
+            f"{coverage['total_occurrences']} occurrence(s) across "
+            f"{coverage['files_matched']} file(s); {suppressed} suppressed "
+            f"(truncation-scope: {', '.join(scopes)}; "
+            f"caps: per-file={per_file_cap}, per-rule={per_rule_cap})"
+        ),
+        "path": "",
+    }
+
+
 def evaluate_detailed(
     rule: Dict[str, Any], root: Path
 ) -> Tuple[List[Dict[str, Any]], Dict[str, Any]]:
@@ -289,19 +415,7 @@ def evaluate_detailed(
     try:
         pattern = re.compile(pattern_str, re.IGNORECASE)
     except re.error:
-        coverage["invalid_pattern"] = True
-        coverage["findings_reported"] = 1
-        return (
-            [
-                {
-                    "severity": "high",
-                    "code": rule["id"],
-                    "message": f"Invalid regex pattern: {pattern_str}",
-                    "path": rule["path"],
-                }
-            ],
-            coverage,
-        )
+        return _invalid_pattern_result(rule, pattern_str, coverage)
 
     candidates: List[Tuple[str, int, int]] = []
     per_file_suppressed = 0
@@ -310,57 +424,17 @@ def evaluate_detailed(
     _record_exclusions(coverage, excluded)
 
     for target in targets:
-        if target.is_dir():
-            continue
-        try:
-            # Lexically repository-relative: never escapes the project root,
-            # including via a symlink, because the path is not resolved
-            # (SEC-014).
-            rel = target.relative_to(root).as_posix()
-        except ValueError:
-            continue
-        try:
-            text = _read_untranslated(target)
-        except (OSError, UnicodeDecodeError, ValueError):
-            # A file the scanner could not inspect is never indistinguishable
-            # from a file the scanner cleared (SEC-011).
-            coverage["files_skipped"] += 1
-            coverage["skipped_files"].append(rel)
-            continue
-        coverage["files_scanned"] += 1
-
-        # One pass over the file's text; line offsets are computed only for
-        # files that actually match (FR-009).
-        first_column_by_line: Dict[int, int] = {}
-        line_starts: Optional[List[int]] = None
-        match_count = 0
-        for match in pattern.finditer(text):
-            match_count += 1
-            if line_starts is None:
-                line_starts = _line_starts(text)
-            line, column = _position(line_starts, match.start())
-            # Two matches on one line are one remediation action (FR-003).
-            if line not in first_column_by_line:
-                first_column_by_line[line] = column
-        if not first_column_by_line:
-            continue
-
-        coverage["files_matched"] += 1
-        coverage["total_matches"] += match_count
-        occurrences = sorted(first_column_by_line.items())
-        coverage["total_occurrences"] += len(occurrences)
-        # Per-file cap first, so no single file can consume the whole per-rule
-        # budget (FR-011, AC-004).
-        kept = occurrences[:per_file_cap]
-        per_file_suppressed += len(occurrences) - len(kept)
-        candidates.extend((rel, line, column) for line, column in kept)
+        file_candidates, file_suppressed = _scan_target_file(
+            target, root, pattern, per_file_cap, coverage
+        )
+        candidates.extend(file_candidates)
+        per_file_suppressed += file_suppressed
 
     # Total order on POSIX path, then line, then column, before any per-rule
     # cap is applied, so a truncated run diffs cleanly (FR-016, FR-017, AC-008).
     candidates.sort()
     reported = candidates[:per_rule_cap]
     per_rule_suppressed = len(candidates) - len(reported)
-    suppressed = per_file_suppressed + per_rule_suppressed
 
     findings: List[Dict[str, Any]] = [
         {
@@ -375,35 +449,17 @@ def evaluate_detailed(
         for rel, line, _column in reported
     ]
 
-    coverage["findings_reported"] = len(reported)
-    coverage["occurrences_suppressed"] = suppressed
-
-    if suppressed:
-        scopes: List[str] = []
-        if per_file_suppressed:
-            scopes.append("per-file")
-        if per_rule_suppressed:
-            scopes.append("per-rule")
-        coverage["truncated"] = True
-        coverage["truncation_scopes"] = scopes
-        # Mandatory and unsuppressible: appended after every cap has been
-        # applied, so no cap, parameter, or repository content can remove it
-        # (FR-013, FR-014, SEC-003, AC-006). Severity is inherited from the
-        # truncated rule (SEC-004).
-        findings.append(
-            {
-                "severity": rule["severity"],
-                "code": TRUNCATION_FINDING_CODE,
-                "message": (
-                    f"Findings truncated for {rule['id']}: reported {len(reported)} of "
-                    f"{coverage['total_occurrences']} occurrence(s) across "
-                    f"{coverage['files_matched']} file(s); {suppressed} suppressed "
-                    f"(truncation-scope: {', '.join(scopes)}; "
-                    f"caps: per-file={per_file_cap}, per-rule={per_rule_cap})"
-                ),
-                "path": "",
-            }
-        )
+    overflow = _truncation_finding(
+        rule,
+        coverage,
+        len(reported),
+        per_file_suppressed,
+        per_rule_suppressed,
+        per_file_cap,
+        per_rule_cap,
+    )
+    if overflow is not None:
+        findings.append(overflow)
 
     return findings, coverage
 

@@ -254,6 +254,12 @@ states:
 You will see the other two states in Step 6, because re-running init on an
 existing repository is exactly a brownfield run.
 
+Two further states exist but cannot appear on this run: `[overwritten]`, which
+only `--force` produces, and `[restored]`, which appears when a file
+SicarioSpec ships into a directory you already have has gone missing and this
+run copies it back — see the
+[frameworks playbook](../playbooks/select-frameworks.md).
+
 Note two lines in the plan: `presets sicario-core, sicario-docs,
 sicario-appsec` is the composition your profile selected, and
 `frameworks ssdf, iso27001` is its effective framework default. `appsec`'s framework table also lists
