@@ -43,7 +43,10 @@ forward-slash paths in commands and adjust `cat`/`cp` to your shell.
 Reconstructed exactly (this is also what the docs verification runner does —
 see FR-051): init, then prune `docs/compliance/control-maps/` down to the two
 enforced maps (`ssdf`, `iso27001`) — a common hygiene move, and the starting
-state step 4 assumes.
+state step 4 assumes. Note that pruning is not durable: since #69, re-running
+`sicario init` copies every missing shipped map back (step 5 shows exactly
+that). What a project *enforces* is decided by `.sicario/frameworks.txt`, not
+by which map files sit on disk.
 
 ```bash sicario-cmd=setup
 sicario init . --profile appsec
@@ -168,27 +171,46 @@ The command exits `1`. Read the finding precisely:
   that changes what your project claims to enforce, so treat it as a
   compliance decision, not a fix.
 
-One sharp edge, observed on this exact run: re-running `sicario init .`
-does **not** restore a deleted map, because an existing
-`docs/compliance/control-maps/` directory is preserved as-is rather than
-merged file-by-file. Restore the map explicitly, as in step 5.
-
 ### 5. Restore the missing map and re-run to green
 
-The shipped maps live with your SicarioSpec installation. Ask the CLI where
-that is, then copy the map in:
+Re-running `sicario init` repairs the hole. Since #69, an existing
+SicarioSpec-managed directory is merged **file by file** rather than skipped
+wholesale: a shipped file with no counterpart on disk is copied back and
+reported as `[restored]`, while every file that *is* there — edited by you or
+not — is left byte-for-byte alone and reported as `[preserved]`. Files you
+added yourself are neither touched nor reported.
 
 ```bash sicario-cmd=select-frameworks/step-5
-MAPS="$(python3 -c "from sicario_cli.cli import CONTROL_MAPS_ROOT; print(CONTROL_MAPS_ROOT)")"
-cp "$MAPS/gdpr-cpra-sicario.json" docs/compliance/control-maps/
+sicario init . --profile appsec | grep -e '\[restored\].*gdpr' -e '^  summary:'
 sicario verify .
 ```
 
-```text title="Verified output" sicario-output=verified sicario-block=select-frameworks/step-5
+```text title="Verified output" sicario-output=verified sicario-block=select-frameworks/step-5 sicario-normalize=paths
+  [restored] ~/refrun-frameworks/docs/compliance/control-maps/gdpr-cpra-sicario.json — shipped file was missing from an existing managed directory
+  summary: 39 preserved, 12 restored
 sicario verify passed
 ```
 
-Exit code is `0`. (If the map was previously committed, `git checkout --
+Exit code is `0`.
+
+Read the summary line before you reach for this, though: it says `restored`
+for **every** shipped map that was missing, not only the one you care about.
+This reference run had pruned the directory down to two maps in its starting
+state, so re-init brought all the others back too. That is the intended
+contract — the shipped set is SicarioSpec's to keep whole, and
+`.sicario/frameworks.txt` (not which files happen to be on disk) is what
+decides enforcement — but it does mean pruning maps is not a durable state.
+
+When you want exactly one file back and nothing else, copy it in yourself.
+The shipped maps live with your SicarioSpec installation; ask the CLI where
+that is:
+
+```bash
+MAPS="$(python3 -c "from sicario_cli.cli import CONTROL_MAPS_ROOT; print(CONTROL_MAPS_ROOT)")"
+cp "$MAPS/gdpr-cpra-sicario.json" docs/compliance/control-maps/
+```
+
+(If the map was previously committed, `git checkout --
 docs/compliance/control-maps/` is an equivalent fix.)
 
 ### 6. Enforce an experimental-tier map — explicitly
@@ -208,6 +230,11 @@ sicario verify .
 ```text title="Verified output" sicario-output=verified sicario-block=select-frameworks/step-6a
 sicario verify passed
 ```
+
+The `cp` is shown because installing the map is the step that matters; on this
+reference run it happens to be a no-op, since step 5's re-init already restored
+every shipped map including this one. Selecting the key is what turns the map
+into an enforced requirement — having the file present never did.
 
 Now re-check the effective selection report from step 2:
 

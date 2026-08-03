@@ -37,41 +37,31 @@ KIND_REQUIRES_PARAMS = {
 }
 
 
-def _validate_rule(rule: Dict[str, Any]) -> List[str]:
-    errors: List[str] = []
-
-    for required_field in ("id", "severity", "kind", "path", "message"):
-        if required_field not in rule:
-            errors.append(f"missing required field: {required_field}")
-
-    if errors:
-        return errors
-
-    rid = rule["id"]
+def _validate_rule_id(rid: Any) -> List[str]:
     # fullmatch, not match: `$` in re.match also matches just BEFORE a trailing
     # newline, so an id like "SICARIO-X\n" validated and then rendered
     # identically to the real id in evidence — a grep-poisoning primitive.
     if not isinstance(rid, str) or not re.fullmatch(r"[A-Z][A-Z0-9-]+", rid):
-        errors.append(f"rule id '{rid}' must match ^[A-Z][A-Z0-9-]+$")
+        return [f"rule id '{rid}' must match ^[A-Z][A-Z0-9-]+$"]
+    return []
 
-    sev = rule["severity"]
+
+def _validate_severity(sev: Any) -> List[str]:
     if sev not in ALLOWED_SEVERITIES:
-        errors.append(f"severity '{sev}' must be one of {sorted(ALLOWED_SEVERITIES)}")
+        return [f"severity '{sev}' must be one of {sorted(ALLOWED_SEVERITIES)}"]
+    return []
 
-    kind = rule["kind"]
+
+def _validate_kind(kind: Any) -> List[str]:
     if kind not in ALLOWED_KINDS:
-        errors.append(f"kind '{kind}' must be one of {sorted(ALLOWED_KINDS)}")
+        return [f"kind '{kind}' must be one of {sorted(ALLOWED_KINDS)}"]
+    return []
 
-    if not isinstance(rule.get("path"), str):
-        errors.append("path must be a string")
 
-    if not isinstance(rule.get("message"), str):
-        errors.append("message must be a string")
-
-    enabled = rule.get("enabled", True)
-    if not isinstance(enabled, bool):
-        errors.append("enabled must be a boolean")
-
+def _validate_rule_params(kind: Any, rule: Dict[str, Any]) -> List[str]:
+    """Validate ``rule.params``: object shape, kind-required keys, and
+    regex-forbidden caps."""
+    errors: List[str] = []
     params = rule.get("params")
     if params is not None and not isinstance(params, dict):
         errors.append("params must be an object")
@@ -92,6 +82,35 @@ def _validate_rule(rule: Dict[str, Any]) -> List[str]:
         # is rejected here, at rule load, rather than clamped to a permissive
         # default at evaluation time (FR-012, SEC-008, SA-005).
         errors.extend(validate_caps(params))
+
+    return errors
+
+
+def _validate_rule(rule: Dict[str, Any]) -> List[str]:
+    errors: List[str] = []
+
+    for required_field in ("id", "severity", "kind", "path", "message"):
+        if required_field not in rule:
+            errors.append(f"missing required field: {required_field}")
+
+    if errors:
+        return errors
+
+    errors.extend(_validate_rule_id(rule["id"]))
+    errors.extend(_validate_severity(rule["severity"]))
+    errors.extend(_validate_kind(rule["kind"]))
+
+    if not isinstance(rule.get("path"), str):
+        errors.append("path must be a string")
+
+    if not isinstance(rule.get("message"), str):
+        errors.append("message must be a string")
+
+    enabled = rule.get("enabled", True)
+    if not isinstance(enabled, bool):
+        errors.append("enabled must be a boolean")
+
+    errors.extend(_validate_rule_params(rule["kind"], rule))
 
     return errors
 
@@ -267,6 +286,33 @@ def _load_rule_file(path: Path) -> Optional[Dict[str, Any]]:
     return data
 
 
+def _load_and_validate_rule_file(
+    rule_file: Path, origin: str
+) -> "tuple[Optional[Dict[str, Any]], Optional[Dict[str, Any]]]":
+    """Load and validate one rule file. Returns ``(data, load_error)``; exactly
+    one of the two is ``None``."""
+    data = _load_rule_file(rule_file)
+    if data is None:
+        return None, {
+            "file": rule_file.name,
+            "path": str(rule_file),
+            "origin": origin,
+            "code": "SICARIO-RULE-UNREADABLE",
+            "errors": ["file is not readable, decodable, or a JSON object"],
+        }
+    errors = _validate_rule(data)
+    if errors:
+        return None, {
+            "file": rule_file.name,
+            "path": str(rule_file),
+            "origin": origin,
+            "rule_id": data.get("id"),
+            "code": "SICARIO-RULE-INVALID",
+            "errors": errors,
+        }
+    return data, None
+
+
 @dataclass
 class RuleRunReport:
     """Result of a rule-engine run.
@@ -309,6 +355,48 @@ class RuleEngine:
         #: `disabled_rules`, so a chain of overriding files cannot demote the
         #: severity context step by step before disabling the rule.
         self.original_severities: Dict[str, str] = {}
+
+    def _accumulate_rule(
+        self,
+        data: Dict[str, Any],
+        ref: Dict[str, str],
+        rules: List[Dict[str, Any]],
+        seen_ids: Dict[str, int],
+        provenance: Dict[str, Dict[str, str]],
+    ) -> None:
+        """Add one freshly loaded rule to ``rules``, recording an override if it
+        replaces an earlier definition of the same id."""
+        rid = data["id"]
+        if rid not in seen_ids:
+            seen_ids[rid] = len(rules)
+            rules.append(data)
+            self.original_severities[rid] = data["severity"]
+            provenance[rid] = ref
+            return
+
+        idx = seen_ids[rid]
+        changed = _rule_diff(rules[idx], data)
+        # A byte-for-byte equivalent redefinition is not an override of
+        # anything: the effective rule is unchanged. `sicario init` copies
+        # every shipped rule into `.sicario/rules/`, so recording those ~21
+        # no-op collisions on every run would bury the one override a
+        # reviewer needs to see. For the same reason it must not re-anchor
+        # `provenance` either: the definition a later override supersedes is
+        # the last one that MATTERED, not a verbatim copy of it.
+        if changed:
+            self.overrides.append(
+                _override_record(
+                    rid,
+                    rules[idx],
+                    data,
+                    provenance[rid],
+                    ref,
+                    changed,
+                    self.original_severities.get(rid),
+                )
+            )
+            provenance[rid] = ref
+        rules[idx] = data
 
     def load_rules(
         self,
@@ -371,63 +459,12 @@ class RuleEngine:
             if not directory.is_dir():
                 continue
             for rule_file in sorted(directory.glob("*.rule.json")):
-                data = _load_rule_file(rule_file)
-                if data is None:
-                    self.load_errors.append(
-                        {
-                            "file": rule_file.name,
-                            "path": str(rule_file),
-                            "origin": origin,
-                            "code": "SICARIO-RULE-UNREADABLE",
-                            "errors": ["file is not readable, decodable, or a JSON object"],
-                        }
-                    )
+                data, load_error = _load_and_validate_rule_file(rule_file, origin)
+                if load_error is not None:
+                    self.load_errors.append(load_error)
                     continue
-                errors = _validate_rule(data)
-                if errors:
-                    self.load_errors.append(
-                        {
-                            "file": rule_file.name,
-                            "path": str(rule_file),
-                            "origin": origin,
-                            "rule_id": data.get("id"),
-                            "code": "SICARIO-RULE-INVALID",
-                            "errors": errors,
-                        }
-                    )
-                    continue
-                rid = data["id"]
                 ref = {"origin": origin, "file": rule_file.name}
-                if rid in seen_ids:
-                    idx = seen_ids[rid]
-                    changed = _rule_diff(rules[idx], data)
-                    # A byte-for-byte equivalent redefinition is not an override
-                    # of anything: the effective rule is unchanged. `sicario
-                    # init` copies every shipped rule into `.sicario/rules/`, so
-                    # recording those ~21 no-op collisions on every run would
-                    # bury the one override a reviewer needs to see. For the
-                    # same reason it must not re-anchor `provenance` either: the
-                    # definition a later override supersedes is the last one
-                    # that MATTERED, not a verbatim copy of it.
-                    if changed:
-                        self.overrides.append(
-                            _override_record(
-                                rid,
-                                rules[idx],
-                                data,
-                                provenance[rid],
-                                ref,
-                                changed,
-                                self.original_severities.get(rid),
-                            )
-                        )
-                        provenance[rid] = ref
-                    rules[idx] = data
-                else:
-                    seen_ids[rid] = len(rules)
-                    rules.append(data)
-                    self.original_severities[rid] = data["severity"]
-                    provenance[rid] = ref
+                self._accumulate_rule(data, ref, rules, seen_ids, provenance)
 
         return rules
 

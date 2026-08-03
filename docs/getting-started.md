@@ -62,8 +62,10 @@ pinned to a release tag, e.g. `...sicario-spec.git@v0.5.1`) or with
 
 `sicario init` is brownfield-safe by default: new files are created, files it
 can safely extend are merged or overlaid, and everything else is preserved — a
-timestamped `*.sicario-bak.*` backup is taken before any file is changed. Useful
-flags:
+timestamped `*.sicario-bak.*` backup is taken before any file is changed. Inside
+a directory SicarioSpec manages, only the shipped files that are *missing* are
+copied back (reported as `restored`); everything already there is left alone.
+Useful flags:
 
 - `--dry-run` previews the per-file adoption report and writes nothing.
 - `--force` opts into full overwrite (backups are still taken first).

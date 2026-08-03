@@ -302,7 +302,10 @@ Always:
   and `*.sicario-bak.*` is added to the target repo's `.gitignore` so backups
   (which may contain pre-existing secrets) can never be committed.
 - A per-file **adoption report** prints at the end: `created` /
-  `merged-overlaid` / `preserved` / `overwritten`, plus a summary line.
+  `merged-overlaid` / `preserved` / `restored` / `overwritten`, plus a summary
+  line. `restored` means a file SicarioSpec ships into a directory you already
+  had was missing and this run copied it back; files that were present stay
+  byte-for-byte untouched and report as `preserved`.
 
 Flags:
 

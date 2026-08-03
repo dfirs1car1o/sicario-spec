@@ -13,6 +13,14 @@ from __future__ import annotations
 from pathlib import Path
 from typing import List, Optional, Sequence
 
+# Repeated agent-integration directory/filename literals (S1192): defined
+# once so the several per-integration write blocks below cannot drift out
+# of sync with each other.
+CLAUDE_DIR = ".claude"
+AGENTS_DIR = ".agents"
+GITHUB_DIR = ".github"
+SKILL_FILENAME = "SKILL.md"
+
 
 # ── Content generators ──────────────────────────────────────────────────
 
@@ -517,7 +525,7 @@ def _write_agent_integrations(
             full_content=_claude_instructions(),
         )
         _write_text(
-            target / ".claude" / "skills" / "sicario-verify" / "SKILL.md",
+            target / CLAUDE_DIR / "skills" / "sicario-verify" / SKILL_FILENAME,
             _skill_sicario_verify(),
             force=force,
             dry_run=dry_run,
@@ -525,7 +533,7 @@ def _write_agent_integrations(
             reports=reports,
         )
         _write_text(
-            target / ".claude" / "skills" / "sicario-governance-review" / "SKILL.md",
+            target / CLAUDE_DIR / "skills" / "sicario-governance-review" / SKILL_FILENAME,
             _skill_governance_review(),
             force=force,
             dry_run=dry_run,
@@ -533,7 +541,7 @@ def _write_agent_integrations(
             reports=reports,
         )
         _write_text(
-            target / ".claude" / "skills" / "sicario-release-readiness" / "SKILL.md",
+            target / CLAUDE_DIR / "skills" / "sicario-release-readiness" / SKILL_FILENAME,
             _skill_release_readiness(),
             force=force,
             dry_run=dry_run,
@@ -541,7 +549,7 @@ def _write_agent_integrations(
             reports=reports,
         )
         _write_text(
-            target / ".claude" / "agents" / "sicario-security-reviewer.md",
+            target / CLAUDE_DIR / "agents" / "sicario-security-reviewer.md",
             _claude_security_reviewer_agent(),
             force=force,
             dry_run=dry_run,
@@ -549,7 +557,7 @@ def _write_agent_integrations(
             reports=reports,
         )
         _write_text(
-            target / ".claude" / "agents" / "sicario-release-manager.md",
+            target / CLAUDE_DIR / "agents" / "sicario-release-manager.md",
             _claude_release_manager_agent(),
             force=force,
             dry_run=dry_run,
@@ -570,7 +578,7 @@ def _write_agent_integrations(
 
     if integration in {"codex", "all"}:
         _write_text(
-            target / ".agents" / "skills" / "sicario-verify" / "SKILL.md",
+            target / AGENTS_DIR / "skills" / "sicario-verify" / SKILL_FILENAME,
             _skill_sicario_verify(),
             force=force,
             dry_run=dry_run,
@@ -578,7 +586,7 @@ def _write_agent_integrations(
             reports=reports,
         )
         _write_text(
-            target / ".agents" / "skills" / "sicario-governance-review" / "SKILL.md",
+            target / AGENTS_DIR / "skills" / "sicario-governance-review" / SKILL_FILENAME,
             _skill_governance_review(),
             force=force,
             dry_run=dry_run,
@@ -586,7 +594,7 @@ def _write_agent_integrations(
             reports=reports,
         )
         _write_text(
-            target / ".agents" / "skills" / "sicario-release-readiness" / "SKILL.md",
+            target / AGENTS_DIR / "skills" / "sicario-release-readiness" / SKILL_FILENAME,
             _skill_release_readiness(),
             force=force,
             dry_run=dry_run,
@@ -596,7 +604,7 @@ def _write_agent_integrations(
 
     if integration in {"copilot", "all"}:
         _write_text(
-            target / ".github" / "copilot-instructions.md",
+            target / GITHUB_DIR / "copilot-instructions.md",
             _copilot_instructions(),
             force=force,
             dry_run=dry_run,
@@ -604,7 +612,7 @@ def _write_agent_integrations(
             reports=reports,
         )
         _write_text(
-            target / ".github" / "instructions" / "sicario-governance.instructions.md",
+            target / GITHUB_DIR / "instructions" / "sicario-governance.instructions.md",
             _copilot_governance_instructions(),
             force=force,
             dry_run=dry_run,
@@ -612,7 +620,7 @@ def _write_agent_integrations(
             reports=reports,
         )
         _write_text(
-            target / ".github" / "workflows" / "copilot-setup-steps.yml",
+            target / GITHUB_DIR / "workflows" / "copilot-setup-steps.yml",
             _copilot_setup_steps(),
             force=force,
             dry_run=dry_run,
@@ -812,7 +820,7 @@ class SicarioCorePreset:
             if not workflow_src.exists():
                 continue
             _write_text(
-                target / ".github" / "workflows" / workflow_name,
+                target / GITHUB_DIR / "workflows" / workflow_name,
                 workflow_src.read_text(encoding="utf-8"),
                 force=force,
                 dry_run=dry_run,
@@ -825,7 +833,7 @@ class SicarioCorePreset:
             workflow_src = workflows_root / self.TOOLCHAIN_WORKFLOW
             if workflow_src.exists():
                 _write_text(
-                    target / ".github" / "workflows" / self.TOOLCHAIN_WORKFLOW,
+                    target / GITHUB_DIR / "workflows" / self.TOOLCHAIN_WORKFLOW,
                     workflow_src.read_text(encoding="utf-8"),
                     force=force,
                     dry_run=dry_run,
