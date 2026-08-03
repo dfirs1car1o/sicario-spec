@@ -58,7 +58,9 @@ def _resolve_paths(pattern: str, root: Path) -> List[Path]:
     return [target] if target.exists() else []
 
 
-def _scan_file_for_invalid_rows(target: Path, root: Path, forbidden: "set[str]") -> List[Tuple[str, int]]:
+def _scan_file_for_invalid_rows(
+    target: Path, root: Path, forbidden: "set[str]"
+) -> List[Tuple[str, int]]:
     """Every (repo-relative path, line number) of an invalid active risk row in ``target``."""
     if target.is_dir():
         return []

@@ -362,7 +362,9 @@ def _check_captured_version(
         )
 
 
-def _validate_output_block(path: Path, fence: Fence, output_blocks: Dict[str, Fence], report: GuideReport) -> None:
+def _validate_output_block(
+    path: Path, fence: Fence, output_blocks: Dict[str, Fence], report: GuideReport
+) -> None:
     """Validate one fence's sicario-block/sicario-output/sicario-normalize/
     sicario-stream attributes (FR-050) and, if valid, add it to
     ``output_blocks``."""
@@ -474,7 +476,12 @@ def _mark_unpaired_verified(
 
 
 def _handle_write_fence(
-    fence: Fence, write_path: str, cwd: Path, scratch_root_resolved: Path, path: Path, report: GuideReport
+    fence: Fence,
+    write_path: str,
+    cwd: Path,
+    scratch_root_resolved: Path,
+    path: Path,
+    report: GuideReport,
 ) -> bool:
     """Write a sicario-write fence's content verbatim under the scratch root.
 

@@ -1263,7 +1263,9 @@ def _asset_root_override_findings() -> List[Finding]:
     ]
 
 
-def _missing_framework_map_findings(root: Path, selected_frameworks: Optional[List[str]]) -> List[Finding]:
+def _missing_framework_map_findings(
+    root: Path, selected_frameworks: Optional[List[str]]
+) -> List[Finding]:
     """One finding per selected framework whose control map is absent."""
     if selected_frameworks is None:
         return []
