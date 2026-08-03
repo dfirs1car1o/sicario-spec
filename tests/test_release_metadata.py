@@ -242,6 +242,65 @@ class ReleaseMetadataTests(unittest.TestCase):
             ).read_text(encoding="utf-8"),
         )
 
+    def test_workflow_template_copies_are_byte_identical(self) -> None:
+        # Regression guard: `sicario init` reads from
+        # sicario_cli/assets/workflow_templates/ when installed (non-source-checkout)
+        # and workflow_templates/ when dogfooding this repo (see
+        # sicario_cli.cli._resolve_asset_root). A fix landed in only one copy is a
+        # fix adopters never receive. Covers every file in workflow_templates/, not
+        # just sicario-verify.yml (that narrower check predates this one and is kept
+        # above for its docstring/history).
+        source_dir = ROOT / "workflow_templates"
+        packaged_dir = ROOT / "sicario_cli" / "assets" / "workflow_templates"
+
+        source_files = sorted(p.name for p in source_dir.glob("*.yml"))
+        packaged_files = sorted(p.name for p in packaged_dir.glob("*.yml"))
+        self.assertEqual(
+            source_files, packaged_files, "workflow_templates/ directory listings diverged"
+        )
+        self.assertTrue(source_files, "expected at least one workflow template")
+
+        for name in source_files:
+            self.assertEqual(
+                (source_dir / name).read_text(encoding="utf-8"),
+                (packaged_dir / name).read_text(encoding="utf-8"),
+                name,
+            )
+
+    def test_docs_site_workflow_succeeds_on_a_fresh_init_with_no_lockfile(self) -> None:
+        # Regression test for #72: `sicario init` generates docs-site/package.json
+        # without a package-lock.json (init cannot assume npm is available on the
+        # adopter's machine to produce one). `actions/setup-node`'s `cache: npm`
+        # input errors out before any step runs if the lockfile it would key on
+        # doesn't exist, and `npm ci` separately refuses to run without one — so
+        # every fresh adopter's first push previously shipped a red workflow next
+        # to their gate. The generated workflow must not depend on a lockfile that
+        # was never generated.
+        for relative in (
+            "workflow_templates/docs-site.yml",
+            "sicario_cli/assets/workflow_templates/docs-site.yml",
+        ):
+            workflow = (ROOT / relative).read_text(encoding="utf-8")
+
+            self.assertRegex(workflow, r"actions/checkout@[0-9a-f]{40} # v[0-9.]+", relative)
+            self.assertRegex(workflow, r"actions/setup-node@[0-9a-f]{40} # v[0-9.]+", relative)
+            self.assertNotRegex(workflow, r"actions/checkout@v\d", relative)
+            self.assertNotRegex(workflow, r"actions/setup-node@v\d", relative)
+
+            # No cache keyed on a lockfile that init never generates. Matched as
+            # an actual YAML key (start-of-line, no `#`) rather than a plain
+            # substring, since the workflow's own explanatory comment mentions
+            # `cache:` in prose.
+            self.assertNotRegex(workflow, r"(?m)^\s*cache:\s", relative)
+            self.assertNotRegex(workflow, r"(?m)^\s*cache-dependency-path:", relative)
+
+            # `npm ci` requires an existing lockfile and errors (EUSAGE) without
+            # one; `npm install` does not. Matched as an actual `run:` step
+            # rather than a plain substring, since the workflow's own
+            # explanatory comment mentions `npm ci` in prose.
+            self.assertRegex(workflow, r"(?m)^\s*-\s*run:\s*npm install\s*$", relative)
+            self.assertNotRegex(workflow, r"(?m)^\s*-\s*run:\s*npm ci\b", relative)
+
 
 if __name__ == "__main__":
     unittest.main()

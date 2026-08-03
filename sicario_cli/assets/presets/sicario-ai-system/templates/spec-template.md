@@ -115,6 +115,14 @@ tool calling, autonomous workflows, or generated code.
 - Retention:
 - Alerting:
 
+## Operational Signal / Response Path
+
+- Signals this feature should emit:
+- Detection or alert logic:
+- Triage owner:
+- Response or rollback action:
+- Evidence retention location:
+
 ## Misuse / Abuse Cases
 
 - Abuse case 1:
@@ -132,12 +140,22 @@ tool calling, autonomous workflows, or generated code.
 - **SA-002**: [Negative test outcome]
 - **SA-003**: [Evidence outcome]
 
+## Security Evidence Chain
+
+Every material risk should trace to a control, verification gate, evidence path,
+owner, and approval or accepted-risk decision.
+
+| Chain ID | Risk / Decision | Control / Requirement | Test / Gate | Evidence Path | Owner | Approval / Accepted Risk |
+|---|---|---|---|---|---|---|
+| SEC-001 | TBD | TBD | TBD | TBD | TBD | TBD |
+
 ## Evidence To Produce
 
 - Threat model update:
 - Abuse-case update:
 - Data classification record:
 - Tagging taxonomy updates:
+- Security Evidence Chain:
 - Tests:
 - Gate summary:
 - Control applicability:

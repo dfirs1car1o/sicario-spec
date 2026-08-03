@@ -365,11 +365,11 @@ actors" is not "abuse cases". You can delete this whole section and the gate
 stays green.
 
 That is the honest situation for most of the template. On the `appsec`
-profile this playbook uses, the winning template has eighteen headings
+profile this playbook uses, the winning template has twenty headings
 (other profiles' templates differ — see the selection playbook);
 `SICARIO-SPEC-SECTION` names six of them, and exactly one more —
 AI / LLM Risk — is reached by a different rule, conditionally (Step 10). The
-remaining eleven exist because a reviewer needs them, not because a rule
+remaining thirteen exist because a reviewer needs them, not because a rule
 counts them. Sections in that class are where a reviewer's attention is worth
 the most, because nothing mechanical is watching.
 
@@ -1271,8 +1271,11 @@ You have finished this playbook when all of the following hold:
    User Scenarios & Testing,
    Roles/Assets/Abuse Actors, Privacy Requirements, Compliance Applicability,
    External System Access, Secrets/Credential Handling (whose *contents* the
-   tree-wide secret rules still scan), Audit/Logging, Functional
-   Requirements, Security Acceptance Criteria, Success Criteria, and
+   tree-wide secret rules still scan), Audit/Logging, Operational Signal /
+   Response Path, Functional Requirements, Security Acceptance Criteria,
+   Security Evidence Chain (the bare word `evidence` anywhere in the file
+   already satisfies `SICARIO-SPEC-SECTION`'s "evidence" substring —
+   `Evidence To Produce` does that on its own), Success Criteria, and
    Assumptions — and therefore where a reviewer's attention is worth most;
 5. your own spec's sections carry decisions with parameters, mechanisms, and
    evidence paths, and would survive a reviewer who has read
@@ -1299,11 +1302,16 @@ example value in this page matches any of the four shipped secret patterns —
 which the repository's own gate asserts continuously, since this page lives
 inside the tree it scans.
 
-Every governed section of the template is walked above. Where a section's
-gate coverage is stated as "nothing", that is a claim about the shipped rule
-set at 0.6.0, read from the rule files in `.sicario/rules/` and the
-evaluators in `sicario_cli/rules/kinds/` — not an invitation to leave the
-section empty.
+Every governed section of the template is walked above, and every section
+Steps 3–18 walk gets its own step. Two ungoverned sections — Operational
+Signal / Response Path and Security Evidence Chain — do not get a dedicated
+step of their own (they sit between Steps 14–15 and 16–17 in the live
+template); item 4 above names them for the same reason it names the other
+nine ungoverned sections: no rule requires either one, so a reviewer's
+attention is the only thing watching them. Where a section's gate coverage is
+stated as "nothing", that is a claim about the shipped rule set at 0.6.0,
+read from the rule files in `.sicario/rules/` and the evaluators in
+`sicario_cli/rules/kinds/` — not an invitation to leave the section empty.
 
 ## Further Reading
 

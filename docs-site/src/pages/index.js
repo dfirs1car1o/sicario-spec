@@ -122,8 +122,8 @@ export default function Home() {
                 paths, owners, and release approval.
               </p>
               <div className={styles.heroActions}>
-                <Link className="button button--primary button--lg" to="/docs/getting-started">
-                  Start using it
+                <Link className="button button--primary button--lg" to="/docs/guides/start-here">
+                  Start here — six lessons
                 </Link>
                 <Link className="button button--secondary button--lg" to="https://github.com/dfirs1car1o/sicario-spec">
                   View on GitHub

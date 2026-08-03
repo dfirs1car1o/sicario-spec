@@ -25,6 +25,19 @@ OUTCOME_SKIPPED = "skipped"
 SICARIO_OVERLAY_BEGIN = "<!-- BEGIN SICARIO-SPEC OVERLAY (additive; do not edit by hand) -->"
 SICARIO_OVERLAY_END = "<!-- END SICARIO-SPEC OVERLAY -->"
 
+# Stamped onto files ``_overlay_text`` creates from ``full_content`` (see below).
+# Unlike the appended overlay block, a freshly-created file's governed content IS
+# the whole file -- there is no separate section to add, so this explanation is
+# wrapped entirely in HTML comments (one marker per line) so it renders as
+# nothing in Markdown and stays inert if the file is later copied verbatim (e.g.
+# a Spec Kit template copied into a real spec/plan/tasks document).
+SICARIO_OVERLAY_STAMP_NOTE = (
+    "<!-- SicarioSpec wrote this file's full governed content directly; there "
+    "is no separate section to overlay. This marker exists only so a later "
+    "`sicario init`/`apply` run recognizes this file as its own output instead "
+    "of treating it as pre-existing content to merge (see issue #70). -->"
+)
+
 # Timestamped backups are verbatim copies of the adopting repo's own files, so
 # they can carry secrets or internal content. They must never become committable.
 BACKUP_IGNORE_PATTERN = "*.sicario-bak.*"
@@ -261,6 +274,31 @@ def _write_text(
     path.write_text(content, encoding="utf-8")
 
 
+def _stamp_full_content(full_content: str) -> str:
+    """Stamp the overlay marker onto content written via the full-content path.
+
+    ``_overlay_text``'s idempotency check keys on ``SICARIO_OVERLAY_BEGIN``
+    being present in the file (see below). Previously, a file created straight
+    from ``full_content`` -- a SicarioSpec-authored template or instruction
+    document -- carried no such marker, so the very next run treated it as
+    pre-existing user content and appended the overlay block on top of it,
+    taking a needless backup (issue #70: run 2 after a fresh brownfield OR
+    greenfield init reported spurious ``merged-overlaid`` files).
+
+    Stamping the marker here makes a file the tool writes recognizable to the
+    tool on the next run, matching the marker's stated meaning: the overlay
+    has been applied (here, by inclusion in the full content rather than by
+    appending a separate section).
+    """
+    separator = "" if full_content.endswith("\n") else "\n"
+    return (
+        f"{full_content}{separator}\n"
+        f"{SICARIO_OVERLAY_BEGIN}\n"
+        f"{SICARIO_OVERLAY_STAMP_NOTE}\n"
+        f"{SICARIO_OVERLAY_END}\n"
+    )
+
+
 def _overlay_text(
     path: Path,
     overlay: str,
@@ -274,17 +312,21 @@ def _overlay_text(
     """Non-destructively overlay SicarioSpec content onto an existing file.
 
     - If the file does not exist: create it with ``full_content`` (a complete
-      standalone document) when provided, else with the overlay block.
+      standalone document), stamped with the overlay marker so a later run
+      recognizes it as SicarioSpec's own output (see ``_stamp_full_content``),
+      when provided, else with the overlay block.
     - If the file exists and already contains the overlay marker: idempotent —
       do nothing (re-run safe).
     - If the file exists without the marker: back it up and APPEND the overlay
       block, delimited by clear begin/end markers. The user's content is kept
       verbatim above the overlay.
-    - With ``--force``: overwrite with ``full_content`` (after backup), matching
-      legacy clobber behavior for callers that explicitly ask for it.
+    - With ``--force``: overwrite with ``full_content`` (after backup), stamped
+      the same way, matching legacy clobber behavior for callers that
+      explicitly ask for it while keeping the result idempotent on the next
+      plain re-run.
     """
     if not path.exists():
-        body = full_content if full_content is not None else overlay
+        body = _stamp_full_content(full_content) if full_content is not None else overlay
         actions.append(f"write {path}")
         _record(reports, path, OUTCOME_CREATED)
         if not dry_run:
@@ -297,7 +339,7 @@ def _overlay_text(
         actions.append(f"overwrite {path}" + (f" (backup {backup.name})" if backup else ""))
         _record(reports, path, OUTCOME_OVERWRITTEN, f"backup {backup.name}" if backup else "")
         if not dry_run:
-            path.write_text(full_content, encoding="utf-8")
+            path.write_text(_stamp_full_content(full_content), encoding="utf-8")
         return
 
     existing = path.read_text(encoding="utf-8")

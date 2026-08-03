@@ -27,8 +27,39 @@ jobs:
           cache: npm
           cache-dependency-path: docs-site/package-lock.json
       - uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.11"
+      # The tests badge is generated from a REAL suite run at deploy time, so
+      # the published count can never exceed what actually passed — a failing
+      # suite fails this build and the badge simply keeps its last honest value.
+      - name: Generate tests badge from a real run
+        run: |
+          python3 - <<'EOF'
+          import json, pathlib, re, subprocess
+          r = subprocess.run(
+              ["python3", "-m", "unittest", "discover", "-s", "tests"],
+              capture_output=True, text=True,
+          )
+          out = r.stderr + r.stdout
+          m = re.search(r"Ran (\d+) tests", out)
+          if r.returncode != 0 or not m or "OK" not in out:
+              raise SystemExit(f"suite not green; refusing to publish a badge\n{out[-2000:]}")
+          badge = {
+              "schemaVersion": 1,
+              "label": "tests",
+              "message": f"{m.group(1)} passing",
+              "color": "brightgreen",
+          }
+          dest = pathlib.Path("docs-site/static/badges/tests.json")
+          dest.parent.mkdir(parents=True, exist_ok=True)
+          dest.write_text(json.dumps(badge) + "\n")
+          print("badge:", badge["message"])
+          EOF
       - name: Install dependencies
-        run: npm ci
+        # Lifecycle scripts are not needed to build the site (verified: the
+        # build succeeds with them disabled) and are a code-execution surface.
+        run: npm ci --ignore-scripts
         working-directory: docs-site
       - name: Build docs site
         run: npm run build
