@@ -90,10 +90,21 @@ from typing import Dict, List, Optional, Tuple
 REPO_ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_GUIDE_GLOBS = ("docs/guides/*.md", "docs/playbooks/*.md")
 
-FENCE_OPEN_RE = re.compile(r"^(?P<indent>[ \t]*)```(?P<lang>[A-Za-z0-9_-]*)(?P<rest>.*)$")
+# Only the indent + opening fence marker are matched here; `lang` and `rest`
+# are split out in plain Python in iter_fences() rather than as two adjacent
+# unbounded, overlapping-charset groups in one pattern (Sonar S8786: that
+# shape is super-linear on backtracking, even though `$` at the end makes
+# this particular match always succeed on the first try in practice).
+FENCE_OPEN_RE = re.compile(r"^(?P<indent>[ \t]*)```(?P<langrest>.*)$")
+FENCE_LANG_RE = re.compile(r"[A-Za-z0-9_-]*")
 FENCE_CLOSE_RE = re.compile(r"^[ \t]*```[ \t]*$")
 ATTR_RE = re.compile(r'([A-Za-z][\w-]*)=("(?:[^"\\]|\\.)*"|\S+)')
-FRONTMATTER_LINE_RE = re.compile(r"^([A-Za-z][\w-]*):\s*(.*)$")
+# `\s*` before the value used to sit directly against the unbounded `(.*)$`
+# that follows (the same S8786 shape as FENCE_OPEN_RE above). Dropped here
+# instead: parse_frontmatter() already calls `.strip()` on the captured
+# value, so a leading-whitespace-inclusive capture produces the identical
+# stripped result.
+FRONTMATTER_LINE_RE = re.compile(r"^([A-Za-z][\w-]*):(.*)$")
 
 # The only ``sicario-normalize`` keys apply_normalizations() knows how to
 # apply. Anything else is a structural error (F4): a typo'd normalize key
@@ -164,8 +175,10 @@ def iter_fences(body: str) -> List[Fence]:
             i += 1
             continue
         indent = m.group("indent")
-        lang = m.group("lang")
-        attrs = _parse_attrs(m.group("rest"))
+        langrest = m.group("langrest")
+        lang_match = FENCE_LANG_RE.match(langrest)
+        lang = lang_match.group(0)
+        attrs = _parse_attrs(langrest[lang_match.end() :])
         start_line = i + 1
         content_lines = []
         i += 1
