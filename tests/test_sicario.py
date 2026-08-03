@@ -1304,11 +1304,10 @@ class BrownfieldSafeAdoptionTests(unittest.TestCase):
                         rc = main(["verify", str(target), "--format", fmt])
 
                     payload = out.getvalue()
-                    # The whole point: stdout parses on its own.
-                    try:
-                        json.loads(payload)
-                    except json.JSONDecodeError as exc:
-                        self.fail(f"--format {fmt} stdout is not valid JSON: {exc}")
+                    # The whole point: stdout parses on its own. Let a
+                    # malformed payload fail the test naturally (S8714)
+                    # instead of catching and re-raising via self.fail().
+                    json.loads(payload)
 
                     # The verdict is still reported, just not into the artifact.
                     self.assertIn("sicario verify", err.getvalue())
@@ -2052,9 +2051,10 @@ class RegexForbiddenCompletenessTests(unittest.TestCase):
     def test_evaluator_raises_rather_than_clamping_a_bad_cap(self) -> None:
         from sicario_cli.rules.kinds.regex_forbidden import evaluate_detailed
 
+        rule = _forbidden_rule(max_findings_per_file=0)
         with tempfile.TemporaryDirectory() as tmp:
             with self.assertRaises(ValueError):
-                evaluate_detailed(_forbidden_rule(max_findings_per_file=0), Path(tmp))
+                evaluate_detailed(rule, Path(tmp))
 
     # --- SEC-011: unreadable and undecodable files are counted --------------
 
@@ -2913,8 +2913,9 @@ class RulePrecedenceAndOverrideEvidenceTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             target = Path(tmp) / "project"
             self.assertEqual(main(["init", str(target), "--profile", "appsec"]), 0)
-            self.assertTrue(
-                len(list((target / ".sicario" / "rules").glob("*.rule.json"))) >= 20,
+            self.assertGreaterEqual(
+                len(list((target / ".sicario" / "rules").glob("*.rule.json"))),
+                20,
                 "init no longer copies the shipped rules; this test's premise is stale",
             )
             verify_project(target, write=True)
