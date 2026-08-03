@@ -58,8 +58,8 @@ jobs:
           EOF
       - name: Install dependencies
         # Lifecycle scripts are not needed to build the site (verified: the
-          # build succeeds with them disabled) and are a code-execution surface.
-          run: npm ci --ignore-scripts
+        # build succeeds with them disabled) and are a code-execution surface.
+        run: npm ci --ignore-scripts
         working-directory: docs-site
       - name: Build docs site
         run: npm run build

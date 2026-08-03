@@ -55,7 +55,9 @@ const config = {
         },
         items: [
           { to: '/', label: 'Overview', position: 'left', exact: true },
-          { to: '/docs/getting-started', label: 'Start Here', position: 'left' },
+          // New-user entry point is the six-lesson path (spec 007), not the
+          // reference getting-started page — that stays reachable as Lesson 1.
+          { to: '/docs/guides/start-here', label: 'Start Here', position: 'left' },
           { to: '/docs/bundle-walkthrough', label: 'Bundle', position: 'left' },
           { to: '/docs/presets', label: 'Presets', position: 'left' },
           { to: '/docs/rule-engine', label: 'Rule Engine', position: 'left' },
@@ -76,6 +78,7 @@ const config = {
           {
             title: 'Docs',
             items: [
+              { label: 'Start here: six lessons', to: '/docs/guides/start-here' },
               { label: 'Getting started', to: '/docs/getting-started' },
               { label: 'Presets', to: '/docs/presets' },
               { label: 'Rule engine', to: '/docs/rule-engine' },
