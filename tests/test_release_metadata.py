@@ -198,7 +198,7 @@ class ReleaseMetadataTests(unittest.TestCase):
 
     def test_scorecard_workflow_can_publish_badge_results(self) -> None:
         workflow = (ROOT / ".github" / "workflows" / "scorecard.yml").read_text(encoding="utf-8")
-        self.assertRegex(workflow, r"ossf/scorecard-action@[0-9a-f]{40} # v2\.4\.3")
+        self.assertRegex(workflow, r"ossf/scorecard-action@[0-9a-f]{40} # v2\.4\.4")
         self.assertIn("publish_results: true", workflow)
         self.assertIn("id-token: write", workflow)
         self.assertIn("security-events: write", workflow)
