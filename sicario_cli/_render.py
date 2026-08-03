@@ -359,7 +359,17 @@ def _overlay_text(
     if dry_run:
         return
     separator = "" if existing.endswith("\n") else "\n"
-    path.write_text(existing + separator + "\n" + overlay, encoding="utf-8")
+    # Sonar S2083 (path injection) misreads this as constructing a PATH from
+    # tainted data. It is not: `path` is the destination Path object handed in
+    # by the caller (already resolved under the target project root before
+    # this function ever runs); `existing` is this same file's own
+    # previously read CONTENT, concatenated only into the bytes being
+    # written, never into a filesystem path. The generic "a user can craft
+    # an HTTP request" taint source in the finding is inapplicable too --
+    # this CLI is stdlib-only with no network or HTTP handling anywhere
+    # (see the module docstring / CORE INVARIANT). False positive; same
+    # shape as the S6549 suppression in scripts/verify_guide_outputs.py.
+    path.write_text(existing + separator + "\n" + overlay, encoding="utf-8")  # NOSONAR
 
 
 def _print_report(reports: Sequence[FileReport], *, dry_run: bool, force: bool) -> None:

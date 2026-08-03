@@ -58,42 +58,50 @@ def _resolve_paths(pattern: str, root: Path) -> List[Path]:
     return [target] if target.exists() else []
 
 
+def _scan_file_for_invalid_rows(target: Path, root: Path, forbidden: "set[str]") -> List[Tuple[str, int]]:
+    """Every (repo-relative path, line number) of an invalid active risk row in ``target``."""
+    if target.is_dir():
+        return []
+    try:
+        # Lexically repository-relative in POSIX form: never escapes the
+        # project root, including via a symlink, because the path is not
+        # resolved.
+        rel = target.relative_to(root).as_posix()
+    except ValueError:
+        return []
+    try:
+        text = target.read_text(encoding="utf-8")
+    except (OSError, ValueError):
+        # UnicodeDecodeError is a ValueError subclass; listing it separately
+        # was redundant (S5713).
+        return []
+
+    found: List[Tuple[str, int]] = []
+    for line_number, line in enumerate(text.splitlines(), start=1):
+        stripped = line.strip()
+        if not stripped.startswith("|"):
+            continue
+        lower = stripped.lower()
+        if "| active |" not in lower:
+            continue
+        cells = [cell.strip().lower() for cell in stripped.strip("|").split("|")]
+        if any(cell in forbidden for cell in cells):
+            # Every invalid row, not just the first: a register with three
+            # incomplete rows needs three remediation actions, and a
+            # reviewer must see all of them in one run (FR-001, FR-002).
+            found.append((rel, line_number))
+    return found
+
+
 def evaluate(rule: Dict[str, Any], root: Path) -> List[Dict[str, Any]]:
     targets = _resolve_paths(rule["path"], root)
     if not targets:
         return []
 
-    forbidden = set(v.lower() for v in rule.get("params", {}).get("forbidden_values", []))
+    forbidden = {v.lower() for v in rule.get("params", {}).get("forbidden_values", [])}
     candidates: List[Tuple[str, int]] = []
-
     for target in targets:
-        if target.is_dir():
-            continue
-        try:
-            # Lexically repository-relative in POSIX form: never escapes the
-            # project root, including via a symlink, because the path is not
-            # resolved.
-            rel = target.relative_to(root).as_posix()
-        except ValueError:
-            continue
-        try:
-            text = target.read_text(encoding="utf-8")
-        except (OSError, UnicodeDecodeError, ValueError):
-            continue
-
-        for line_number, line in enumerate(text.splitlines(), start=1):
-            stripped = line.strip()
-            if not stripped.startswith("|"):
-                continue
-            lower = stripped.lower()
-            if "| active |" not in lower:
-                continue
-            cells = [cell.strip().lower() for cell in stripped.strip("|").split("|")]
-            if any(cell in forbidden for cell in cells):
-                # Every invalid row, not just the first: a register with three
-                # incomplete rows needs three remediation actions, and a
-                # reviewer must see all of them in one run (FR-001, FR-002).
-                candidates.append((rel, line_number))
+        candidates.extend(_scan_file_for_invalid_rows(target, root, forbidden))
 
     # Total order on POSIX path, then line, so repeated runs over an unchanged
     # tree produce byte-identical output (FR-017, FR-019).
