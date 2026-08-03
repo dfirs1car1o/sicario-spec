@@ -621,46 +621,44 @@ def _validate_specify_available() -> str:
     return result.stdout.strip() or result.stderr.strip() or "found"
 
 
-def init_project(args: argparse.Namespace) -> int:
-    target = Path(args.project).expanduser().resolve()
-    actions: List[str] = []
-    reports: List[FileReport] = []
-    selected_presets = _parse_profiles(args.profile)
+def _init_existing_governance(target: Path) -> "dict[str, List[str]]":
+    """Detect existing governance, or the greenfield empty shape for a fresh target."""
+    if target.exists():
+        return detect_existing_governance(target)
+    return {"constitution": [], "templates": [], "instructions": [], "mission": []}
 
-    # Brownfield-safe adoption is the DEFAULT: a non-empty target is fine. We
-    # detect any existing governance and merge/overlay/preserve instead of
-    # clobbering. `--force` is the explicit full-overwrite opt-in.
-    existing = (
-        detect_existing_governance(target)
-        if target.exists()
-        else {
-            "constitution": [],
-            "templates": [],
-            "instructions": [],
-            "mission": [],
-        }
-    )
-    # The constitution overlay must defer to any mission.md / project-supremacy
-    # instruction file we found.
-    deferrals = existing["mission"] + existing["instructions"]
 
-    interactive_config: Optional[dict] = None
-    if getattr(args, "interactive", False):
-        interactive_config = _interactive_init(target)
-        actions.append("mode: interactive setup wizard")
-        if interactive_config["frameworks"]:
-            args.frameworks = ",".join(interactive_config["frameworks"])
-            actions.append(f"interactive frameworks: {', '.join(interactive_config['frameworks'])}")
-        else:
-            args.frameworks = None
-        # Auto-include cloud-iac profile when cloud providers are selected.
-        if interactive_config["cloud_providers"] and "sicario-cloud-iac" not in selected_presets:
-            if "cloud-iac" not in args.profile:
-                args.profile = args.profile + ",cloud-iac"
-                selected_presets = _parse_profiles(args.profile)
-            actions.append(f"cloud providers: {', '.join(interactive_config['cloud_providers'])}")
-        actions.append(f"data classification: {interactive_config['data_classification']}")
+def _init_apply_interactive(
+    args: argparse.Namespace, actions: List[str], selected_presets: List[str]
+) -> "tuple[Optional[dict], List[str]]":
+    """Run the interactive wizard (if requested) and fold its choices into args/presets."""
+    if not getattr(args, "interactive", False):
+        return None, selected_presets
+    interactive_config = _interactive_init()
+    actions.append("mode: interactive setup wizard")
+    if interactive_config["frameworks"]:
+        args.frameworks = ",".join(interactive_config["frameworks"])
+        actions.append(f"interactive frameworks: {', '.join(interactive_config['frameworks'])}")
+    else:
+        args.frameworks = None
+    # Auto-include cloud-iac profile when cloud providers are selected.
+    if interactive_config["cloud_providers"] and "sicario-cloud-iac" not in selected_presets:
+        if "cloud-iac" not in args.profile:
+            args.profile = args.profile + ",cloud-iac"
+            selected_presets = _parse_profiles(args.profile)
+        actions.append(f"cloud providers: {', '.join(interactive_config['cloud_providers'])}")
+    actions.append(f"data classification: {interactive_config['data_classification']}")
+    return interactive_config, selected_presets
 
+
+def _init_report_header(
+    target: Path,
+    args: argparse.Namespace,
+    selected_presets: List[str],
+    existing: "dict[str, List[str]]",
+    actions: List[str],
+) -> None:
+    """Append the target/specify/integration/preset/mode summary lines."""
     actions.append(f"target {target}")
     actions.append(f"specify {_validate_specify_available()}")
     actions.append(f"integration {args.integration}")
@@ -675,6 +673,115 @@ def init_project(args: argparse.Namespace) -> int:
         )
     else:
         actions.append("mode: greenfield (no existing governance detected)")
+
+
+def _init_write_framework_selection(
+    target: Path, args: argparse.Namespace, actions: List[str], reports: List[FileReport]
+) -> None:
+    """Resolve and persist the project's framework selector (#18).
+
+    Explicit ``--frameworks`` wins; otherwise default to the profile's set. When
+    neither yields a selection (e.g. bare public-core), no config is written so
+    verify keeps its legacy coarse control-map behavior.
+    """
+    if getattr(args, "frameworks", None):
+        selected_frameworks = _parse_frameworks(args.frameworks)
+    else:
+        selected_frameworks = _default_frameworks_for_profiles(_parse_profile_names(args.profile))
+    if not selected_frameworks:
+        actions.append("frameworks (none selected; default coarse control-map check)")
+        return
+    # An existing selector is preserved rather than clobbered (brownfield-safe),
+    # so on a re-run the set we just computed may NOT be the set that is
+    # enforced. Report what will actually be enforced — a project that selected
+    # an experimental framework before it was tiered keeps enforcing it, and
+    # printing the computed defaults instead would state the opposite.
+    existing_selection = _read_selected_frameworks(target) if not args.force else None
+    effective = existing_selection if existing_selection is not None else selected_frameworks
+    actions.append(f"frameworks {', '.join(_framework_label(k) for k in effective)}")
+    if existing_selection is not None and set(existing_selection) != set(selected_frameworks):
+        actions.append(
+            "frameworks: existing .sicario/frameworks.txt preserved; it differs from this "
+            "profile's defaults. Re-run with --force or edit the file to adopt them."
+        )
+    _write_text(
+        target / FRAMEWORKS_CONFIG,
+        _frameworks_config_content(selected_frameworks),
+        force=args.force,
+        dry_run=args.dry_run,
+        actions=actions,
+        reports=reports,
+    )
+
+
+def _init_write_interactive_config(
+    target: Path,
+    args: argparse.Namespace,
+    interactive_config: Optional[dict],
+    actions: List[str],
+    reports: List[FileReport],
+) -> None:
+    """Persist the interactive wizard's answers to .sicario/config.json, if run."""
+    if interactive_config is None:
+        return
+    sicario_dir = target / ".sicario"
+    if not args.dry_run:
+        sicario_dir.mkdir(parents=True, exist_ok=True)
+    _write_text(
+        sicario_dir / "config.json",
+        json.dumps(interactive_config, indent=2) + "\n",
+        force=args.force,
+        dry_run=args.dry_run,
+        actions=actions,
+        reports=reports,
+    )
+
+
+def _init_write_preset_content(
+    target: Path,
+    args: argparse.Namespace,
+    selected_presets: List[str],
+    deferrals: List[str],
+    actions: List[str],
+    reports: List[FileReport],
+) -> None:
+    """Delegate generated content (docs, integrations, workflows) to presets."""
+    for preset_id in selected_presets:
+        cls = PRESET_CLASSES.get(preset_id)
+        if cls is not None:
+            cls().write(
+                target,
+                presets_root=PRESETS_ROOT,
+                workflows_root=WORKFLOW_ROOT,
+                selected_presets=selected_presets,
+                integration=args.integration,
+                apply_to_speckit=getattr(args, "apply_to_speckit", True),
+                deferrals=deferrals,
+                speckit_template_files=SPECKIT_TEMPLATE_FILES,
+                force=args.force,
+                dry_run=args.dry_run,
+                actions=actions,
+                reports=reports,
+            )
+
+
+def init_project(args: argparse.Namespace) -> int:
+    target = Path(args.project).expanduser().resolve()
+    actions: List[str] = []
+    reports: List[FileReport] = []
+    selected_presets = _parse_profiles(args.profile)
+
+    # Brownfield-safe adoption is the DEFAULT: a non-empty target is fine. We
+    # detect any existing governance and merge/overlay/preserve instead of
+    # clobbering. `--force` is the explicit full-overwrite opt-in.
+    existing = _init_existing_governance(target)
+    # The constitution overlay must defer to any mission.md / project-supremacy
+    # instruction file we found.
+    deferrals = existing["mission"] + existing["instructions"]
+
+    interactive_config, selected_presets = _init_apply_interactive(args, actions, selected_presets)
+
+    _init_report_header(target, args, selected_presets, existing, actions)
 
     if not args.dry_run:
         target.mkdir(parents=True, exist_ok=True)
@@ -721,50 +828,9 @@ def init_project(args: argparse.Namespace) -> int:
         )
 
     # Framework selector (#18): record which frameworks this project enforces.
-    # Explicit --frameworks wins; otherwise default to the profile's set. When
-    # neither yields a selection (e.g. bare public-core), we write no config so
-    # verify keeps its legacy coarse control-map behavior.
-    if getattr(args, "frameworks", None):
-        selected_frameworks = _parse_frameworks(args.frameworks)
-    else:
-        selected_frameworks = _default_frameworks_for_profiles(_parse_profile_names(args.profile))
-    if selected_frameworks:
-        # An existing selector is preserved rather than clobbered (brownfield-safe),
-        # so on a re-run the set we just computed may NOT be the set that is
-        # enforced. Report what will actually be enforced — a project that selected
-        # an experimental framework before it was tiered keeps enforcing it, and
-        # printing the computed defaults instead would state the opposite.
-        existing_selection = _read_selected_frameworks(target) if not args.force else None
-        effective = existing_selection if existing_selection is not None else selected_frameworks
-        actions.append(f"frameworks {', '.join(_framework_label(k) for k in effective)}")
-        if existing_selection is not None and set(existing_selection) != set(selected_frameworks):
-            actions.append(
-                "frameworks: existing .sicario/frameworks.txt preserved; it differs from this "
-                "profile's defaults. Re-run with --force or edit the file to adopt them."
-            )
-        _write_text(
-            target / FRAMEWORKS_CONFIG,
-            _frameworks_config_content(selected_frameworks),
-            force=args.force,
-            dry_run=args.dry_run,
-            actions=actions,
-            reports=reports,
-        )
-    else:
-        actions.append("frameworks (none selected; default coarse control-map check)")
+    _init_write_framework_selection(target, args, actions, reports)
 
-    if interactive_config is not None:
-        sicario_dir = target / ".sicario"
-        if not args.dry_run:
-            sicario_dir.mkdir(parents=True, exist_ok=True)
-        _write_text(
-            sicario_dir / "config.json",
-            json.dumps(interactive_config, indent=2) + "\n",
-            force=args.force,
-            dry_run=args.dry_run,
-            actions=actions,
-            reports=reports,
-        )
+    _init_write_interactive_config(target, args, interactive_config, actions, reports)
 
     _copy_tree(
         EXTENSIONS_ROOT / "sicario-guard",
@@ -785,23 +851,7 @@ def init_project(args: argparse.Namespace) -> int:
     )
 
     # Delegate generated content (docs, integrations, workflows) to presets.
-    for preset_id in selected_presets:
-        cls = PRESET_CLASSES.get(preset_id)
-        if cls is not None:
-            cls().write(
-                target,
-                presets_root=PRESETS_ROOT,
-                workflows_root=WORKFLOW_ROOT,
-                selected_presets=selected_presets,
-                integration=args.integration,
-                apply_to_speckit=getattr(args, "apply_to_speckit", True),
-                deferrals=deferrals,
-                speckit_template_files=SPECKIT_TEMPLATE_FILES,
-                force=args.force,
-                dry_run=args.dry_run,
-                actions=actions,
-                reports=reports,
-            )
+    _init_write_preset_content(target, args, selected_presets, deferrals, actions, reports)
 
     print("\n".join(actions))
     _print_report(reports, dry_run=args.dry_run, force=args.force)
@@ -1107,46 +1157,46 @@ def _rule_sources(root: Path) -> "tuple[List[Path], List[str]]":
     return rule_dirs, origins
 
 
-def verify_project(path: Path, *, write: bool = True) -> List[Finding]:
-    from sicario_cli.rules import RuleEngine
+def _no_rules_loaded_findings(rule_report, rule_dirs: List[Path]) -> List[Finding]:
+    """Fail closed when nothing loaded.
 
-    root = path.resolve()
-    findings: List[Finding] = []
-
-    rule_dirs, rule_origins = _rule_sources(root)
-
-    engine = RuleEngine()
-    rule_report = engine.run_detailed(root, rule_dirs=rule_dirs, origins=rule_origins)
-
-    # A rule file that could not be loaded is a gap in enforcement, so it is a
-    # critical finding rather than a stderr warning: a cap of 0 on the
-    # secret-scan rule would otherwise drop it silently and turn a repository
-    # full of live credentials into a clean gate result.
-    #
-    # Two details the first version got wrong. The path was hardcoded to
-    # `.sicario/rules/`, which misattributed a broken SHIPPED rule to the
-    # project. And the message always said "did not run", which is false when a
-    # valid definition of the same id loaded from the other directory — the
-    # common case, since `init` copies every shipped rule into the project.
-    # Fail closed when nothing loaded. A run with zero rules cannot fail, so it
-    # reports "passed" over any repository at all. That is not hypothetical: the
-    # packaged build resolved its asset root to a tree with no rules/ directory,
-    # so every pip-installed deployment enforced nothing while printing
-    # "sicario verify passed" — and a wheel smoke test read that as healthy.
-    # A gate that enforces nothing must say so rather than agreeing with you.
-    if not rule_report.loaded_rule_ids:
-        findings.append(
-            Finding(
-                "critical",
-                "SICARIO-NO-RULES-LOADED",
-                "No rules were loaded, so this run enforced nothing. A passing verdict "
-                f"here means only that no checks ran. Searched: "
-                f"{', '.join(str(d) for d in rule_dirs) or '(none)'}",
-                ".sicario/rules",
-            )
+    A run with zero rules cannot fail, so it reports "passed" over any
+    repository at all. That is not hypothetical: the packaged build resolved
+    its asset root to a tree with no rules/ directory, so every pip-installed
+    deployment enforced nothing while printing "sicario verify passed" — and a
+    wheel smoke test read that as healthy. A gate that enforces nothing must
+    say so rather than agreeing with you.
+    """
+    if rule_report.loaded_rule_ids:
+        return []
+    return [
+        Finding(
+            "critical",
+            "SICARIO-NO-RULES-LOADED",
+            "No rules were loaded, so this run enforced nothing. A passing verdict "
+            f"here means only that no checks ran. Searched: "
+            f"{', '.join(str(d) for d in rule_dirs) or '(none)'}",
+            ".sicario/rules",
         )
+    ]
 
+
+def _rule_load_error_findings(rule_report, root: Path) -> List[Finding]:
+    """Turn each rule file that failed to load into a critical finding.
+
+    A rule file that could not be loaded is a gap in enforcement, so it is a
+    critical finding rather than a stderr warning: a cap of 0 on the
+    secret-scan rule would otherwise drop it silently and turn a repository
+    full of live credentials into a clean gate result.
+
+    Two details an earlier version got wrong. The path was hardcoded to
+    `.sicario/rules/`, which misattributed a broken SHIPPED rule to the
+    project. And the message always said "did not run", which is false when a
+    valid definition of the same id loaded from the other directory — the
+    common case, since `init` copies every shipped rule into the project.
+    """
     enforced_ids = set(rule_report.loaded_rule_ids)
+    findings: List[Finding] = []
     for err in rule_report.load_errors:
         rule_id = err.get("rule_id")
         named = rule_id or err["file"]
@@ -1174,49 +1224,80 @@ def verify_project(path: Path, *, write: bool = True) -> List[Finding]:
         findings.append(
             Finding("critical", err["code"], f"{detail}: {'; '.join(err['errors'])}", location)
         )
+    return findings
 
-    # Design note: an env var that silently swaps the rule set is
-    # indistinguishable from an attack — a decoy asset root with a PARTIAL rule
-    # set weakens enforcement while looking populated, and the zero-rules
-    # fail-closed check above cannot see it. The env var stays a legitimate
-    # feature; the control is visibility, so a redirected gate must not present
-    # as a normal one. This fires only when SICARIO_ASSET_ROOT actually changed
-    # which root won the race — naming the root that would win anyway stays
-    # silent. No path is attached: the redirected root lives outside the
-    # scanned tree, and the message carries both paths.
-    if ASSET_ROOT_RESOLUTION.redirected:
-        findings.append(
-            Finding(
-                "medium",
-                "SICARIO-ASSET-ROOT-OVERRIDE",
-                "SICARIO_ASSET_ROOT redirected this gate's rule source: rules were "
-                f"loaded from '{ASSET_ROOT_RESOLUTION.resolved_root}' instead of the default "
-                f"'{ASSET_ROOT_RESOLUTION.default_root}'. This finding fails the run "
-                "by design — a redirected rule source is indistinguishable from a "
-                "tampered one until a reviewer confirms it. See "
-                "scan_coverage.asset_root in the evidence for the resolution record.",
-            )
+
+def _asset_root_override_findings() -> List[Finding]:
+    """Flag a SICARIO_ASSET_ROOT redirect as a finding, never silently.
+
+    An env var that silently swaps the rule set is indistinguishable from an
+    attack — a decoy asset root with a PARTIAL rule set weakens enforcement
+    while looking populated, and the zero-rules fail-closed check cannot see
+    it. The env var stays a legitimate feature; the control is visibility, so
+    a redirected gate must not present as a normal one. This fires only when
+    SICARIO_ASSET_ROOT actually changed which root won the race — naming the
+    root that would win anyway stays silent. No path is attached: the
+    redirected root lives outside the scanned tree, and the message carries
+    both paths.
+    """
+    if not ASSET_ROOT_RESOLUTION.redirected:
+        return []
+    return [
+        Finding(
+            "medium",
+            "SICARIO-ASSET-ROOT-OVERRIDE",
+            "SICARIO_ASSET_ROOT redirected this gate's rule source: rules were "
+            f"loaded from '{ASSET_ROOT_RESOLUTION.resolved_root}' instead of the default "
+            f"'{ASSET_ROOT_RESOLUTION.default_root}'. This finding fails the run "
+            "by design — a redirected rule source is indistinguishable from a "
+            "tampered one until a reviewer confirms it. See "
+            "scan_coverage.asset_root in the evidence for the resolution record.",
         )
+    ]
+
+
+def _missing_framework_map_findings(root: Path, selected_frameworks: Optional[List[str]]) -> List[Finding]:
+    """One finding per selected framework whose control map is absent."""
+    if selected_frameworks is None:
+        return []
+    findings: List[Finding] = []
+    for key in selected_frameworks:
+        filename = FRAMEWORK_IDS[key]
+        present = (root / "docs" / "compliance" / "control-maps" / filename).exists() or (
+            root / "control_maps" / filename
+        ).exists()
+        if not present:
+            findings.append(
+                Finding(
+                    "medium",
+                    "SICARIO-MISSING-FRAMEWORK-MAP",
+                    f"Selected framework '{key}' has no control map ({filename})",
+                    f"docs/compliance/control-maps/{filename}",
+                )
+            )
+    return findings
+
+
+def verify_project(path: Path, *, write: bool = True) -> List[Finding]:
+    from sicario_cli.rules import RuleEngine
+
+    root = path.resolve()
+    findings: List[Finding] = []
+
+    rule_dirs, rule_origins = _rule_sources(root)
+
+    engine = RuleEngine()
+    rule_report = engine.run_detailed(root, rule_dirs=rule_dirs, origins=rule_origins)
+
+    findings.extend(_no_rules_loaded_findings(rule_report, rule_dirs))
+    findings.extend(_rule_load_error_findings(rule_report, root))
+    findings.extend(_asset_root_override_findings())
 
     for r in rule_report.findings:
         findings.append(Finding(r["severity"], r["code"], r["message"], r["path"], r.get("line")))
 
     selected_frameworks = _read_selected_frameworks(root)
-    if selected_frameworks is not None:
-        for key in selected_frameworks:
-            filename = FRAMEWORK_IDS[key]
-            present = (root / "docs" / "compliance" / "control-maps" / filename).exists() or (
-                root / "control_maps" / filename
-            ).exists()
-            if not present:
-                findings.append(
-                    Finding(
-                        "medium",
-                        "SICARIO-MISSING-FRAMEWORK-MAP",
-                        f"Selected framework '{key}' has no control map ({filename})",
-                        f"docs/compliance/control-maps/{filename}",
-                    )
-                )
+    findings.extend(_missing_framework_map_findings(root, selected_frameworks))
 
     if write:
         _write_evidence(root, findings, scan_coverage=_scan_coverage(rule_report))
@@ -1381,64 +1462,70 @@ def _sarif_output(findings: List[Finding]) -> str:
     return json.dumps(sarif_runs, indent=2)
 
 
-def verify_command(args: argparse.Namespace) -> int:
-    root = Path(args.path).expanduser().resolve()
+def _validate_rules_command(root: Path) -> int:
+    """Implement ``sicario verify --validate-rules``: lint rule files without running them.
 
-    if getattr(args, "validate_rules", False):
-        # This previously called `engine._load_rule_file(...)`, but
-        # `_load_rule_file` is a module-level function in rules.engine, not a
-        # method — so every rule file raised AttributeError and reported as an
-        # error, valid or not, and `_validate_rule` was never reached. The one
-        # control that catches a malformed rule before a run was inert.
-        from sicario_cli.rules.engine import _load_rule_file, _validate_rule
+    This previously called `engine._load_rule_file(...)`, but
+    `_load_rule_file` is a module-level function in rules.engine, not a
+    method — so every rule file raised AttributeError and reported as an
+    error, valid or not, and `_validate_rule` was never reached. The one
+    control that catches a malformed rule before a run was inert.
+    """
+    from sicario_cli.rules.engine import _load_rule_file, _validate_rule
 
-        # Same sources as a real run, so validation never clears a set of files
-        # the gate would not actually load. Order is irrelevant here — every
-        # file is validated on its own — but sharing one definition keeps the
-        # two paths from drifting apart.
-        rule_dirs, _ = _rule_sources(root)
+    # Same sources as a real run, so validation never clears a set of files
+    # the gate would not actually load. Order is irrelevant here — every
+    # file is validated on its own — but sharing one definition keeps the
+    # two paths from drifting apart.
+    rule_dirs, _ = _rule_sources(root)
 
-        errors: List[str] = []
-        unreachable: List[Path] = []
-        checked = 0
-        for rule_dir in rule_dirs:
-            if not rule_dir.is_dir():
+    errors: List[str] = []
+    unreachable: List[Path] = []
+    checked = 0
+    for rule_dir in rule_dirs:
+        if not rule_dir.is_dir():
+            continue
+        # Non-recursive, matching `load_rules`, which globs a single level.
+        # Validating recursively would clear rule files the gate never loads,
+        # reporting "valid" for a rule that silently does not run.
+        for rule_file in sorted(rule_dir.glob("*.rule.json")):
+            checked += 1
+            data = _load_rule_file(rule_file)
+            if data is None:
+                errors.append(f"{rule_file}: not readable, decodable, or a JSON object")
                 continue
-            # Non-recursive, matching `load_rules`, which globs a single level.
-            # Validating recursively would clear rule files the gate never loads,
-            # reporting "valid" for a rule that silently does not run.
-            for rule_file in sorted(rule_dir.glob("*.rule.json")):
-                checked += 1
-                data = _load_rule_file(rule_file)
-                if data is None:
-                    errors.append(f"{rule_file}: not readable, decodable, or a JSON object")
-                    continue
-                for message in _validate_rule(data):
-                    errors.append(f"{rule_file}: {message}")
-            # Matching the loader is necessary but not sufficient: a rule file in
-            # a subdirectory would now get no signal from either side. Silence is
-            # the failure mode this gate exists to avoid, so name them.
-            unreachable.extend(
-                p for p in sorted(rule_dir.rglob("*.rule.json")) if p.parent != rule_dir
-            )
+            for message in _validate_rule(data):
+                errors.append(f"{rule_file}: {message}")
+        # Matching the loader is necessary but not sufficient: a rule file in
+        # a subdirectory would now get no signal from either side. Silence is
+        # the failure mode this gate exists to avoid, so name them.
+        unreachable.extend(
+            p for p in sorted(rule_dir.rglob("*.rule.json")) if p.parent != rule_dir
+        )
 
-        for path in unreachable:
-            print(
-                f"{path}: ignored — rule files load only from the top level of a "
-                "rules directory, not from subdirectories"
-            )
-        if errors:
-            for e in errors:
-                print(e)
-            print(f"rule validation failed with {len(errors)} error(s) across {checked} file(s)")
-            return 1
-        suffix = f"; {len(unreachable)} ignored in subdirectories" if unreachable else ""
-        print(f"all rules valid ({checked} file(s){suffix})")
-        return 0
+    for path in unreachable:
+        print(
+            f"{path}: ignored — rule files load only from the top level of a "
+            "rules directory, not from subdirectories"
+        )
+    if errors:
+        for e in errors:
+            print(e)
+        print(f"rule validation failed with {len(errors)} error(s) across {checked} file(s)")
+        return 1
+    suffix = f"; {len(unreachable)} ignored in subdirectories" if unreachable else ""
+    print(f"all rules valid ({checked} file(s){suffix})")
+    return 0
 
-    findings = verify_project(root, write=True)
 
-    fmt = getattr(args, "format", "text")
+def _print_verify_findings(findings: List[Finding], fmt: str) -> bool:
+    """Print findings in the requested format; return whether it is machine-readable.
+
+    The summary is a human diagnostic, not part of the payload. Printing it to
+    stdout after a JSON or SARIF document made that document unparseable —
+    `verify --format sarif | jq` failed outright, on passing runs as well as
+    failing ones. stdout carries the artifact; stderr carries the commentary.
+    """
     machine_readable = fmt in ("json", "sarif")
     if fmt == "json":
         print(json.dumps([f.as_dict() for f in findings], indent=2))
@@ -1447,11 +1534,20 @@ def verify_command(args: argparse.Namespace) -> int:
     else:
         for finding in findings:
             print(_finding_line(finding))
+    return machine_readable
 
-    # The summary is a human diagnostic, not part of the payload. Printing it to
-    # stdout after a JSON or SARIF document made that document unparseable —
-    # `verify --format sarif | jq` failed outright, on passing runs as well as
-    # failing ones. stdout carries the artifact; stderr carries the commentary.
+
+def verify_command(args: argparse.Namespace) -> int:
+    root = Path(args.path).expanduser().resolve()
+
+    if getattr(args, "validate_rules", False):
+        return _validate_rules_command(root)
+
+    findings = verify_project(root, write=True)
+
+    fmt = getattr(args, "format", "text")
+    machine_readable = _print_verify_findings(findings, fmt)
+
     # The exit code is unchanged and remains the authoritative verdict.
     summary_stream = sys.stderr if machine_readable else sys.stdout
     if findings:
@@ -1498,11 +1594,21 @@ HOOK_COMMAND_KIND = {
 HOOK_EVENTS = ["after_specify", "after_plan", "after_tasks"]
 
 
+def _collect_hook_tokens(stripped: str, into: List[str]) -> None:
+    """Append any recognized hook-command tokens on this line to `into`, in order.
+
+    Recognizes both the flat list form (``- sicario.verify``) and the
+    structured ``command: sicario.verify`` form.
+    """
+    for token in stripped.replace("- ", " ").replace("command:", " ").split():
+        if token in HOOK_COMMAND_KIND and token not in into:
+            into.append(token)
+
+
 def _parse_hook_commands(extensions_yml: Path) -> "dict[str, List[str]]":
     """Extract ordered hook commands per event from .specify/extensions.yml.
 
     Uses a tiny, dependency-free line scanner (stdlib-only runtime constraint).
-    Recognizes both the flat list form and the structured `command:` form.
     """
     events: "dict[str, List[str]]" = {event: [] for event in HOOK_EVENTS}
     if not extensions_yml.exists():
@@ -1526,11 +1632,8 @@ def _parse_hook_commands(extensions_yml: Path) -> "dict[str, List[str]]":
         if bare in HOOK_EVENTS:
             current = bare
             continue
-        if current is None:
-            continue
-        for token in stripped.replace("- ", " ").replace("command:", " ").split():
-            if token in HOOK_COMMAND_KIND and token not in events[current]:
-                events[current].append(token)
+        if current is not None:
+            _collect_hook_tokens(stripped, events[current])
     return events
 
 
@@ -1546,6 +1649,27 @@ def _run_deterministic_hook(command: str, root: Path) -> int:
     return 0
 
 
+def _run_hook_event_commands(commands: List[str], root: Path) -> "tuple[bool, bool]":
+    """Run/report every command for one hook event. Returns (ran_any, failed)."""
+    ran_any = False
+    failed = False
+    for command in commands:
+        kind = HOOK_COMMAND_KIND.get(command, "agent")
+        if kind == "deterministic":
+            ran_any = True
+            print(f"- run {command} (deterministic)")
+            result = _run_deterministic_hook(command, root)
+            if result != 0:
+                failed = True
+        else:
+            print(
+                f"- {command} (agent guidance): see "
+                f".specify/extensions/sicario-guard/commands/{command}.md "
+                "— a coding agent performs this; the runner does not execute it"
+            )
+    return ran_any, failed
+
+
 def hooks_command(args: argparse.Namespace) -> int:
     root = Path(args.path).expanduser().resolve()
     extensions_yml = root / ".specify" / "extensions.yml"
@@ -1558,38 +1682,17 @@ def hooks_command(args: argparse.Namespace) -> int:
         if not commands:
             continue
         print(f"[{event}]")
-        for command in commands:
-            kind = HOOK_COMMAND_KIND.get(command, "agent")
-            if kind == "deterministic":
-                ran_any = True
-                print(f"- run {command} (deterministic)")
-                result = _run_deterministic_hook(command, root)
-                if result != 0:
-                    exit_code = 1
-            else:
-                print(
-                    f"- {command} (agent guidance): see "
-                    f".specify/extensions/sicario-guard/commands/{command}.md "
-                    "— a coding agent performs this; the runner does not execute it"
-                )
+        event_ran, event_failed = _run_hook_event_commands(commands, root)
+        ran_any = ran_any or event_ran
+        if event_failed:
+            exit_code = 1
     if not ran_any and exit_code == 0:
         print("No deterministic hooks ran. Agent-guidance hooks are reported above.")
     return exit_code
 
 
-def _interactive_init(target: Path) -> dict:
-    """Run an interactive wizard to collect user choices for SicarioSpec init.
-
-    Returns a dict with keys:
-      - ``frameworks``: list of selected framework keys
-      - ``data_classification``: chosen max classification level
-      - ``cloud_providers``: list of selected cloud provider targets
-    """
-    print("SicarioSpec Interactive Setup")
-    print("=" * 40)
-    print("")
-
-    # 1. Framework selection
+def _interactive_init_frameworks() -> List[str]:
+    """Step 1 of the interactive wizard: framework selection."""
     print("Step 1: Framework Selection")
     print("-" * 30)
     print("Choose which compliance frameworks apply to this project.")
@@ -1618,8 +1721,11 @@ def _interactive_init(target: Path) -> dict:
                 selected_frameworks.append(part)
     print(f"  Selected: {', '.join(selected_frameworks) if selected_frameworks else 'none'}")
     print("")
+    return selected_frameworks
 
-    # 2. Data classification boundary
+
+def _interactive_init_data_classification() -> str:
+    """Step 2 of the interactive wizard: data classification boundary."""
     print("Step 2: Data Classification Boundary")
     print("-" * 30)
     print("What is the maximum data classification level for this project?")
@@ -1627,18 +1733,18 @@ def _interactive_init(target: Path) -> dict:
     for i, level in enumerate(class_levels, start=1):
         print(f"  {i}. {level}")
     classification_input = input("Choice (1-5, default 3): ").strip()
+    data_classification = "confidential"
     if classification_input.isdigit():
         idx = int(classification_input)
         if 1 <= idx <= len(class_levels):
             data_classification = class_levels[idx - 1]
-        else:
-            data_classification = "confidential"
-    else:
-        data_classification = "confidential"
     print(f"  Selected: {data_classification}")
     print("")
+    return data_classification
 
-    # 3. Cloud provider targets
+
+def _interactive_init_cloud_providers() -> List[str]:
+    """Step 3 of the interactive wizard: cloud/infrastructure provider targets."""
     print("Step 3: Infrastructure / Cloud Provider Targets")
     print("-" * 30)
     print("Which cloud or infrastructure platforms does this project target?")
@@ -1664,6 +1770,24 @@ def _interactive_init(target: Path) -> dict:
                         selected_cloud.append(key)
     print(f"  Selected: {', '.join(selected_cloud) if selected_cloud else 'none'}")
     print("")
+    return selected_cloud
+
+
+def _interactive_init() -> dict:
+    """Run an interactive wizard to collect user choices for SicarioSpec init.
+
+    Returns a dict with keys:
+      - ``frameworks``: list of selected framework keys
+      - ``data_classification``: chosen max classification level
+      - ``cloud_providers``: list of selected cloud provider targets
+    """
+    print("SicarioSpec Interactive Setup")
+    print("=" * 40)
+    print("")
+
+    selected_frameworks = _interactive_init_frameworks()
+    data_classification = _interactive_init_data_classification()
+    selected_cloud = _interactive_init_cloud_providers()
 
     config: dict = {
         "frameworks": selected_frameworks,
