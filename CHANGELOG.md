@@ -10,6 +10,32 @@ improve the security model.
 
 ### Fixed
 
+- **Deleting one file inside a SicarioSpec-managed directory was
+  unrepairable by a plain re-run.** `_copy_tree` returned early whenever the
+  destination directory already existed and `--force` was not set, so the
+  skip was wholesale at the directory level: remove one control map from
+  `docs/compliance/control-maps/`, or one rule from `.sicario/rules/`, and
+  `sicario init` reported the whole directory as `preserved — directory
+  exists; left untouched` and never noticed the hole. The only repair was
+  `--force`, which replaces the adopter's entire directory. An existing
+  managed directory is now merged **file by file** instead:
+
+  - a shipped file with no counterpart at the destination is copied back and
+    reported with the new `restored` outcome, including files nested in
+    subdirectories;
+  - a shipped file that is present is never read, compared, or written —
+    whether the adopter customized it is deliberately not consulted — and is
+    covered by the directory's `preserved` line;
+  - a file the adopter added that SicarioSpec does not ship is neither
+    touched nor reported.
+
+  The report therefore distinguishes "my customizations were kept" from "a
+  missing managed file was repaired" without diffing anything. `--force`
+  keeps its exact prior meaning (replace the directory wholesale after a
+  timestamped backup), and the #70 convergence invariant is unchanged: on an
+  intact project a re-run still reports zero `restored` and takes zero
+  backups. (#69)
+
 - **`sicario init` generated a docs-site workflow that failed on every fresh
   project's first push.** `workflow_templates/docs-site.yml` configured
   `actions/setup-node` with `cache: npm` and
