@@ -356,10 +356,13 @@ python3 examples/spec-graph/spec_graph_checklist.py \
   [R13] graph | plan § Threat Model | one entry per crossing zone-pair, keyed to the abuse cases R3 emitted (16 crossing edge(s))
 ```
 
-**What the gate checks here.** **Nothing.** `plan.md § Rollback` and
-`§ Threat Model` are not gate-required headings; no rule counts entries in
-either. The blast-radius line is content a reviewer needs and the gate cannot
-see.
+**What the gate checks here.** More than the spec side, and less than it
+looks: `SICARIO-PLAN-SECTION` (high) requires the literal substrings
+`Rollback` and `Threat Model` to appear somewhere in `plan.md` — so deleting
+either heading entirely goes red. That is all it checks: it cannot see the
+deploys closure, the number of entries, or their quality, and
+`§ Data Flow And Trust Boundaries` is not in its required list at all. The
+blast-radius line is content a reviewer needs and the gate cannot see.
 
 **Good content versus gate-passing filler.** Filler writes "rollback: revert
 the deploy". Real content writes the *closure*: these three resources move
@@ -546,7 +549,9 @@ not, and belongs in Assumptions with what breaks if the assumption is wrong.
 This is the same guard that bounds AI-assisted drafting: if you let an agent
 propose graph elements from repository content, the traceability rule is what
 stops a poisoned README from seeding a poisoned graph — every proposed
-element must be confirmed against a real artifact by you.
+element must be confirmed against a real artifact by you. And keep the tool
+boundary absolute: model output is untrusted input to your curation, and no
+model call participates in the helper, the gate, or any CI job.
 
 **The split rule.** If the traversal is **not dry after three passes, the
 feature is too large.** Split it. Three passes of L1 and L2 over a graph that

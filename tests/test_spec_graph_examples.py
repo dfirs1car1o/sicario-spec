@@ -26,9 +26,7 @@ SAAS_GRAPH = EXAMPLES / "saas-integration.graph.json"
 CLOUD_GRAPH = EXAMPLES / "cloud-architecture.graph.json"
 
 VERDICT_WORDS = ("pass", "passed", "fail", "failed", "blocking", "violation")
-VERDICT_WORD_PATTERN = re.compile(
-    r"\b(" + "|".join(VERDICT_WORDS) + r")\b", flags=re.IGNORECASE
-)
+VERDICT_WORD_PATTERN = re.compile(r"\b(" + "|".join(VERDICT_WORDS) + r")\b", flags=re.IGNORECASE)
 
 SECRET_SCAN_RULE_IDS = ("040", "041", "042", "043")
 
@@ -93,10 +91,21 @@ class ExamplesPackageLayoutTests(unittest.TestCase):
 class HelperIsNotAnAuthorityTests(unittest.TestCase):
     """SEC-002: no verdict vocabulary, and exit 0 on every input."""
 
+    # SEC-002 also forbids severity tokens. "high" is permitted only inside the
+    # spec-template phrase "high-impact" (FR-020 R5 mandates it); the shipped
+    # severity vocabulary itself must never appear.
+    SEVERITY_TOKEN_PATTERN = re.compile(
+        r"\b(critical|medium|blocker|severity)\b|\bhigh\b(?!-impact)", flags=re.IGNORECASE
+    )
+
     def assert_no_verdict_vocabulary(self, label: str, text: str) -> None:
         self.assertNotIn("SICARIO-", text, f"{label} emitted a finding-code prefix")
         found = VERDICT_WORD_PATTERN.findall(text)
         self.assertEqual(found, [], f"{label} emitted verdict vocabulary: {sorted(set(found))}")
+        severities = self.SEVERITY_TOKEN_PATTERN.findall(text)
+        self.assertEqual(
+            severities, [], f"{label} emitted severity vocabulary: {sorted(set(severities))}"
+        )
 
     def test_both_example_graphs_produce_no_verdict_vocabulary_and_exit_zero(self) -> None:
         for graph_path in (SAAS_GRAPH, CLOUD_GRAPH):
@@ -106,9 +115,7 @@ class HelperIsNotAnAuthorityTests(unittest.TestCase):
                     self.assertEqual(result.returncode, 0, result.stderr)
                     self.assertTrue(result.stdout.strip())
                     self.assert_no_verdict_vocabulary(graph_path.name, result.stdout)
-                    self.assert_no_verdict_vocabulary(
-                        f"{graph_path.name} (stderr)", result.stderr
-                    )
+                    self.assert_no_verdict_vocabulary(f"{graph_path.name} (stderr)", result.stderr)
 
     def test_malformed_input_still_exits_zero_with_a_structured_report(self) -> None:
         with tempfile.TemporaryDirectory() as scratch:
@@ -120,6 +127,16 @@ class HelperIsNotAnAuthorityTests(unittest.TestCase):
         self.assertIn("Problem report", result.stdout)
         self.assertIn("not valid JSON", result.stdout)
         self.assert_no_verdict_vocabulary("broken JSON", result.stdout)
+
+    def test_non_utf8_input_still_exits_zero_with_a_structured_report(self) -> None:
+        with tempfile.TemporaryDirectory() as scratch:
+            binary = Path(scratch) / "binary.graph.json"
+            binary.write_bytes(b"\xff\xfe\x00not utf-8")
+            result = run_helper(str(binary))
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("could not be read", result.stdout)
+        self.assert_no_verdict_vocabulary("non-UTF-8 input", result.stdout)
 
     def test_schema_invalid_input_still_exits_zero(self) -> None:
         document = {

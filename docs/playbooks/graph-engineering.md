@@ -444,7 +444,8 @@ artifact. This is the whole procedure:
 **What the gate checks here.** **Nothing** — and this is the sentence worth
 saying out loud. The traversal emits content into thirteen places, and of the
 spec sections it targets, `sicario verify` names only six by substring and
-reaches one more conditionally. R1, R2, R3's abuse-case output, and R12's
+reaches two more conditionally (the AI and fleet guardrail rules, when their
+trigger words appear). R1, R2, R3's abuse-case output, and R12's
 rows will make the substring rules happy as a side effect. R4, R7, R8, R13
 and most of the rest are invisible to it. You are doing this for the reviewer
 and for yourself.

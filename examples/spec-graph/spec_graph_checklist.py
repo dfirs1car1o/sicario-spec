@@ -87,9 +87,7 @@ EDGE_TYPES: frozenset[str] = frozenset(
     }
 )
 
-UNCONTROLLED_ZONES: frozenset[str] = frozenset(
-    {"public-internet", "vendor-saas", "subprocessor"}
-)
+UNCONTROLLED_ZONES: frozenset[str] = frozenset({"public-internet", "vendor-saas", "subprocessor"})
 REQUIRED_TAG_KEYS: tuple[str, ...] = (
     "owner",
     "system",
@@ -191,9 +189,9 @@ class SpecGraph:
     def is_architecture_graph(self) -> bool:
         return any(self.kind(node_id) in ARCH_MARKER_KINDS for node_id in self.nodes)
 
-    def adjacency(self, edge_types: frozenset[str] | tuple[str, ...] | None = None) -> dict[
-        str, list[str]
-    ]:
+    def adjacency(
+        self, edge_types: frozenset[str] | tuple[str, ...] | None = None
+    ) -> dict[str, list[str]]:
         wanted = set(edge_types) if edge_types is not None else None
         table: dict[str, set[str]] = defaultdict(set)
         for edge in self.edges:
@@ -439,9 +437,7 @@ def rule_r4(graph: SpecGraph) -> list[str]:
             if owner
             else ", rotation owner is unrecorded — name one before this row advances"
         )
-        lines.append(
-            _line("R4", node_id, "spec § Secrets / Credential Handling", detail + suffix)
-        )
+        lines.append(_line("R4", node_id, "spec § Secrets / Credential Handling", detail + suffix))
     return lines
 
 
@@ -914,9 +910,7 @@ def render_checklist(graph: SpecGraph, problems: list[str]) -> list[str]:
         lines.append("== Problem report (shape departures from graph.schema.json) ==")
         for problem in problems:
             lines.append(f"  [problem] {problem}")
-        lines.append(
-            "  the traversal below covers only the well-formed part of the document"
-        )
+        lines.append("  the traversal below covers only the well-formed part of the document")
 
     lines.append("")
     crossings = graph.crossing_edges()
@@ -937,9 +931,7 @@ def render_checklist(graph: SpecGraph, problems: list[str]) -> list[str]:
     lines.append("")
     lines.append("== Gap list (what the deterministic gate cannot see) ==")
     lines.extend(gap_lines(graph))
-    lines.append(
-        "  every line above is an unanswered question for a human, never a finding code"
-    )
+    lines.append("  every line above is an unanswered question for a human, never a finding code")
     return lines
 
 
@@ -1002,7 +994,7 @@ def main(argv: list[str] | None = None) -> int:
     document: dict[str, Any] = {}
     try:
         raw = path.read_text(encoding="utf-8")
-    except OSError as exc:
+    except (OSError, UnicodeDecodeError) as exc:
         problems.append(f"the graph document could not be read: {exc}")
         raw = ""
     if raw:
