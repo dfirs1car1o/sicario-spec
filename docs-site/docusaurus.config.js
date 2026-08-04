@@ -17,7 +17,15 @@ const config = {
     hooks: {
       onBrokenMarkdownLinks: 'throw',
     },
+    // Spec 008 FR-042 option (i): render ```mermaid fences on the docs site
+    // so the Advanced Track's graph diagrams display as diagrams. The .mmd
+    // source under docs/diagrams/ remains the artifact of record either way.
+    mermaid: true,
   },
+  // Docs-build only. @docusaurus/theme-mermaid lives in docs-site/package.json
+  // and nothing in docs/ or docs-site/ ships in the Python wheel, so this adds
+  // no runtime dependency to the package (spec 008 FR-052's carve-out).
+  themes: ['@docusaurus/theme-mermaid'],
   trailingSlash: false,
 
   i18n: {

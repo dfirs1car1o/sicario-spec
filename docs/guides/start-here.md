@@ -84,6 +84,18 @@ merge-blocking gate, write a spec a reviewer would accept as analysis
 rather than vocabulary, and read a green run's own evidence to say what it
 actually checked — and whether anything was weakened.
 
+After that, and strictly optional, there is one more path: the
+[Advanced Track: graph and loop engineering](advanced-track.md) · two
+playbooks, about two to three hours. It answers a different question from
+the six lessons — not "what belongs in this section?" but "where does the
+substance come from at all?" — by deriving spec content from a typed graph
+of the feature and iterating that derivation until it stops producing new
+findings. Its prerequisite is these six lessons, with **Lesson 5 as a hard
+prerequisite**: every step states what the gate checks there, and the honest
+answer is almost always "nothing", which only reads as a feature if you have
+already done Lesson 5. Skip it entirely if you are here to adopt; come back
+when the question above starts to bother you.
+
 ## When you need it
 
 The remaining playbooks are task-shaped: go to them when their situation is

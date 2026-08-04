@@ -65,12 +65,33 @@ const lessonItems = LESSONS.filter((l) =>
   [...guideItems, ...playbookItems].includes(l.id)
 ).map((l) => ({ type: 'doc', id: l.id, label: l.label }));
 
+// Advanced Track (spec 008 FR-001/FR-002): an optional level ABOVE the six
+// lessons, published as its own collapsed category between the lesson path
+// and 'When You Need It' so the six-lesson path stays visually primary. The
+// six-lesson path, its count, and its stated time budget are unchanged.
+const ADVANCED_LABEL = 'Advanced Track — Graph & Loop Engineering';
+const ADVANCED = [
+  { id: 'guides/advanced-track', label: 'Advanced Track: start here' },
+  { id: 'playbooks/graph-engineering', label: 'Advanced 1 · Graph engineering' },
+  { id: 'playbooks/loop-engineering', label: 'Advanced 2 · Loop engineering' },
+];
+const advancedIds = new Set(ADVANCED.map((a) => a.id));
+const advancedItems = ADVANCED.filter((a) =>
+  [...guideItems, ...playbookItems].includes(a.id)
+).map((a) => ({ type: 'doc', id: a.id, label: a.label }));
+
+// FR-003 (the computed-complement trap): 'When You Need It' is the COMPLEMENT
+// of the curated categories, so any id that is not excluded here appears
+// twice in the sidebar. Both the lesson ids and the advanced-track ids must
+// be subtracted; tests/test_advanced_track_docs.py asserts each of the three
+// new ids appears exactly once across the whole structure.
 const whenNeededItems = [...guideItems, ...playbookItems].filter(
-  (id) => !lessonIds.has(id)
+  (id) => !lessonIds.has(id) && !advancedIds.has(id)
 );
 
 const learningSections = [
   ...(lessonItems.length ? [[LESSONS_LABEL, lessonItems]] : []),
+  ...(advancedItems.length ? [[ADVANCED_LABEL, advancedItems]] : []),
   ...(whenNeededItems.length ? [['When You Need It', whenNeededItems]] : []),
 ];
 
