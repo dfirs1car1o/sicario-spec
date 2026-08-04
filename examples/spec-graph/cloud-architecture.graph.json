@@ -1,0 +1,393 @@
+{
+  "graph_version": 1,
+  "feature": "005-regulated-export-path",
+  "notes": "Synthetic architecture graph for the Advanced Track. res-legacy-report-job is deliberately untagged and res-metrics-agent is deliberately partially tagged so traversal rule R9 and the gap list have real output.",
+  "nodes": [
+    {
+      "id": "actor-internet-client",
+      "kind": "actor",
+      "zone": "public-internet",
+      "attrs": {
+        "role": "unauthenticated client",
+        "tags": {
+          "owner": "platform-eng",
+          "system": "orders-platform",
+          "environment": "production",
+          "data-classification": "Public",
+          "retention": "not-applicable"
+        }
+      }
+    },
+    {
+      "id": "net-public-ingress",
+      "kind": "network_edge",
+      "zone": "public-internet",
+      "attrs": {
+        "public": true,
+        "protocol": "https",
+        "tags": {
+          "owner": "platform-eng",
+          "system": "orders-platform",
+          "environment": "production",
+          "data-classification": "Public",
+          "retention": "90d"
+        }
+      }
+    },
+    {
+      "id": "res-alb",
+      "kind": "resource",
+      "zone": "edge",
+      "attrs": {
+        "provider": "<cloud-provider-ref>",
+        "service": "application-load-balancer",
+        "tags": {
+          "owner": "platform-eng",
+          "system": "orders-platform",
+          "environment": "production",
+          "data-classification": "Internal",
+          "retention": "90d"
+        }
+      }
+    },
+    {
+      "id": "res-api-service",
+      "kind": "resource",
+      "zone": "private-subnet",
+      "attrs": {
+        "provider": "<cloud-provider-ref>",
+        "service": "container-service",
+        "tags": {
+          "owner": "platform-eng",
+          "system": "orders-platform",
+          "environment": "production",
+          "data-classification": "Regulated-PCI",
+          "retention": "90d"
+        }
+      }
+    },
+    {
+      "id": "res-export-function",
+      "kind": "resource",
+      "zone": "private-subnet",
+      "attrs": {
+        "provider": "<cloud-provider-ref>",
+        "service": "serverless-function",
+        "tags": {
+          "owner": "data-eng",
+          "system": "orders-platform",
+          "environment": "production",
+          "data-classification": "Regulated-PCI",
+          "retention": "90d"
+        }
+      }
+    },
+    {
+      "id": "res-legacy-report-job",
+      "kind": "resource",
+      "zone": "private-subnet",
+      "attrs": {
+        "provider": "<cloud-provider-ref>",
+        "service": "batch-job"
+      }
+    },
+    {
+      "id": "res-metrics-agent",
+      "kind": "resource",
+      "zone": "mgmt-plane",
+      "attrs": {
+        "provider": "<cloud-provider-ref>",
+        "service": "metrics-collector",
+        "tags": {
+          "owner": "platform-eng",
+          "system": "orders-platform",
+          "environment": "production"
+        }
+      }
+    },
+    {
+      "id": "ds-orders-db",
+      "kind": "data_store",
+      "zone": "data-subnet",
+      "attrs": {
+        "provider": "<cloud-provider-ref>",
+        "service": "relational-database",
+        "data_class": "Regulated-PCI",
+        "residency": "EU",
+        "retention": "7y",
+        "tags": {
+          "owner": "data-eng",
+          "system": "orders-platform",
+          "environment": "production",
+          "data-classification": "Regulated-PCI",
+          "retention": "7y"
+        }
+      }
+    },
+    {
+      "id": "ds-export-bucket",
+      "kind": "data_store",
+      "zone": "data-subnet",
+      "attrs": {
+        "provider": "<cloud-provider-ref>",
+        "service": "object-store",
+        "data_class": "Regulated-PCI",
+        "residency": "EU",
+        "retention": "400d",
+        "tags": {
+          "owner": "data-eng",
+          "system": "orders-platform",
+          "environment": "production",
+          "data-classification": "Regulated-PCI",
+          "retention": "400d"
+        }
+      }
+    },
+    {
+      "id": "ds-audit-sink",
+      "kind": "data_store",
+      "zone": "mgmt-plane",
+      "attrs": {
+        "provider": "<cloud-provider-ref>",
+        "service": "log-archive",
+        "data_class": "Internal",
+        "residency": "EU",
+        "retention": "400d",
+        "tags": {
+          "owner": "security-eng",
+          "system": "orders-platform",
+          "environment": "production",
+          "data-classification": "Internal",
+          "retention": "400d"
+        }
+      }
+    },
+    {
+      "id": "ds-terraform-state",
+      "kind": "data_store",
+      "zone": "control-plane",
+      "attrs": {
+        "provider": "<cloud-provider-ref>",
+        "service": "object-store",
+        "data_class": "Confidential",
+        "residency": "EU",
+        "retention": "life-of-stack",
+        "tags": {
+          "owner": "release-eng",
+          "system": "orders-platform",
+          "environment": "production",
+          "data-classification": "Confidential",
+          "retention": "life-of-stack"
+        }
+      }
+    },
+    {
+      "id": "key-orders-cmk",
+      "kind": "key",
+      "zone": "mgmt-plane",
+      "attrs": {
+        "rotation_owner": "security-eng",
+        "scope": "orders-platform",
+        "tags": {
+          "owner": "security-eng",
+          "system": "orders-platform",
+          "environment": "production",
+          "data-classification": "Regulated-PCI",
+          "retention": "life-of-key"
+        }
+      }
+    },
+    {
+      "id": "id-svc-api",
+      "kind": "identity",
+      "zone": "private-subnet",
+      "attrs": {
+        "principal_type": "workload",
+        "owner": "platform-eng",
+        "assumable_by": "res-api-service",
+        "tags": {
+          "owner": "platform-eng",
+          "system": "orders-platform",
+          "environment": "production",
+          "data-classification": "Internal",
+          "retention": "life-of-service"
+        }
+      }
+    },
+    {
+      "id": "id-fn-export",
+      "kind": "identity",
+      "zone": "private-subnet",
+      "attrs": {
+        "principal_type": "workload",
+        "owner": "data-eng",
+        "assumable_by": "res-export-function",
+        "tags": {
+          "owner": "data-eng",
+          "system": "orders-platform",
+          "environment": "production",
+          "data-classification": "Internal",
+          "retention": "life-of-service"
+        }
+      }
+    },
+    {
+      "id": "id-ci-deploy",
+      "kind": "identity",
+      "zone": "control-plane",
+      "attrs": {
+        "principal_type": "service-principal",
+        "owner": "release-eng",
+        "assumable_by": "cp-ci-deploy-runner",
+        "tags": {
+          "owner": "release-eng",
+          "system": "orders-platform",
+          "environment": "production",
+          "data-classification": "Confidential",
+          "retention": "life-of-pipeline"
+        }
+      }
+    },
+    {
+      "id": "pol-bucket-wildcard",
+      "kind": "policy",
+      "zone": "data-subnet",
+      "attrs": {
+        "effect": "allow",
+        "breadth": "wildcard",
+        "tags": {
+          "owner": "data-eng",
+          "system": "orders-platform",
+          "environment": "production",
+          "data-classification": "Regulated-PCI",
+          "retention": "life-of-stack"
+        }
+      }
+    },
+    {
+      "id": "pol-orders-scoped",
+      "kind": "policy",
+      "zone": "data-subnet",
+      "attrs": {
+        "effect": "allow",
+        "breadth": "scoped",
+        "tags": {
+          "owner": "data-eng",
+          "system": "orders-platform",
+          "environment": "production",
+          "data-classification": "Regulated-PCI",
+          "retention": "life-of-stack"
+        }
+      }
+    },
+    {
+      "id": "net-db-link",
+      "kind": "network_edge",
+      "zone": "data-subnet",
+      "attrs": {
+        "public": false,
+        "protocol": "tls",
+        "tags": {
+          "owner": "platform-eng",
+          "system": "orders-platform",
+          "environment": "production",
+          "data-classification": "Regulated-PCI",
+          "retention": "90d"
+        }
+      }
+    },
+    {
+      "id": "cp-ci-deploy-runner",
+      "kind": "control_plane",
+      "zone": "control-plane",
+      "attrs": {
+        "deploy_scope": "orders-platform",
+        "tags": {
+          "owner": "release-eng",
+          "system": "orders-platform",
+          "environment": "production",
+          "data-classification": "Confidential",
+          "retention": "life-of-pipeline"
+        }
+      }
+    }
+  ],
+  "edges": [
+    {"id": "c-01", "type": "calls", "src": "actor-internet-client", "dst": "net-public-ingress"},
+    {"id": "c-02", "type": "exposes", "src": "net-public-ingress", "dst": "res-alb"},
+    {
+      "id": "c-03",
+      "type": "calls",
+      "src": "res-alb",
+      "dst": "res-api-service",
+      "attrs": {"protocol": "https"}
+    },
+    {"id": "c-04", "type": "calls", "src": "res-api-service", "dst": "res-export-function"},
+    {
+      "id": "c-05",
+      "type": "reads",
+      "src": "res-api-service",
+      "dst": "ds-orders-db",
+      "attrs": {"data_class": "Regulated-PCI"}
+    },
+    {
+      "id": "c-06",
+      "type": "reads",
+      "src": "res-export-function",
+      "dst": "ds-orders-db",
+      "attrs": {"data_class": "Regulated-PCI"}
+    },
+    {
+      "id": "c-07",
+      "type": "writes",
+      "src": "res-export-function",
+      "dst": "ds-export-bucket",
+      "attrs": {"data_class": "Regulated-PCI"}
+    },
+    {"id": "c-08", "type": "encrypts", "src": "key-orders-cmk", "dst": "ds-orders-db"},
+    {"id": "c-09", "type": "encrypts", "src": "key-orders-cmk", "dst": "ds-export-bucket"},
+    {"id": "c-10", "type": "applies_to", "src": "pol-bucket-wildcard", "dst": "ds-export-bucket"},
+    {"id": "c-11", "type": "applies_to", "src": "pol-orders-scoped", "dst": "ds-orders-db"},
+    {
+      "id": "c-12",
+      "type": "authorizes",
+      "src": "pol-bucket-wildcard",
+      "dst": "id-fn-export",
+      "attrs": {"note": "wildcard object-store grant held by the export workload"}
+    },
+    {"id": "c-13", "type": "reaches", "src": "net-db-link", "dst": "ds-orders-db"},
+    {"id": "c-14", "type": "logs_to", "src": "res-api-service", "dst": "ds-audit-sink"},
+    {"id": "c-15", "type": "logs_to", "src": "res-metrics-agent", "dst": "ds-audit-sink"},
+    {"id": "c-16", "type": "logs_to", "src": "cp-ci-deploy-runner", "dst": "ds-audit-sink"},
+    {"id": "c-17", "type": "deploys", "src": "cp-ci-deploy-runner", "dst": "res-api-service"},
+    {"id": "c-18", "type": "deploys", "src": "cp-ci-deploy-runner", "dst": "res-export-function"},
+    {"id": "c-19", "type": "deploys", "src": "cp-ci-deploy-runner", "dst": "ds-orders-db"},
+    {"id": "c-20", "type": "writes", "src": "cp-ci-deploy-runner", "dst": "ds-terraform-state"},
+    {"id": "c-21", "type": "can_assume", "src": "res-api-service", "dst": "id-svc-api"},
+    {"id": "c-22", "type": "can_assume", "src": "res-export-function", "dst": "id-fn-export"},
+    {
+      "id": "c-23",
+      "type": "can_assume",
+      "src": "id-svc-api",
+      "dst": "id-fn-export",
+      "attrs": {"note": "first hop of the escalation cycle"}
+    },
+    {"id": "c-24", "type": "can_assume", "src": "id-fn-export", "dst": "id-ci-deploy"},
+    {
+      "id": "c-25",
+      "type": "can_assume",
+      "src": "id-ci-deploy",
+      "dst": "id-svc-api",
+      "attrs": {"note": "closes the svc-api -> fn-export -> ci-deploy -> svc-api cycle"}
+    },
+    {"id": "c-26", "type": "trusts", "src": "cp-ci-deploy-runner", "dst": "id-ci-deploy"},
+    {"id": "c-27", "type": "trusts", "src": "id-ci-deploy", "dst": "cp-ci-deploy-runner"},
+    {
+      "id": "c-28",
+      "type": "flows",
+      "src": "res-legacy-report-job",
+      "dst": "ds-export-bucket",
+      "attrs": {"note": "carried data class was never recorded"}
+    }
+  ]
+}
