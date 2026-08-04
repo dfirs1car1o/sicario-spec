@@ -176,8 +176,9 @@ class HelperIsDecoupledFromTheVerdictPathTests(unittest.TestCase):
         text = HELPER.read_text(encoding="utf-8")
         imported = set(re.findall(r"^(?:from|import)\s+([A-Za-z_][\w.]*)", text, re.MULTILINE))
         allowed = {"__future__", "argparse", "json", "sys", "collections", "pathlib", "typing"}
-        self.assertTrue(
-            imported <= allowed,
+        self.assertLessEqual(
+            imported,
+            allowed,
             "helper imports outside the allowed standard-library set: "
             f"{sorted(imported - allowed)}",
         )

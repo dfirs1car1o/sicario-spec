@@ -105,6 +105,12 @@ HOLDING_EDGE_TYPES: frozenset[str] = frozenset({"holds", "can_assume"})
 REACHING_DATA_EDGE_TYPES: frozenset[str] = frozenset({"permits", "flows", "reads", "writes"})
 MODEL_MARKERS: tuple[str, ...] = ("llm", "model", "inference", "ai-agent", "prompt")
 
+# Spec section names several rules target. Named once so a section rename is a
+# one-line change and the emitted text cannot drift between rules.
+SECTION_MISUSE_CASES = "spec § Misuse / Abuse Cases"
+SECTION_SECURITY_REQUIREMENTS = "spec § Security Requirements"
+SECTION_COMPLIANCE = "spec § Compliance / Control Applicability"
+
 CYCLE_FAMILIES: tuple[tuple[str, tuple[str, ...], str, str], ...] = (
     (
         "calls+flows",
@@ -261,10 +267,9 @@ def find_cycles(adjacency: dict[str, list[str]]) -> list[list[str]]:
 # -- structural checks -----------------------------------------------------
 
 
-def structural_problems(document: dict[str, Any]) -> list[str]:
-    """Report shape departures from graph.schema.json. Never a verdict."""
+def _document_level_problems(document: dict[str, Any]) -> list[str]:
+    """Shape checks on the top-level keys, before any element is read."""
     problems: list[str] = []
-
     if not isinstance(document.get("graph_version"), int):
         problems.append("graph_version is absent or is not an integer")
     if not isinstance(document.get("feature"), str) or not document.get("feature"):
@@ -273,8 +278,24 @@ def structural_problems(document: dict[str, Any]) -> list[str]:
         problems.append("nodes is absent or is not an array")
     if not isinstance(document.get("edges"), list):
         problems.append("edges is absent or is not an array")
+    return problems
 
-    known_ids: set[str] = set()
+
+def _node_attr_problems(label: str, node: dict[str, Any]) -> list[str]:
+    """Per-kind attribute checks for one node that already has a usable id."""
+    problems: list[str] = []
+    if node.get("kind") not in NODE_KINDS:
+        problems.append(f"{label} has kind {node.get('kind')!r}, outside the schema vocabulary")
+    if not isinstance(node.get("zone"), str) or not node.get("zone"):
+        problems.append(f"{label} has no zone, so it takes part in no crossing computation")
+    if not isinstance(node.get("attrs"), dict):
+        problems.append(f"{label} has no attrs object")
+    return problems
+
+
+def _node_problems(document: dict[str, Any], known_ids: set[str]) -> list[str]:
+    """Per-node problems, recording every usable id in `known_ids` for the edge pass."""
+    problems: list[str] = []
     for index, node in enumerate(_as_list(document.get("nodes"))):
         label = f"nodes[{index}]"
         if not isinstance(node, dict):
@@ -288,34 +309,56 @@ def structural_problems(document: dict[str, Any]) -> list[str]:
         if node_id in known_ids:
             problems.append(f"{label} repeats an id already used")
         known_ids.add(node_id)
-        if node.get("kind") not in NODE_KINDS:
-            problems.append(f"{label} has kind {node.get('kind')!r}, outside the schema vocabulary")
-        if not isinstance(node.get("zone"), str) or not node.get("zone"):
-            problems.append(f"{label} has no zone, so it takes part in no crossing computation")
-        if not isinstance(node.get("attrs"), dict):
-            problems.append(f"{label} has no attrs object")
+        problems.extend(_node_attr_problems(label, node))
+    return problems
 
+
+def _edge_label_and_id_problems(
+    index: int, edge: dict[str, Any], edge_ids: set[str]
+) -> tuple[str, list[str]]:
+    """Resolve the label later messages use, and check the id it came from."""
+    label = f"edges[{index}]"
+    edge_id = edge.get("id")
+    if not isinstance(edge_id, str) or not edge_id:
+        return label, [f"{label} has no usable id"]
+    label = f"edge {edge_id}"
+    problems = [f"{label} repeats an id already used"] if edge_id in edge_ids else []
+    edge_ids.add(edge_id)
+    return label, problems
+
+
+def _edge_endpoint_problems(label: str, edge: dict[str, Any], known_ids: set[str]) -> list[str]:
+    """Check that both endpoints name a node this document actually carries."""
+    problems: list[str] = []
+    for slot in ("src", "dst"):
+        endpoint = edge.get(slot)
+        if not isinstance(endpoint, str) or endpoint not in known_ids:
+            problems.append(f"{label} {slot} {endpoint!r} names no node in this document")
+    return problems
+
+
+def _edge_problems(document: dict[str, Any], known_ids: set[str]) -> list[str]:
+    """Per-edge problems, resolved against the node ids the node pass recorded."""
+    problems: list[str] = []
     edge_ids: set[str] = set()
     for index, edge in enumerate(_as_list(document.get("edges"))):
-        label = f"edges[{index}]"
         if not isinstance(edge, dict):
-            problems.append(f"{label} is not an object")
+            problems.append(f"edges[{index}] is not an object")
             continue
-        edge_id = edge.get("id")
-        if not isinstance(edge_id, str) or not edge_id:
-            problems.append(f"{label} has no usable id")
-        else:
-            label = f"edge {edge_id}"
-            if edge_id in edge_ids:
-                problems.append(f"{label} repeats an id already used")
-            edge_ids.add(edge_id)
+        label, id_problems = _edge_label_and_id_problems(index, edge, edge_ids)
+        problems.extend(id_problems)
         if edge.get("type") not in EDGE_TYPES:
             problems.append(f"{label} has type {edge.get('type')!r}, outside the schema vocabulary")
-        for slot in ("src", "dst"):
-            endpoint = edge.get(slot)
-            if not isinstance(endpoint, str) or endpoint not in known_ids:
-                problems.append(f"{label} {slot} {endpoint!r} names no node in this document")
+        problems.extend(_edge_endpoint_problems(label, edge, known_ids))
+    return problems
 
+
+def structural_problems(document: dict[str, Any]) -> list[str]:
+    """Report shape departures from graph.schema.json. Never a verdict."""
+    known_ids: set[str] = set()
+    problems = _document_level_problems(document)
+    problems.extend(_node_problems(document, known_ids))
+    problems.extend(_edge_problems(document, known_ids))
     return problems
 
 
@@ -397,7 +440,7 @@ def rule_r3(graph: SpecGraph) -> list[str]:
             _line(
                 "R3",
                 edge_id,
-                "spec § Misuse / Abuse Cases",
+                SECTION_MISUSE_CASES,
                 f"abuse case for the crossing {crossing} ({shape})",
             )
         )
@@ -405,7 +448,7 @@ def rule_r3(graph: SpecGraph) -> list[str]:
             _line(
                 "R3",
                 edge_id,
-                "spec § Security Requirements",
+                SECTION_SECURITY_REQUIREMENTS,
                 "control requirement: who authenticates this edge, what authorizes it, "
                 "what validates its payload",
             )
@@ -462,7 +505,7 @@ def rule_r5(graph: SpecGraph) -> list[str]:
             _line(
                 "R5",
                 node_id,
-                "spec § Security Requirements",
+                SECTION_SECURITY_REQUIREMENTS,
                 f"high-impact action ({reason}): state the authorization requirement for it",
             )
         )
@@ -547,6 +590,13 @@ def rule_r8(graph: SpecGraph) -> list[str]:
     return lines
 
 
+def _missing_tag_keys(graph: SpecGraph, node_id: str) -> list[str]:
+    """Required tag keys this node does not carry, in REQUIRED_TAG_KEYS order."""
+    tags = graph.attrs(node_id).get("tags")
+    present = tags if isinstance(tags, dict) else {}
+    return [key for key in REQUIRED_TAG_KEYS if not present.get(key)]
+
+
 def rule_r9(graph: SpecGraph) -> list[str]:
     lines: list[str] = []
     if not graph.is_architecture_graph():
@@ -561,9 +611,7 @@ def rule_r9(graph: SpecGraph) -> list[str]:
         )
         return lines
     for node_id in graph.node_ids():
-        tags = graph.attrs(node_id).get("tags")
-        present = tags if isinstance(tags, dict) else {}
-        missing = [key for key in REQUIRED_TAG_KEYS if not present.get(key)]
+        missing = _missing_tag_keys(graph, node_id)
         if missing:
             lines.append(
                 _line(
@@ -585,7 +633,7 @@ def rule_r10(graph: SpecGraph) -> list[str]:
                 _line(
                     "R10",
                     f"cycle-family:{family}",
-                    "spec § Misuse / Abuse Cases",
+                    SECTION_MISUSE_CASES,
                     "no cycle detected in this family; if the return edges were simply not "
                     "modelled, model them before relying on this line",
                 )
@@ -597,7 +645,7 @@ def rule_r10(graph: SpecGraph) -> list[str]:
                 _line(
                     "R10",
                     f"cycle:{family}:{cycle[0]}",
-                    "spec § Misuse / Abuse Cases",
+                    SECTION_MISUSE_CASES,
                     f"abuse case for {abuse_text} ({label})",
                 )
             )
@@ -605,7 +653,7 @@ def rule_r10(graph: SpecGraph) -> list[str]:
                 _line(
                     "R10",
                     f"cycle:{family}:{cycle[0]}",
-                    "spec § Security Requirements",
+                    SECTION_SECURITY_REQUIREMENTS,
                     f"requirement: {requirement_text}",
                 )
             )
@@ -666,7 +714,7 @@ def rule_r12(graph: SpecGraph) -> list[str]:
         _line(
             "R12",
             "graph",
-            "spec § Compliance / Control Applicability",
+            SECTION_COMPLIANCE,
             "Secure development / SSDF PW row: this traversal is itself the design analysis",
         )
     )
@@ -681,7 +729,7 @@ def rule_r12(graph: SpecGraph) -> list[str]:
             _line(
                 "R12",
                 ", ".join(vendors),
-                "spec § Compliance / Control Applicability",
+                SECTION_COMPLIANCE,
                 "Supply chain row: third-party system node(s) present",
             )
         )
@@ -690,7 +738,7 @@ def rule_r12(graph: SpecGraph) -> list[str]:
             _line(
                 "R12",
                 "graph",
-                "spec § Compliance / Control Applicability",
+                SECTION_COMPLIANCE,
                 "Supply chain row: no third-party system node; record the rationale",
             )
         )
@@ -700,7 +748,7 @@ def rule_r12(graph: SpecGraph) -> list[str]:
             _line(
                 "R12",
                 "graph",
-                "spec § Compliance / Control Applicability",
+                SECTION_COMPLIANCE,
                 "Cloud / IaC row: architecture node kind(s) present — "
                 f"{', '.join(sorted(kinds & ARCH_MARKER_KINDS))}",
             )
@@ -710,7 +758,7 @@ def rule_r12(graph: SpecGraph) -> list[str]:
             _line(
                 "R12",
                 "graph",
-                "spec § Compliance / Control Applicability",
+                SECTION_COMPLIANCE,
                 "Cloud / IaC row: no architecture node kind; record the rationale",
             )
         )
@@ -726,7 +774,7 @@ def rule_r12(graph: SpecGraph) -> list[str]:
             _line(
                 "R12",
                 ", ".join(regulated),
-                "spec § Compliance / Control Applicability",
+                SECTION_COMPLIANCE,
                 "Privacy or regulated-data row: regulated node(s) present",
             )
         )
@@ -735,7 +783,7 @@ def rule_r12(graph: SpecGraph) -> list[str]:
             _line(
                 "R12",
                 "graph",
-                "spec § Compliance / Control Applicability",
+                SECTION_COMPLIANCE,
                 "Privacy or regulated-data row: no regulated node; record the rationale",
             )
         )
@@ -808,9 +856,9 @@ RULES = (
 # -- gap list --------------------------------------------------------------
 
 
-def gap_lines(graph: SpecGraph) -> list[str]:
+def _unclassified_flow_gaps(graph: SpecGraph) -> list[str]:
+    """Data-bearing edges that carry no recorded data class."""
     lines: list[str] = []
-
     for edge in graph.edges:
         if str(edge.get("type")) not in DATA_BEARING_EDGE_TYPES:
             continue
@@ -821,33 +869,50 @@ def gap_lines(graph: SpecGraph) -> list[str]:
                 f"  [gap] edge {edge['id']} ({edge.get('type')} {edge['src']} -> {edge['dst']}) "
                 "carries data with no data_class recorded"
             )
+    return lines
 
-    for node_id in graph.nodes_of_kind(*sorted(CREDENTIAL_KINDS)):
-        if not graph.attrs(node_id).get("rotation_owner"):
-            lines.append(f"  [gap] {node_id} has no rotation owner, so no one owns its renewal")
 
+def _ownerless_credential_gaps(graph: SpecGraph) -> list[str]:
+    """Credential and key nodes whose renewal nobody owns."""
+    return [
+        f"  [gap] {node_id} has no rotation owner, so no one owns its renewal"
+        for node_id in graph.nodes_of_kind(*sorted(CREDENTIAL_KINDS))
+        if not graph.attrs(node_id).get("rotation_owner")
+    ]
+
+
+def _uncontrolled_crossing_gaps(graph: SpecGraph) -> list[str]:
+    """The crossing set, each edge of which still owes a control and evidence."""
     crossings = graph.crossing_edges()
-    if crossings:
-        lines.append(
-            f"  [gap] {len(crossings)} crossing edge(s) each still need a control and an "
-            f"evidence row: {', '.join(str(edge['id']) for edge in crossings)}"
+    if not crossings:
+        return []
+    return [
+        f"  [gap] {len(crossings)} crossing edge(s) each still need a control and an "
+        f"evidence row: {', '.join(str(edge['id']) for edge in crossings)}"
+    ]
+
+
+def _untagged_node_gaps(graph: SpecGraph) -> list[str]:
+    """Architecture nodes missing a required tag key, and what that costs."""
+    if not graph.is_architecture_graph():
+        return []
+    lines: list[str] = []
+    for node_id in graph.node_ids():
+        missing = _missing_tag_keys(graph, node_id)
+        if not missing:
+            continue
+        consequence = (
+            "no owner is derivable from the graph"
+            if "owner" in missing
+            else "the tagging row cannot be completed from the graph"
         )
+        lines.append(f"  [gap] {node_id} is untagged for {', '.join(missing)} — {consequence}")
+    return lines
 
-    if graph.is_architecture_graph():
-        for node_id in graph.node_ids():
-            tags = graph.attrs(node_id).get("tags")
-            present = tags if isinstance(tags, dict) else {}
-            missing = [key for key in REQUIRED_TAG_KEYS if not present.get(key)]
-            if missing:
-                consequence = (
-                    "no owner is derivable from the graph"
-                    if "owner" in missing
-                    else "the tagging row cannot be completed from the graph"
-                )
-                lines.append(
-                    f"  [gap] {node_id} is untagged for {', '.join(missing)} — {consequence}"
-                )
 
+def _untreated_cycle_gaps(graph: SpecGraph) -> list[str]:
+    """Cycles in each family that no ledger row has yet answered."""
+    lines: list[str] = []
     for family, edge_types, _abuse, _requirement in CYCLE_FAMILIES:
         for cycle in find_cycles(graph.adjacency(edge_types)):
             label = " -> ".join(cycle + [cycle[0]])
@@ -855,19 +920,27 @@ def gap_lines(graph: SpecGraph) -> list[str]:
                 f"  [gap] cycle in {family} is untreated until a ledger row names its "
                 f"control and negative test: {label}"
             )
+    return lines
 
+
+def _unreached_data_class_gaps(graph: SpecGraph) -> list[str]:
+    """Data classes no modelled edge reaches, so no crossing was computed for them."""
     reached_data = {
         str(edge["dst"])
         for edge in graph.edges
         if str(edge.get("type")) in REACHING_DATA_EDGE_TYPES
     }
-    for node_id in graph.nodes_of_kind("data_class"):
-        if node_id not in reached_data:
-            lines.append(
-                f"  [gap] data class {node_id} has no modelled path reaching it, so no "
-                "crossing was computed for it"
-            )
+    return [
+        f"  [gap] data class {node_id} has no modelled path reaching it, so no "
+        "crossing was computed for it"
+        for node_id in graph.nodes_of_kind("data_class")
+        if node_id not in reached_data
+    ]
 
+
+def _unobligated_identity_gaps(graph: SpecGraph) -> list[str]:
+    """Identities that neither hold a modelled credential nor receive an authorization."""
+    lines: list[str] = []
     for node_id in graph.nodes_of_kind("identity"):
         holds = any(
             str(edge["src"]) == node_id and str(edge.get("type")) in HOLDING_EDGE_TYPES
@@ -882,7 +955,25 @@ def gap_lines(graph: SpecGraph) -> list[str]:
                 f"  [gap] identity {node_id} holds no modelled credential and is granted "
                 "no modelled authorization"
             )
+    return lines
 
+
+GAP_CHECKS = (
+    _unclassified_flow_gaps,
+    _ownerless_credential_gaps,
+    _uncontrolled_crossing_gaps,
+    _untagged_node_gaps,
+    _untreated_cycle_gaps,
+    _unreached_data_class_gaps,
+    _unobligated_identity_gaps,
+)
+
+
+def gap_lines(graph: SpecGraph) -> list[str]:
+    """Run every gap check in order; say so plainly when none of them fires."""
+    lines: list[str] = []
+    for check in GAP_CHECKS:
+        lines.extend(check(graph))
     if not lines:
         lines.append(
             "  [gap] nothing unanswered was computable from this graph — which bounds the "
@@ -993,7 +1084,14 @@ def main(argv: list[str] | None = None) -> int:
     problems: list[str] = []
     document: dict[str, Any] = {}
     try:
-        raw = path.read_text(encoding="utf-8")
+        # Sonar S8707 flags the argv-derived path. Reading the graph document the
+        # invoking human names IS this script's entire purpose, and there is no
+        # privilege boundary to cross: a stdlib-only local script with no server,
+        # no sandbox contract, and no path it could reach that its own caller
+        # could not already read. It emits to stdout and never writes anywhere.
+        # False positive; same shape as the S6549 suppression in
+        # scripts/verify_guide_outputs.py.
+        raw = path.read_text(encoding="utf-8")  # NOSONAR
     except (OSError, UnicodeDecodeError) as exc:
         problems.append(f"the graph document could not be read: {exc}")
         raw = ""
