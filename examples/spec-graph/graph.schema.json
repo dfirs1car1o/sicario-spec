@@ -1,0 +1,370 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://sicariospec.dev/schemas/spec-graph/graph.schema.json",
+  "title": "SicarioSpec spec graph",
+  "description": "Typed graph contract for the Advanced Track (spec 008 FR-010/FR-013). A trust boundary is never a node: it is the zone attribute, and a crossing is the computed predicate zone(src) != zone(dst).",
+  "type": "object",
+  "required": ["graph_version", "feature", "nodes", "edges"],
+  "additionalProperties": false,
+  "properties": {
+    "graph_version": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Monotonic version. Ids are stable across versions so ledgers and traversal logs can reference them."
+    },
+    "feature": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Feature slug this graph models, e.g. 004-helpdesk-connector."
+    },
+    "notes": {
+      "type": "string",
+      "description": "Optional free text for the author; never interpreted by any tool."
+    },
+    "nodes": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"$ref": "#/$defs/node"}
+    },
+    "edges": {
+      "type": "array",
+      "items": {"$ref": "#/$defs/edge"}
+    }
+  },
+  "$defs": {
+    "identifier": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$"
+    },
+    "tags": {
+      "type": "object",
+      "description": "The five shipped tag keys. Traversal rule R9 makes any missing key a finding.",
+      "required": [
+        "owner",
+        "system",
+        "environment",
+        "data-classification",
+        "retention"
+      ],
+      "properties": {
+        "owner": {"type": "string", "minLength": 1},
+        "system": {"type": "string", "minLength": 1},
+        "environment": {"type": "string", "minLength": 1},
+        "data-classification": {"type": "string", "minLength": 1},
+        "retention": {"type": "string", "minLength": 1}
+      },
+      "additionalProperties": {"type": "string"}
+    },
+    "node": {
+      "type": "object",
+      "required": ["id", "kind", "zone", "attrs"],
+      "additionalProperties": false,
+      "properties": {
+        "id": {"$ref": "#/$defs/identifier"},
+        "kind": {
+          "description": "Union of the grant-graph and architecture-graph kind vocabularies.",
+          "enum": [
+            "system",
+            "identity",
+            "credential",
+            "scope",
+            "data_class",
+            "endpoint",
+            "store",
+            "human",
+            "resource",
+            "data_store",
+            "policy",
+            "key",
+            "network_edge",
+            "control_plane",
+            "actor"
+          ]
+        },
+        "zone": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Trust zone label. Grant graphs typically use our-tenant, vendor-saas, subprocessor, public-internet; architecture graphs use public-internet, edge, private-subnet, data-subnet, mgmt-plane, control-plane."
+        },
+        "attrs": {
+          "type": "object",
+          "properties": {
+            "tags": {"$ref": "#/$defs/tags"}
+          }
+        }
+      },
+      "allOf": [
+        {
+          "if": {"properties": {"kind": {"const": "system"}}, "required": ["kind"]},
+          "then": {
+            "properties": {
+              "attrs": {
+                "required": ["party", "tenant"],
+                "properties": {
+                  "party": {"enum": ["first-party", "vendor", "subprocessor"]},
+                  "tenant": {"type": "string", "minLength": 1}
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {"properties": {"kind": {"const": "identity"}}, "required": ["kind"]},
+          "then": {
+            "properties": {
+              "attrs": {
+                "required": ["principal_type", "owner"],
+                "properties": {
+                  "principal_type": {
+                    "enum": ["oauth-client", "bot-user", "service-principal", "workload"]
+                  },
+                  "owner": {"type": "string", "minLength": 1},
+                  "assumable_by": {"type": "string", "minLength": 1}
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {"properties": {"kind": {"const": "credential"}}, "required": ["kind"]},
+          "then": {
+            "properties": {
+              "attrs": {
+                "required": ["lifetime", "storage"],
+                "properties": {
+                  "lifetime": {"type": "string", "minLength": 1},
+                  "storage": {
+                    "type": "string",
+                    "minLength": 1,
+                    "description": "Where the material lives, as an angle-bracketed placeholder reference. Never a value (spec 008 SR-004)."
+                  },
+                  "rotation_owner": {"type": "string", "minLength": 1}
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {"properties": {"kind": {"const": "scope"}}, "required": ["kind"]},
+          "then": {
+            "properties": {
+              "attrs": {
+                "required": ["verb", "breadth"],
+                "properties": {
+                  "verb": {"enum": ["read", "write", "admin"]},
+                  "breadth": {"enum": ["per-object", "tenant-wide"]}
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {"properties": {"kind": {"const": "data_class"}}, "required": ["kind"]},
+          "then": {
+            "properties": {
+              "attrs": {
+                "required": ["level"],
+                "properties": {
+                  "level": {"type": "string", "minLength": 1},
+                  "regulated_kind": {"type": "string", "minLength": 1}
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {"properties": {"kind": {"const": "endpoint"}}, "required": ["kind"]},
+          "then": {
+            "properties": {
+              "attrs": {
+                "required": ["direction", "auth"],
+                "properties": {
+                  "direction": {"enum": ["inbound", "outbound"]},
+                  "auth": {"enum": ["hmac", "mtls", "bearer", "none"]}
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {"properties": {"kind": {"const": "store"}}, "required": ["kind"]},
+          "then": {
+            "properties": {
+              "attrs": {
+                "required": ["retention", "residency"],
+                "properties": {
+                  "retention": {"type": "string", "minLength": 1},
+                  "residency": {"type": "string", "minLength": 1}
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {"properties": {"kind": {"const": "human"}}, "required": ["kind"]},
+          "then": {
+            "properties": {
+              "attrs": {
+                "required": ["role", "consent_type"],
+                "properties": {
+                  "role": {"type": "string", "minLength": 1},
+                  "consent_type": {"enum": ["user", "admin"]}
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {"properties": {"kind": {"const": "resource"}}, "required": ["kind"]},
+          "then": {
+            "properties": {
+              "attrs": {
+                "required": ["provider", "service"],
+                "properties": {
+                  "provider": {"type": "string", "minLength": 1},
+                  "service": {"type": "string", "minLength": 1}
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {"properties": {"kind": {"const": "data_store"}}, "required": ["kind"]},
+          "then": {
+            "properties": {
+              "attrs": {
+                "required": [
+                  "provider",
+                  "service",
+                  "data_class",
+                  "residency",
+                  "retention"
+                ],
+                "properties": {
+                  "provider": {"type": "string", "minLength": 1},
+                  "service": {"type": "string", "minLength": 1},
+                  "data_class": {"type": "string", "minLength": 1},
+                  "residency": {"type": "string", "minLength": 1},
+                  "retention": {"type": "string", "minLength": 1}
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {"properties": {"kind": {"const": "policy"}}, "required": ["kind"]},
+          "then": {
+            "properties": {
+              "attrs": {
+                "required": ["effect", "breadth"],
+                "properties": {
+                  "effect": {"type": "string", "minLength": 1},
+                  "breadth": {"enum": ["scoped", "wildcard"]}
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {"properties": {"kind": {"const": "key"}}, "required": ["kind"]},
+          "then": {
+            "properties": {
+              "attrs": {
+                "required": ["rotation_owner", "scope"],
+                "properties": {
+                  "rotation_owner": {"type": "string", "minLength": 1},
+                  "scope": {"type": "string", "minLength": 1}
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {"properties": {"kind": {"const": "network_edge"}}, "required": ["kind"]},
+          "then": {
+            "properties": {
+              "attrs": {
+                "required": ["public", "protocol"],
+                "properties": {
+                  "public": {"type": "boolean"},
+                  "protocol": {"type": "string", "minLength": 1}
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {"properties": {"kind": {"const": "control_plane"}}, "required": ["kind"]},
+          "then": {
+            "properties": {
+              "attrs": {
+                "required": ["deploy_scope"],
+                "properties": {
+                  "deploy_scope": {"type": "string", "minLength": 1}
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {"properties": {"kind": {"const": "actor"}}, "required": ["kind"]},
+          "then": {
+            "properties": {
+              "attrs": {
+                "required": ["role"],
+                "properties": {
+                  "role": {"type": "string", "minLength": 1}
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    "edge": {
+      "type": "object",
+      "required": ["id", "type", "src", "dst"],
+      "additionalProperties": false,
+      "properties": {
+        "id": {"$ref": "#/$defs/identifier"},
+        "type": {
+          "description": "Union of the grant-graph and architecture-graph edge vocabularies.",
+          "enum": [
+            "grants",
+            "holds",
+            "authorizes",
+            "permits",
+            "calls",
+            "flows",
+            "logs",
+            "trusts",
+            "can_assume",
+            "applies_to",
+            "reads",
+            "writes",
+            "reaches",
+            "exposes",
+            "encrypts",
+            "deploys",
+            "logs_to"
+          ]
+        },
+        "src": {"$ref": "#/$defs/identifier"},
+        "dst": {"$ref": "#/$defs/identifier"},
+        "attrs": {
+          "type": "object",
+          "properties": {
+            "data_class": {
+              "type": "string",
+              "minLength": 1,
+              "description": "Node id of the data class carried by this edge. Absent on a flows/reads/writes edge is a gap-list entry."
+            },
+            "protocol": {"type": "string", "minLength": 1},
+            "note": {"type": "string"}
+          }
+        }
+      }
+    }
+  }
+}

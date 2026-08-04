@@ -1,0 +1,185 @@
+{
+  "graph_version": 1,
+  "feature": "004-helpdesk-connector",
+  "notes": "Synthetic grant graph for the Advanced Track. Every credential value is an angle-bracketed placeholder; no real tenants, hosts, or material appear here.",
+  "nodes": [
+    {
+      "id": "sys-crm",
+      "kind": "system",
+      "zone": "our-tenant",
+      "attrs": {"party": "first-party", "tenant": "<our-tenant-ref>"}
+    },
+    {
+      "id": "sys-helpdesk",
+      "kind": "system",
+      "zone": "vendor-saas",
+      "attrs": {"party": "vendor", "tenant": "<vendor-tenant-ref>"}
+    },
+    {
+      "id": "sys-vendor-analytics",
+      "kind": "system",
+      "zone": "subprocessor",
+      "attrs": {"party": "subprocessor", "tenant": "<subprocessor-tenant-ref>"}
+    },
+    {
+      "id": "id-connector-app",
+      "kind": "identity",
+      "zone": "our-tenant",
+      "attrs": {"principal_type": "oauth-client", "owner": "platform-eng"}
+    },
+    {
+      "id": "id-helpdesk-bot",
+      "kind": "identity",
+      "zone": "vendor-saas",
+      "attrs": {"principal_type": "bot-user", "owner": "vendor-support-eng"}
+    },
+    {
+      "id": "cred-access-token",
+      "kind": "credential",
+      "zone": "our-tenant",
+      "attrs": {
+        "lifetime": "1h",
+        "storage": "<vault-ref>",
+        "rotation_owner": "platform-eng"
+      }
+    },
+    {
+      "id": "cred-refresh-token",
+      "kind": "credential",
+      "zone": "our-tenant",
+      "attrs": {
+        "lifetime": "90d",
+        "storage": "<vault-ref>",
+        "rotation_owner": "platform-eng"
+      }
+    },
+    {
+      "id": "cred-webhook-signing-key",
+      "kind": "credential",
+      "zone": "vendor-saas",
+      "attrs": {"lifetime": "180d", "storage": "<vendor-managed-store-ref>"}
+    },
+    {
+      "id": "scope-tickets-readwrite",
+      "kind": "scope",
+      "zone": "vendor-saas",
+      "attrs": {"verb": "write", "breadth": "tenant-wide"}
+    },
+    {
+      "id": "scope-contacts-read",
+      "kind": "scope",
+      "zone": "our-tenant",
+      "attrs": {"verb": "read", "breadth": "tenant-wide"}
+    },
+    {
+      "id": "dc-customer-pii",
+      "kind": "data_class",
+      "zone": "our-tenant",
+      "attrs": {"level": "Confidential", "regulated_kind": "personal-data"}
+    },
+    {
+      "id": "dc-ticket-body",
+      "kind": "data_class",
+      "zone": "vendor-saas",
+      "attrs": {"level": "Internal"}
+    },
+    {
+      "id": "ep-webhook",
+      "kind": "endpoint",
+      "zone": "vendor-saas",
+      "attrs": {"direction": "inbound", "auth": "hmac"}
+    },
+    {
+      "id": "ep-crm-api",
+      "kind": "endpoint",
+      "zone": "our-tenant",
+      "attrs": {"direction": "inbound", "auth": "bearer"}
+    },
+    {
+      "id": "store-vendor-logs",
+      "kind": "store",
+      "zone": "vendor-saas",
+      "attrs": {"retention": "30d", "residency": "EU"}
+    },
+    {
+      "id": "store-crm-audit",
+      "kind": "store",
+      "zone": "our-tenant",
+      "attrs": {"retention": "400d", "residency": "US"}
+    },
+    {
+      "id": "store-grant-vault",
+      "kind": "store",
+      "zone": "our-tenant",
+      "attrs": {"retention": "life-of-grant", "residency": "US"}
+    },
+    {
+      "id": "human-tenant-admin",
+      "kind": "human",
+      "zone": "our-tenant",
+      "attrs": {"role": "tenant administrator", "consent_type": "admin"}
+    },
+    {
+      "id": "actor-forged-sender",
+      "kind": "actor",
+      "zone": "public-internet",
+      "attrs": {"role": "unauthenticated sender"}
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-01",
+      "type": "authorizes",
+      "src": "human-tenant-admin",
+      "dst": "id-connector-app",
+      "attrs": {"note": "admin consent recorded at install time"}
+    },
+    {"id": "e-02", "type": "holds", "src": "id-connector-app", "dst": "cred-access-token"},
+    {"id": "e-03", "type": "holds", "src": "id-connector-app", "dst": "cred-refresh-token"},
+    {"id": "e-04", "type": "grants", "src": "sys-helpdesk", "dst": "scope-tickets-readwrite"},
+    {"id": "e-05", "type": "grants", "src": "sys-crm", "dst": "scope-contacts-read"},
+    {"id": "e-06", "type": "permits", "src": "scope-tickets-readwrite", "dst": "dc-ticket-body"},
+    {"id": "e-07", "type": "permits", "src": "scope-contacts-read", "dst": "dc-customer-pii"},
+    {
+      "id": "e-08",
+      "type": "flows",
+      "src": "sys-crm",
+      "dst": "sys-helpdesk",
+      "attrs": {"data_class": "dc-customer-pii", "protocol": "https"}
+    },
+    {
+      "id": "e-09",
+      "type": "calls",
+      "src": "sys-crm",
+      "dst": "sys-helpdesk",
+      "attrs": {"protocol": "https"}
+    },
+    {"id": "e-10", "type": "calls", "src": "sys-helpdesk", "dst": "ep-webhook"},
+    {
+      "id": "e-11",
+      "type": "calls",
+      "src": "ep-webhook",
+      "dst": "sys-crm",
+      "attrs": {"note": "webhook delivery re-enters the CRM and closes the cycle"}
+    },
+    {
+      "id": "e-12",
+      "type": "calls",
+      "src": "actor-forged-sender",
+      "dst": "ep-webhook",
+      "attrs": {"note": "spoofed delivery attempt against the inbound webhook"}
+    },
+    {"id": "e-13", "type": "logs", "src": "sys-helpdesk", "dst": "store-vendor-logs"},
+    {"id": "e-14", "type": "logs", "src": "sys-crm", "dst": "store-crm-audit"},
+    {
+      "id": "e-15",
+      "type": "flows",
+      "src": "sys-helpdesk",
+      "dst": "sys-vendor-analytics",
+      "attrs": {"data_class": "dc-ticket-body"}
+    },
+    {"id": "e-16", "type": "holds", "src": "id-helpdesk-bot", "dst": "cred-webhook-signing-key"},
+    {"id": "e-17", "type": "calls", "src": "id-connector-app", "dst": "ep-crm-api"},
+    {"id": "e-18", "type": "flows", "src": "id-connector-app", "dst": "store-grant-vault"}
+  ]
+}
