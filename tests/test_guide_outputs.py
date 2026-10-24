@@ -373,9 +373,15 @@ class CheckGuideEndToEndTests(unittest.TestCase):
 
     def test_sicario_cmd_uses_this_checkouts_cli_not_a_stray_install(self) -> None:
         """A literal `sicario ...` command in a guide must run THIS checkout's
-        code (FR-051's CI job requirement), not any other installed copy."""
+        code (FR-051's CI job requirement), not any other installed copy.
+
+        The expected version is read from this checkout's VERSION file (not
+        hardcoded) so the test keeps asserting "this checkout's CLI answered"
+        across release bumps instead of failing on every version change.
+        """
         import tempfile
 
+        version = (Path(__file__).resolve().parents[1] / "VERSION").read_text().strip()
         with tempfile.TemporaryDirectory() as tmp:
             path = self._write_guide(
                 Path(tmp),
@@ -384,10 +390,11 @@ class CheckGuideEndToEndTests(unittest.TestCase):
                 "```\n"
                 "\n"
                 '```text title="Verified output" sicario-output=verified sicario-block=smoke/version\n'
-                "sicario 0.6.0\n"
+                f"sicario {version}\n"
                 "```\n",
+                **{"captured-version": version},
             )
-            report = check_guide(path, "0.6.0")
+            report = check_guide(path, version)
             self.assertTrue(report.ok, report.structural_errors)
             self.assertEqual(report.verified_reexecuted, 1)
 
