@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import List
 
 
 def _docs_site_package_json() -> str:
@@ -106,8 +105,8 @@ class SicarioDocsPreset:
         *,
         force: bool,
         dry_run: bool,
-        actions: List[str],
-        reports: List,
+        actions: list[str],
+        reports: list,
         # SicarioDocsPreset needs none of the preset-orchestration context
         # (presets_root, workflows_root, selected_presets, integration,
         # apply_to_speckit, deferrals, speckit_template_files, ...) that

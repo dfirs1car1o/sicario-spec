@@ -10,8 +10,9 @@ self-contained.
 
 from __future__ import annotations
 
+from collections.abc import Sequence
 from pathlib import Path
-from typing import List, Optional, Sequence
+from typing import ClassVar
 
 # Repeated agent-integration directory/filename literals (S1192): defined
 # once so the several per-integration write blocks below cannot drift out
@@ -132,9 +133,9 @@ def _resolve_speckit_template_sources(
 def _resolve_speckit_constitution(
     presets: Sequence[str],
     presets_root: Path,
-) -> Optional[Path]:
+) -> Path | None:
     """Pick the live constitution: the most specialized preset that ships one."""
-    chosen: Optional[Path] = None
+    chosen: Path | None = None
     for preset in presets:
         candidate = presets_root / preset / "templates" / "constitution-template.md"
         if candidate.exists():
@@ -148,8 +149,8 @@ def _apply_to_speckit(
     *,
     force: bool,
     dry_run: bool,
-    actions: List[str],
-    reports: List,
+    actions: list[str],
+    reports: list,
     deferrals: Sequence[str],
     presets_root: Path,
     speckit_template_files: Sequence[str],
@@ -509,8 +510,8 @@ def _write_agent_integrations(
     *,
     force: bool,
     dry_run: bool,
-    actions: List[str],
-    reports: List,
+    actions: list[str],
+    reports: list,
 ) -> None:
     from sicario_cli._render import _overlay_text, _write_text
 
@@ -638,7 +639,7 @@ class SicarioCorePreset:
     Call ``write()`` to emit all core governance files into a target project.
     """
 
-    ALWAYS_WORKFLOWS = ["sicario-verify.yml", "docs-site.yml"]
+    ALWAYS_WORKFLOWS: ClassVar[list[str]] = ["sicario-verify.yml", "docs-site.yml"]
 
     TOOLCHAIN_WORKFLOW = "security-toolchain.yml"
 
@@ -655,8 +656,8 @@ class SicarioCorePreset:
         *,
         force: bool,
         dry_run: bool,
-        actions: List[str],
-        reports: List,
+        actions: list[str],
+        reports: list,
     ) -> None:
         from sicario_cli._render import _write_text
         from sicario_cli.cli import (
@@ -855,8 +856,8 @@ class SicarioCorePreset:
         presets_root: Path,
         force: bool,
         dry_run: bool,
-        actions: List[str],
-        reports: List,
+        actions: list[str],
+        reports: list,
     ) -> None:
         from sicario_cli._render import _copy_tree
 
@@ -887,8 +888,8 @@ class SicarioCorePreset:
         presets_root: Path,
         force: bool,
         dry_run: bool,
-        actions: List[str],
-        reports: List,
+        actions: list[str],
+        reports: list,
     ) -> None:
         from sicario_cli._render import _copy_tree
 

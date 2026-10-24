@@ -1,7 +1,9 @@
-from typing import Any, Dict, List, Optional, Tuple
-from pathlib import Path
+from __future__ import annotations
 
-KIND_REGISTRY: Dict[str, str] = {
+from pathlib import Path
+from typing import Any
+
+KIND_REGISTRY: dict[str, str] = {
     "file-exists": "sicario_cli.rules.kinds.file_exists",
     "file-glob": "sicario_cli.rules.kinds.file_glob",
     "section-exists": "sicario_cli.rules.kinds.section_exists",
@@ -24,13 +26,13 @@ def _load_kind_module(kind: str):
     return importlib.import_module(module_path)
 
 
-def evaluate(kind: str, rule: Dict[str, Any], root: Path) -> List[Dict[str, Any]]:
+def evaluate(kind: str, rule: dict[str, Any], root: Path) -> list[dict[str, Any]]:
     return _load_kind_module(kind).evaluate(rule, root)
 
 
 def evaluate_detailed(
-    kind: str, rule: Dict[str, Any], root: Path
-) -> Tuple[List[Dict[str, Any]], Optional[Dict[str, Any]]]:
+    kind: str, rule: dict[str, Any], root: Path
+) -> tuple[list[dict[str, Any]], dict[str, Any] | None]:
     """Evaluate a rule, returning findings plus a coverage record when the kind
     produces one. Kinds with no coverage concept return ``None`` for it."""
     module = _load_kind_module(kind)

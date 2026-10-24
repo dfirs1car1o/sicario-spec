@@ -7,11 +7,11 @@ with all profiles loaded. Run with: python3 tests/benchmark_verify.py
 from __future__ import annotations
 
 import shutil
-import time
 import tempfile
+import time
 from pathlib import Path
 
-from sicario_cli.cli import init_project, verify_project, build_parser
+from sicario_cli.cli import build_parser, init_project, verify_project
 
 
 def _run_init(target: Path) -> None:

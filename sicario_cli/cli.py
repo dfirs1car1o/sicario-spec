@@ -14,11 +14,11 @@ import shutil
 import subprocess
 import sys
 import sysconfig
+from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from importlib.resources import files as package_files
 from pathlib import Path
-from typing import Iterable, List, Optional, Sequence
 
 from sicario_cli._render import (
     FileReport,
@@ -29,15 +29,15 @@ from sicario_cli._render import (
 )
 from sicario_cli.version import __version__
 
-PRESET_CLASSES: "dict[str, type]" = {}
+PRESET_CLASSES: dict[str, type] = {}
 try:
-    from presets.sicario_core import SicarioCorePreset  # type: ignore[import-untyped]  # noqa: E501
+    from presets.sicario_core import SicarioCorePreset  # type: ignore[import-untyped]
 
     PRESET_CLASSES["sicario-core"] = SicarioCorePreset
 except ImportError:
     pass
 try:
-    from presets.sicario_docs import SicarioDocsPreset  # type: ignore[import-untyped]  # noqa: E501
+    from presets.sicario_docs import SicarioDocsPreset  # type: ignore[import-untyped]
 
     PRESET_CLASSES["sicario-docs"] = SicarioDocsPreset
 except ImportError:
@@ -75,7 +75,7 @@ class AssetRootResolution:
     #: like ``decoyA`` is not reproducible evidence on its own.
     resolved_root: Path
     #: Raw ``SICARIO_ASSET_ROOT`` value observed at resolution time, or None.
-    env_value: Optional[str]
+    env_value: str | None
     #: True when the env var was set AND its directory won the candidate race.
     env_honored: bool
     #: The root that would have won with the env var unset.
@@ -272,14 +272,14 @@ PROFILE_FRAMEWORKS = {
 }
 
 
-def _parse_frameworks(value: str) -> List[str]:
+def _parse_frameworks(value: str) -> list[str]:
     """Parse a comma-separated --frameworks value into validated selector keys.
 
     ``all`` expands to every shipped framework. Unknown keys are a hard error so
     a typo can never silently disable a framework the user meant to enforce.
     """
     names = [part.strip().lower() for part in value.split(",") if part.strip()]
-    selected: List[str] = []
+    selected: list[str] = []
     for name in names:
         if name == "all":
             for key in FRAMEWORK_IDS:
@@ -298,7 +298,7 @@ def _parse_frameworks(value: str) -> List[str]:
     return selected
 
 
-def _default_frameworks_for_profiles(profile_names: Sequence[str]) -> List[str]:
+def _default_frameworks_for_profiles(profile_names: Sequence[str]) -> list[str]:
     """Compute the default framework subset from the selected profile name(s).
 
     EXPERIMENTAL maps are filtered out here rather than being removed from
@@ -306,7 +306,7 @@ def _default_frameworks_for_profiles(profile_names: Sequence[str]) -> List[str]:
     *about*, and this single choke point guarantees none of them can be enforced
     without someone naming it explicitly on ``--frameworks``.
     """
-    selected: List[str] = []
+    selected: list[str] = []
     for name in profile_names:
         for key in PROFILE_FRAMEWORKS.get(name, []):
             if key in EXPERIMENTAL_FRAMEWORKS:
@@ -337,7 +337,7 @@ def _frameworks_config_content(frameworks: Sequence[str]) -> str:
     return header + (body + "\n" if body else "")
 
 
-def _read_selected_frameworks(root: Path) -> Optional[List[str]]:
+def _read_selected_frameworks(root: Path) -> list[str] | None:
     """Read the project's selected frameworks, or None when no config exists.
 
     None (no config file) means "no explicit selection" — verify keeps its
@@ -347,7 +347,7 @@ def _read_selected_frameworks(root: Path) -> Optional[List[str]]:
     config = root / FRAMEWORKS_CONFIG
     if not config.exists():
         return None
-    selected: List[str] = []
+    selected: list[str] = []
     for raw in config.read_text(encoding="utf-8").splitlines():
         line = raw.strip()
         if not line or line.startswith("#"):
@@ -392,9 +392,9 @@ SEMGREQ_SEVERITIES = {"error", "high", "critical"}
 SARIF_ERROR_LEVELS = {"error"}
 
 
-def _parse_semgrep_json(path: Path) -> List[Finding]:
+def _parse_semgrep_json(path: Path) -> list[Finding]:
     """Parse a Semgrep JSON output file and return findings for high/critical/error results."""
-    findings: List[Finding] = []
+    findings: list[Finding] = []
     try:
         data = json.loads(path.read_text(encoding="utf-8"))
     except (json.JSONDecodeError, UnicodeDecodeError, OSError):
@@ -420,9 +420,9 @@ def _parse_semgrep_json(path: Path) -> List[Finding]:
     return findings
 
 
-def _parse_sarif(path: Path) -> List[Finding]:
+def _parse_sarif(path: Path) -> list[Finding]:
     """Parse a SARIF format file and return findings for error-level results."""
-    findings: List[Finding] = []
+    findings: list[Finding] = []
     try:
         data = json.loads(path.read_text(encoding="utf-8"))
     except (json.JSONDecodeError, UnicodeDecodeError, OSError):
@@ -457,7 +457,7 @@ def _parse_sarif(path: Path) -> List[Finding]:
     return findings
 
 
-def _scan_evidence_files(root: Path) -> List[Finding]:
+def _scan_evidence_files(root: Path) -> list[Finding]:
     """Ingest third-party scanner output. NOT WIRED IN — see the warning below.
 
     Nothing calls this. Before wiring it into ``verify_project``, note that
@@ -478,7 +478,7 @@ def _scan_evidence_files(root: Path) -> List[Finding]:
       - ``semgrep.json`` — Semgrep JSON output
       - ``*.sarif`` — SARIF format (GitHub Advanced Security, Trivy, Snyk)
     """
-    findings: List[Finding] = []
+    findings: list[Finding] = []
     for path in sorted(root.rglob("semgrep.json")):
         findings.extend(_parse_semgrep_json(path))
     for path in sorted(root.rglob("*.sarif")):
@@ -497,7 +497,7 @@ class Finding:
     #: is a file-scoped location (FR-006). The line is a distinct value and is
     #: never packed into ``path``, so ``path`` stays a resolvable file
     #: reference for SARIF consumers (FR-005).
-    line: Optional[int] = None
+    line: int | None = None
 
     @property
     def location(self) -> str:
@@ -526,7 +526,7 @@ def _now() -> str:
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat()
 
 
-def _parse_profile_names(value: str) -> List[str]:
+def _parse_profile_names(value: str) -> list[str]:
     """Validate and return the requested profile NAMES (not expanded presets)."""
     names = [part.strip() for part in value.split(",") if part.strip()]
     if not names:
@@ -538,9 +538,9 @@ def _parse_profile_names(value: str) -> List[str]:
     return names
 
 
-def _parse_profiles(value: str) -> List[str]:
+def _parse_profiles(value: str) -> list[str]:
     names = _parse_profile_names(value)
-    presets: List[str] = []
+    presets: list[str] = []
     for name in names:
         for preset in PROFILE_PRESETS[name]:
             if preset not in presets:
@@ -580,13 +580,13 @@ PROJECT_INSTRUCTION_FILES = [
 ]
 
 
-def detect_existing_governance(target: Path) -> "dict[str, List[str]]":
+def detect_existing_governance(target: Path) -> dict[str, list[str]]:
     """Detect a pre-existing governance/instruction setup before writing.
 
     Returns a dict of category -> list of relative paths found, so adoption can
     choose merge/overlay over clobber and so the report can explain decisions.
     """
-    found: "dict[str, List[str]]" = {
+    found: dict[str, list[str]] = {
         "constitution": [],
         "templates": [],
         "instructions": [],
@@ -628,7 +628,7 @@ def _validate_specify_available() -> str:
     return result.stdout.strip() or result.stderr.strip() or "found"
 
 
-def _init_existing_governance(target: Path) -> "dict[str, List[str]]":
+def _init_existing_governance(target: Path) -> dict[str, list[str]]:
     """Detect existing governance, or the greenfield empty shape for a fresh target."""
     if target.exists():
         return detect_existing_governance(target)
@@ -636,8 +636,8 @@ def _init_existing_governance(target: Path) -> "dict[str, List[str]]":
 
 
 def _init_apply_interactive(
-    args: argparse.Namespace, actions: List[str], selected_presets: List[str]
-) -> "tuple[Optional[dict], List[str]]":
+    args: argparse.Namespace, actions: list[str], selected_presets: list[str]
+) -> tuple[dict | None, list[str]]:
     """Run the interactive wizard (if requested) and fold its choices into args/presets."""
     if not getattr(args, "interactive", False):
         return None, selected_presets
@@ -661,9 +661,9 @@ def _init_apply_interactive(
 def _init_report_header(
     target: Path,
     args: argparse.Namespace,
-    selected_presets: List[str],
-    existing: "dict[str, List[str]]",
-    actions: List[str],
+    selected_presets: list[str],
+    existing: dict[str, list[str]],
+    actions: list[str],
 ) -> None:
     """Append the target/specify/integration/preset/mode summary lines."""
     actions.append(f"target {target}")
@@ -683,7 +683,7 @@ def _init_report_header(
 
 
 def _init_write_framework_selection(
-    target: Path, args: argparse.Namespace, actions: List[str], reports: List[FileReport]
+    target: Path, args: argparse.Namespace, actions: list[str], reports: list[FileReport]
 ) -> None:
     """Resolve and persist the project's framework selector (#18).
 
@@ -724,9 +724,9 @@ def _init_write_framework_selection(
 def _init_write_interactive_config(
     target: Path,
     args: argparse.Namespace,
-    interactive_config: Optional[dict],
-    actions: List[str],
-    reports: List[FileReport],
+    interactive_config: dict | None,
+    actions: list[str],
+    reports: list[FileReport],
 ) -> None:
     """Persist the interactive wizard's answers to .sicario/config.json, if run."""
     if interactive_config is None:
@@ -747,10 +747,10 @@ def _init_write_interactive_config(
 def _init_write_preset_content(
     target: Path,
     args: argparse.Namespace,
-    selected_presets: List[str],
-    deferrals: List[str],
-    actions: List[str],
-    reports: List[FileReport],
+    selected_presets: list[str],
+    deferrals: list[str],
+    actions: list[str],
+    reports: list[FileReport],
 ) -> None:
     """Delegate generated content (docs, integrations, workflows) to presets."""
     for preset_id in selected_presets:
@@ -774,8 +774,8 @@ def _init_write_preset_content(
 
 def init_project(args: argparse.Namespace) -> int:
     target = Path(args.project).expanduser().resolve()
-    actions: List[str] = []
-    reports: List[FileReport] = []
+    actions: list[str] = []
+    reports: list[FileReport] = []
     selected_presets = _parse_profiles(args.profile)
 
     # Brownfield-safe adoption is the DEFAULT: a non-empty target is fine. We
@@ -1135,7 +1135,7 @@ def iter_text_files(root: Path) -> Iterable[Path]:
                 yield path
 
 
-def _rule_sources(root: Path) -> "tuple[List[Path], List[str]]":
+def _rule_sources(root: Path) -> tuple[list[Path], list[str]]:
     """The ordered rule directories `sicario verify` loads, with their labels.
 
     ORDER IS THE POLICY. `RuleEngine.load_rules` has exactly one precedence
@@ -1153,8 +1153,8 @@ def _rule_sources(root: Path) -> "tuple[List[Path], List[str]]":
     is recorded in `scan_coverage.overrides` in the evidence artifact. Visibility
     is the control here, not prohibition.
     """
-    rule_dirs: List[Path] = []
-    origins: List[str] = []
+    rule_dirs: list[Path] = []
+    origins: list[str] = []
     shipped = PRESETS_ROOT / "sicario-core" / "rules"
     if shipped.is_dir():
         rule_dirs.append(shipped)
@@ -1164,7 +1164,7 @@ def _rule_sources(root: Path) -> "tuple[List[Path], List[str]]":
     return rule_dirs, origins
 
 
-def _no_rules_loaded_findings(rule_report, rule_dirs: List[Path]) -> List[Finding]:
+def _no_rules_loaded_findings(rule_report, rule_dirs: list[Path]) -> list[Finding]:
     """Fail closed when nothing loaded.
 
     A run with zero rules cannot fail, so it reports "passed" over any
@@ -1188,7 +1188,7 @@ def _no_rules_loaded_findings(rule_report, rule_dirs: List[Path]) -> List[Findin
     ]
 
 
-def _rule_load_error_findings(rule_report, root: Path) -> List[Finding]:
+def _rule_load_error_findings(rule_report, root: Path) -> list[Finding]:
     """Turn each rule file that failed to load into a critical finding.
 
     A rule file that could not be loaded is a gap in enforcement, so it is a
@@ -1203,7 +1203,7 @@ def _rule_load_error_findings(rule_report, root: Path) -> List[Finding]:
     common case, since `init` copies every shipped rule into the project.
     """
     enforced_ids = set(rule_report.loaded_rule_ids)
-    findings: List[Finding] = []
+    findings: list[Finding] = []
     for err in rule_report.load_errors:
         rule_id = err.get("rule_id")
         named = rule_id or err["file"]
@@ -1234,7 +1234,7 @@ def _rule_load_error_findings(rule_report, root: Path) -> List[Finding]:
     return findings
 
 
-def _asset_root_override_findings() -> List[Finding]:
+def _asset_root_override_findings() -> list[Finding]:
     """Flag a SICARIO_ASSET_ROOT redirect as a finding, never silently.
 
     An env var that silently swaps the rule set is indistinguishable from an
@@ -1264,12 +1264,12 @@ def _asset_root_override_findings() -> List[Finding]:
 
 
 def _missing_framework_map_findings(
-    root: Path, selected_frameworks: Optional[List[str]]
-) -> List[Finding]:
+    root: Path, selected_frameworks: list[str] | None
+) -> list[Finding]:
     """One finding per selected framework whose control map is absent."""
     if selected_frameworks is None:
         return []
-    findings: List[Finding] = []
+    findings: list[Finding] = []
     for key in selected_frameworks:
         filename = FRAMEWORK_IDS[key]
         present = (root / "docs" / "compliance" / "control-maps" / filename).exists() or (
@@ -1287,11 +1287,11 @@ def _missing_framework_map_findings(
     return findings
 
 
-def verify_project(path: Path, *, write: bool = True) -> List[Finding]:
+def verify_project(path: Path, *, write: bool = True) -> list[Finding]:
     from sicario_cli.rules import RuleEngine
 
     root = path.resolve()
-    findings: List[Finding] = []
+    findings: list[Finding] = []
 
     rule_dirs, rule_origins = _rule_sources(root)
 
@@ -1374,7 +1374,7 @@ def _scan_coverage(rule_report) -> dict:
 
 
 def _write_evidence(
-    root: Path, findings: Sequence[Finding], scan_coverage: Optional[dict] = None
+    root: Path, findings: Sequence[Finding], scan_coverage: dict | None = None
 ) -> None:
     out_dir = root / "generated" / "sicario"
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -1440,7 +1440,7 @@ def _physical_location(finding: Finding) -> dict:
     return location
 
 
-def _sarif_output(findings: List[Finding]) -> str:
+def _sarif_output(findings: list[Finding]) -> str:
     """Convert findings to SARIF 2.1.0 format."""
     sarif_runs = {
         "version": "2.1.0",
@@ -1488,8 +1488,8 @@ def _validate_rules_command(root: Path) -> int:
     # two paths from drifting apart.
     rule_dirs, _ = _rule_sources(root)
 
-    errors: List[str] = []
-    unreachable: List[Path] = []
+    errors: list[str] = []
+    unreachable: list[Path] = []
     checked = 0
     for rule_dir in rule_dirs:
         if not rule_dir.is_dir():
@@ -1527,7 +1527,7 @@ def _validate_rules_command(root: Path) -> int:
     return 0
 
 
-def _print_verify_findings(findings: List[Finding], fmt: str) -> bool:
+def _print_verify_findings(findings: list[Finding], fmt: str) -> bool:
     """Print findings in the requested format; return whether it is machine-readable.
 
     The summary is a human diagnostic, not part of the payload. Printing it to
@@ -1603,7 +1603,7 @@ HOOK_COMMAND_KIND = {
 HOOK_EVENTS = ["after_specify", "after_plan", "after_tasks"]
 
 
-def _collect_hook_tokens(stripped: str, into: List[str]) -> None:
+def _collect_hook_tokens(stripped: str, into: list[str]) -> None:
     """Append any recognized hook-command tokens on this line to `into`, in order.
 
     Recognizes both the flat list form (``- sicario.verify``) and the
@@ -1614,15 +1614,15 @@ def _collect_hook_tokens(stripped: str, into: List[str]) -> None:
             into.append(token)
 
 
-def _parse_hook_commands(extensions_yml: Path) -> "dict[str, List[str]]":
+def _parse_hook_commands(extensions_yml: Path) -> dict[str, list[str]]:
     """Extract ordered hook commands per event from .specify/extensions.yml.
 
     Uses a tiny, dependency-free line scanner (stdlib-only runtime constraint).
     """
-    events: "dict[str, List[str]]" = {event: [] for event in HOOK_EVENTS}
+    events: dict[str, list[str]] = {event: [] for event in HOOK_EVENTS}
     if not extensions_yml.exists():
         return events
-    current: Optional[str] = None
+    current: str | None = None
     in_hooks = False
     for raw in extensions_yml.read_text(encoding="utf-8").splitlines():
         line = raw.rstrip()
@@ -1658,7 +1658,7 @@ def _run_deterministic_hook(command: str, root: Path) -> int:
     return 0
 
 
-def _run_hook_event_commands(commands: List[str], root: Path) -> "tuple[bool, bool]":
+def _run_hook_event_commands(commands: list[str], root: Path) -> tuple[bool, bool]:
     """Run/report every command for one hook event. Returns (ran_any, failed)."""
     ran_any = False
     failed = False
@@ -1700,21 +1700,21 @@ def hooks_command(args: argparse.Namespace) -> int:
     return exit_code
 
 
-def _interactive_init_frameworks() -> List[str]:
+def _interactive_init_frameworks() -> list[str]:
     """Step 1 of the interactive wizard: framework selection."""
     print("Step 1: Framework Selection")
     print("-" * 30)
     print("Choose which compliance frameworks apply to this project.")
     print("Enter the numbers separated by commas (e.g. 1,3,5) or 'all'.")
     print("Press Enter for none.")
-    print("")
+    print()
     sorted_keys = sorted(FRAMEWORK_IDS)
     for i, key in enumerate(sorted_keys, start=1):
         filename = FRAMEWORK_IDS[key]
         print(f"  {i:2d}. {key:20s} ({filename})")
-    print("")
+    print()
     frameworks_input = input("Frameworks (numbers, 'all', or empty): ").strip().lower()
-    selected_frameworks: List[str] = []
+    selected_frameworks: list[str] = []
     if frameworks_input == "all":
         selected_frameworks = list(FRAMEWORK_IDS)
     elif frameworks_input:
@@ -1729,7 +1729,7 @@ def _interactive_init_frameworks() -> List[str]:
             elif part in FRAMEWORK_IDS and part not in selected_frameworks:
                 selected_frameworks.append(part)
     print(f"  Selected: {', '.join(selected_frameworks) if selected_frameworks else 'none'}")
-    print("")
+    print()
     return selected_frameworks
 
 
@@ -1748,11 +1748,11 @@ def _interactive_init_data_classification() -> str:
         if 1 <= idx <= len(class_levels):
             data_classification = class_levels[idx - 1]
     print(f"  Selected: {data_classification}")
-    print("")
+    print()
     return data_classification
 
 
-def _interactive_init_cloud_providers() -> List[str]:
+def _interactive_init_cloud_providers() -> list[str]:
     """Step 3 of the interactive wizard: cloud/infrastructure provider targets."""
     print("Step 3: Infrastructure / Cloud Provider Targets")
     print("-" * 30)
@@ -1767,7 +1767,7 @@ def _interactive_init_cloud_providers() -> List[str]:
     for i, (key, label) in enumerate(cloud_options, start=1):
         print(f"  {i}. {label}")
     cloud_input = input("Choices (numbers or empty): ").strip()
-    selected_cloud: List[str] = []
+    selected_cloud: list[str] = []
     if cloud_input:
         for part in cloud_input.split(","):
             part = part.strip()
@@ -1778,7 +1778,7 @@ def _interactive_init_cloud_providers() -> List[str]:
                     if key not in selected_cloud:
                         selected_cloud.append(key)
     print(f"  Selected: {', '.join(selected_cloud) if selected_cloud else 'none'}")
-    print("")
+    print()
     return selected_cloud
 
 
@@ -1792,7 +1792,7 @@ def _interactive_init() -> dict:
     """
     print("SicarioSpec Interactive Setup")
     print("=" * 40)
-    print("")
+    print()
 
     selected_frameworks = _interactive_init_frameworks()
     data_classification = _interactive_init_data_classification()
@@ -1898,7 +1898,7 @@ def build_parser() -> argparse.ArgumentParser:
     return parser
 
 
-def main(argv: Optional[Sequence[str]] = None) -> int:
+def main(argv: Sequence[str] | None = None) -> int:
     parser = build_parser()
     args = parser.parse_args(argv)
     return int(args.func(args))

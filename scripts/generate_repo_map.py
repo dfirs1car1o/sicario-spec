@@ -9,9 +9,8 @@ and writes JSON consumed by docs-site/src/pages/repo-map.js.
 from __future__ import annotations
 
 import json
+from collections.abc import Iterable
 from pathlib import Path
-from typing import Dict, Iterable, List
-
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 OUTPUT_PATH = REPO_ROOT / "docs-site" / "src" / "generated" / "repo-map.json"
@@ -82,7 +81,7 @@ def rel(path: Path) -> str:
     return path.relative_to(REPO_ROOT).as_posix()
 
 
-def sorted_files(pattern: str) -> List[Path]:
+def sorted_files(pattern: str) -> list[Path]:
     return sorted(path for path in REPO_ROOT.glob(pattern) if path.is_file())
 
 
@@ -94,7 +93,7 @@ def node(
     kind: str,
     summary: str,
     tags: Iterable[str],
-) -> Dict[str, object]:
+) -> dict[str, object]:
     return {
         "id": node_id,
         "title": title,
@@ -105,7 +104,7 @@ def node(
     }
 
 
-def docs_nodes() -> List[Dict[str, object]]:
+def docs_nodes() -> list[dict[str, object]]:
     docs = [
         path
         for path in sorted_files("docs/**/*.md")
@@ -137,7 +136,7 @@ def docs_nodes() -> List[Dict[str, object]]:
     ]
 
 
-def preset_nodes() -> List[Dict[str, object]]:
+def preset_nodes() -> list[dict[str, object]]:
     presets = sorted_files("presets/*/preset.yml")
     return [
         node(
@@ -152,7 +151,7 @@ def preset_nodes() -> List[Dict[str, object]]:
     ]
 
 
-def control_map_nodes() -> List[Dict[str, object]]:
+def control_map_nodes() -> list[dict[str, object]]:
     maps = sorted_files("control_maps/*.json")
     return [
         node(
@@ -167,7 +166,7 @@ def control_map_nodes() -> List[Dict[str, object]]:
     ]
 
 
-def rule_nodes() -> List[Dict[str, object]]:
+def rule_nodes() -> list[dict[str, object]]:
     rules = [
         path for path in sorted_files("sicario_cli/rules/kinds/*.py") if path.name != "__init__.py"
     ]
@@ -203,7 +202,7 @@ def rule_nodes() -> List[Dict[str, object]]:
     return primary + evaluators
 
 
-def workflow_nodes() -> List[Dict[str, object]]:
+def workflow_nodes() -> list[dict[str, object]]:
     workflows = sorted_files(".github/workflows/*.yml") + sorted_files("workflow_templates/*.yml")
     return [
         node(
@@ -218,7 +217,7 @@ def workflow_nodes() -> List[Dict[str, object]]:
     ]
 
 
-def example_nodes() -> List[Dict[str, object]]:
+def example_nodes() -> list[dict[str, object]]:
     examples = [path.parent for path in sorted_files("examples/*/README.md")]
     return [
         node(
@@ -233,7 +232,7 @@ def example_nodes() -> List[Dict[str, object]]:
     ]
 
 
-def spec_nodes() -> List[Dict[str, object]]:
+def spec_nodes() -> list[dict[str, object]]:
     specs = [path.parent for path in sorted_files("specs/*/spec.md")]
     return [
         node(
@@ -248,7 +247,7 @@ def spec_nodes() -> List[Dict[str, object]]:
     ]
 
 
-def package_nodes() -> List[Dict[str, object]]:
+def package_nodes() -> list[dict[str, object]]:
     files = {
         "sicario_cli/cli.py": "Sicario CLI",
         "pyproject.toml": "Python Project Metadata",
@@ -280,8 +279,8 @@ def group(
     summary: str,
     persona: str,
     tone: str,
-    nodes: List[Dict[str, object]],
-) -> Dict[str, object]:
+    nodes: list[dict[str, object]],
+) -> dict[str, object]:
     return {
         "id": group_id,
         "title": title,
@@ -293,7 +292,7 @@ def group(
     }
 
 
-def build_map() -> Dict[str, object]:
+def build_map() -> dict[str, object]:
     version_path = REPO_ROOT / "VERSION"
     version = read_text(version_path) if version_path.exists() else "unversioned"
     groups = [

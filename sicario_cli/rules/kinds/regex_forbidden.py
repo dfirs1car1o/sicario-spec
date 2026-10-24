@@ -32,8 +32,9 @@ from __future__ import annotations
 
 import bisect
 import re
+from collections.abc import Sequence
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Sequence, Tuple
+from typing import Any
 
 #: Directory names excluded from every ``regex-forbidden`` scan. This is the
 #: effective skipped-path set recorded in gate evidence (FR-021, SEC-010).
@@ -73,14 +74,14 @@ DEFAULT_MAX_FINDINGS_PER_FILE = 20
 DEFAULT_MAX_FINDINGS_PER_RULE = 200
 
 #: Rule parameters that carry caps. Both must be positive integers (FR-012).
-CAP_PARAMS: Tuple[str, str] = ("max_findings_per_file", "max_findings_per_rule")
+CAP_PARAMS: tuple[str, str] = ("max_findings_per_file", "max_findings_per_rule")
 
 #: Code of the mandatory overflow finding emitted whenever a cap suppresses
 #: anything. It is not itself capped and cannot be configured away (FR-014).
 TRUNCATION_FINDING_CODE = "SICARIO-FINDINGS-TRUNCATED"
 
 
-def validate_caps(params: Any) -> List[str]:
+def validate_caps(params: Any) -> list[str]:
     """Return validation errors for cap parameters, if any.
 
     Caps must be positive integers. Zero, negative, and non-integer values are
@@ -88,7 +89,7 @@ def validate_caps(params: Any) -> List[str]:
     (FR-012, SEC-008). ``bool`` is rejected explicitly: it is an ``int``
     subclass in Python but is not a cap value anybody meant to write.
     """
-    errors: List[str] = []
+    errors: list[str] = []
     if not isinstance(params, dict):
         return errors
     for key in CAP_PARAMS:
@@ -100,7 +101,7 @@ def validate_caps(params: Any) -> List[str]:
     return errors
 
 
-def _cap(params: Dict[str, Any], key: str, default: int) -> int:
+def _cap(params: dict[str, Any], key: str, default: int) -> int:
     if key not in params:
         return default
     value = params[key]
@@ -110,7 +111,7 @@ def _cap(params: Dict[str, Any], key: str, default: int) -> int:
     return value
 
 
-def _excluded_root(parts: Sequence[str]) -> Optional[str]:
+def _excluded_root(parts: Sequence[str]) -> str | None:
     """Return the shallowest prefix of ``parts`` whose own name is skipped.
 
     The skip policy matches any path component at any depth, so the component
@@ -152,7 +153,7 @@ def _excluded_root(parts: Sequence[str]) -> Optional[str]:
     return None
 
 
-def _resolve_paths(pattern: str, root: Path) -> Tuple[List[Path], Dict[str, int]]:
+def _resolve_paths(pattern: str, root: Path) -> tuple[list[Path], dict[str, int]]:
     """Resolve a rule target to a deterministically ordered list of paths, plus
     a per-directory tally of the files the skipped-path policy excluded.
 
@@ -171,8 +172,8 @@ def _resolve_paths(pattern: str, root: Path) -> Tuple[List[Path], Dict[str, int]
         target = root / pattern
         return ([target] if target.exists() else []), {}
 
-    matches: List[Path] = []
-    excluded: Dict[str, int] = {}
+    matches: list[Path] = []
+    excluded: dict[str, int] = {}
     for path in root.glob(pattern):
         skip_root = _excluded_root(path.relative_to(root).parts)
         if skip_root is None:
@@ -186,7 +187,7 @@ def _resolve_paths(pattern: str, root: Path) -> Tuple[List[Path], Dict[str, int]
     return matches, excluded
 
 
-def _record_exclusions(coverage: Dict[str, Any], excluded: Dict[str, int]) -> None:
+def _record_exclusions(coverage: dict[str, Any], excluded: dict[str, int]) -> None:
     """Write the skip-policy tally into the coverage record.
 
     ``files_excluded`` is always the exact total. Only ``excluded_dirs`` is
@@ -219,7 +220,7 @@ def _read_untranslated(path: Path) -> str:
         return handle.read()
 
 
-def _line_starts(text: str) -> List[int]:
+def _line_starts(text: str) -> list[int]:
     """Byte-agnostic offsets of the first character of each line.
 
     Only ``\\n`` starts a new line. This is the definition ``grep -n`` uses, and
@@ -234,13 +235,13 @@ def _line_starts(text: str) -> List[int]:
     return starts
 
 
-def _position(line_starts: Sequence[int], offset: int) -> Tuple[int, int]:
+def _position(line_starts: Sequence[int], offset: int) -> tuple[int, int]:
     """Return the one-based (line, column) of ``offset``."""
     line_index = bisect.bisect_right(line_starts, offset) - 1
     return line_index + 1, offset - line_starts[line_index] + 1
 
 
-def _new_coverage(rule: Dict[str, Any], per_file_cap: int, per_rule_cap: int) -> Dict[str, Any]:
+def _new_coverage(rule: dict[str, Any], per_file_cap: int, per_rule_cap: int) -> dict[str, Any]:
     return {
         "rule_id": rule["id"],
         "kind": "regex-forbidden",
@@ -273,8 +274,8 @@ def _new_coverage(rule: Dict[str, Any], per_file_cap: int, per_rule_cap: int) ->
 
 
 def _invalid_pattern_result(
-    rule: Dict[str, Any], pattern_str: str, coverage: Dict[str, Any]
-) -> Tuple[List[Dict[str, Any]], Dict[str, Any]]:
+    rule: dict[str, Any], pattern_str: str, coverage: dict[str, Any]
+) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     """Build the ``(findings, coverage)`` result for an unparseable pattern."""
     coverage["invalid_pattern"] = True
     coverage["findings_reported"] = 1
@@ -294,10 +295,10 @@ def _invalid_pattern_result(
 def _scan_target_file(
     target: Path,
     root: Path,
-    pattern: "re.Pattern[str]",
+    pattern: re.Pattern[str],
     per_file_cap: int,
-    coverage: Dict[str, Any],
-) -> "Tuple[List[Tuple[str, int, int]], int]":
+    coverage: dict[str, Any],
+) -> tuple[list[tuple[str, int, int]], int]:
     """Scan one target file for pattern matches.
 
     Returns ``(kept candidates, suppressed count)`` for this file, and mutates
@@ -326,8 +327,8 @@ def _scan_target_file(
 
     # One pass over the file's text; line offsets are computed only for
     # files that actually match (FR-009).
-    first_column_by_line: Dict[int, int] = {}
-    line_starts: Optional[List[int]] = None
+    first_column_by_line: dict[int, int] = {}
+    line_starts: list[int] | None = None
     match_count = 0
     for match in pattern.finditer(text):
         match_count += 1
@@ -353,14 +354,14 @@ def _scan_target_file(
 
 
 def _truncation_finding(
-    rule: Dict[str, Any],
-    coverage: Dict[str, Any],
+    rule: dict[str, Any],
+    coverage: dict[str, Any],
     reported_count: int,
     per_file_suppressed: int,
     per_rule_suppressed: int,
     per_file_cap: int,
     per_rule_cap: int,
-) -> Optional[Dict[str, Any]]:
+) -> dict[str, Any] | None:
     """Build the mandatory overflow finding, recording truncation in coverage.
 
     Returns ``None`` when nothing was suppressed (coverage's
@@ -373,7 +374,7 @@ def _truncation_finding(
     if not suppressed:
         return None
 
-    scopes: List[str] = []
+    scopes: list[str] = []
     if per_file_suppressed:
         scopes.append("per-file")
     if per_rule_suppressed:
@@ -399,8 +400,8 @@ def _truncation_finding(
 
 
 def evaluate_detailed(
-    rule: Dict[str, Any], root: Path
-) -> Tuple[List[Dict[str, Any]], Dict[str, Any]]:
+    rule: dict[str, Any], root: Path
+) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     """Evaluate the rule and return ``(findings, coverage_record)``.
 
     The coverage record makes scan gaps and truncation legible from evidence
@@ -417,7 +418,7 @@ def evaluate_detailed(
     except re.error:
         return _invalid_pattern_result(rule, pattern_str, coverage)
 
-    candidates: List[Tuple[str, int, int]] = []
+    candidates: list[tuple[str, int, int]] = []
     per_file_suppressed = 0
 
     targets, excluded = _resolve_paths(rule["path"], root)
@@ -436,7 +437,7 @@ def evaluate_detailed(
     reported = candidates[:per_rule_cap]
     per_rule_suppressed = len(candidates) - len(reported)
 
-    findings: List[Dict[str, Any]] = [
+    findings: list[dict[str, Any]] = [
         {
             "severity": rule["severity"],
             "code": rule["id"],
@@ -464,5 +465,5 @@ def evaluate_detailed(
     return findings, coverage
 
 
-def evaluate(rule: Dict[str, Any], root: Path) -> List[Dict[str, Any]]:
+def evaluate(rule: dict[str, Any], root: Path) -> list[dict[str, Any]]:
     return evaluate_detailed(rule, root)[0]

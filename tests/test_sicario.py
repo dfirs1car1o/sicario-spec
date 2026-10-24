@@ -205,15 +205,7 @@ class SicarioCliBehaviorTests(unittest.TestCase):
             target = Path(tmp) / "project"
             self.assertEqual(main(["init", str(target)]), 0)
             (target / "docs" / "risk" / "security-exceptions.md").write_text(
-                "\n".join(
-                    [
-                        "# Security Exceptions",
-                        "",
-                        "| Exception ID | Status | Control / Gate | Owner | Expires | Approval | Compensating Control | Evidence |",
-                        "|---|---|---|---|---|---|---|---|",
-                        "| EX-001 | active | secret scan | TBD | never | TBD | TBD | TBD |",
-                    ]
-                ),
+                "# Security Exceptions\n\n| Exception ID | Status | Control / Gate | Owner | Expires | Approval | Compensating Control | Evidence |\n|---|---|---|---|---|---|---|---|\n| EX-001 | active | secret scan | TBD | never | TBD | TBD | TBD |",
                 encoding="utf-8",
             )
             findings = verify_project(target, write=False)
@@ -236,23 +228,7 @@ class SicarioCliBehaviorTests(unittest.TestCase):
             spec_dir = target / "specs" / "001-classification"
             spec_dir.mkdir(parents=True)
             (spec_dir / "spec.md").write_text(
-                "\n".join(
-                    [
-                        "# Feature Specification: customer export",
-                        "## Data Classification",
-                        "Internal.",
-                        "## Tagging Discipline",
-                        "- owner, system, environment, data-classification, retention",
-                        "## Trust Boundaries",
-                        "User to service.",
-                        "## Security Requirements",
-                        "Validate input.",
-                        "## Abuse Cases",
-                        "Misuse.",
-                        "## Evidence",
-                        "Tests.",
-                    ]
-                ),
+                "# Feature Specification: customer export\n## Data Classification\nInternal.\n## Tagging Discipline\n- owner, system, environment, data-classification, retention\n## Trust Boundaries\nUser to service.\n## Security Requirements\nValidate input.\n## Abuse Cases\nMisuse.\n## Evidence\nTests.",
                 encoding="utf-8",
             )
             findings = verify_project(target, write=False)
@@ -266,29 +242,7 @@ class SicarioCliBehaviorTests(unittest.TestCase):
             spec_dir = target / "specs" / "001-ai"
             spec_dir.mkdir(parents=True)
             (spec_dir / "spec.md").write_text(
-                "\n".join(
-                    [
-                        "# Feature Specification: AI helper",
-                        "## Data Classification",
-                        "- Highest classification: Internal",
-                        "- Classification owner: Maintainers",
-                        "- Data retention and deletion expectations: Per release",
-                        "- Data residency or sovereignty constraints: N/A",
-                        "- Sharing, egress, or third-party disclosure: None",
-                        "- Redaction or masking requirements: Secrets redacted",
-                        "## Tagging Discipline",
-                        "- owner, system, environment, data-classification, retention",
-                        "## Trust Boundaries",
-                        "User to model.",
-                        "## Security Requirements",
-                        "Validate input.",
-                        "## Abuse Cases",
-                        "Misuse.",
-                        "## Evidence",
-                        "Tests.",
-                        "This feature uses an LLM agent.",
-                    ]
-                ),
+                "# Feature Specification: AI helper\n## Data Classification\n- Highest classification: Internal\n- Classification owner: Maintainers\n- Data retention and deletion expectations: Per release\n- Data residency or sovereignty constraints: N/A\n- Sharing, egress, or third-party disclosure: None\n- Redaction or masking requirements: Secrets redacted\n## Tagging Discipline\n- owner, system, environment, data-classification, retention\n## Trust Boundaries\nUser to model.\n## Security Requirements\nValidate input.\n## Abuse Cases\nMisuse.\n## Evidence\nTests.\nThis feature uses an LLM agent.",
                 encoding="utf-8",
             )
             findings = verify_project(target, write=False)
@@ -302,30 +256,7 @@ class SicarioCliBehaviorTests(unittest.TestCase):
             spec_dir = target / "specs" / "001-orchestration"
             spec_dir.mkdir(parents=True)
             (spec_dir / "spec.md").write_text(
-                "\n".join(
-                    [
-                        "# Feature Specification: LangGraph remediation workflow",
-                        "## Data Classification",
-                        "- Highest classification: Internal",
-                        "- Classification owner: Maintainers",
-                        "- Data retention and deletion expectations: Per release",
-                        "- Data residency or sovereignty constraints: N/A",
-                        "- Sharing, egress, or third-party disclosure: None",
-                        "- Redaction or masking requirements: Secrets redacted",
-                        "## Tagging Discipline",
-                        "- owner, system, environment, data-classification, retention",
-                        "## Trust Boundaries",
-                        "User to orchestrator to workers.",
-                        "## Security Requirements",
-                        "Validate input.",
-                        "## Abuse Cases",
-                        "Misuse.",
-                        "## Evidence",
-                        "Tests.",
-                        "This feature uses LangGraph orchestration and worker queues.",
-                        "Prompt injection and tool boundary controls are documented.",
-                    ]
-                ),
+                "# Feature Specification: LangGraph remediation workflow\n## Data Classification\n- Highest classification: Internal\n- Classification owner: Maintainers\n- Data retention and deletion expectations: Per release\n- Data residency or sovereignty constraints: N/A\n- Sharing, egress, or third-party disclosure: None\n- Redaction or masking requirements: Secrets redacted\n## Tagging Discipline\n- owner, system, environment, data-classification, retention\n## Trust Boundaries\nUser to orchestrator to workers.\n## Security Requirements\nValidate input.\n## Abuse Cases\nMisuse.\n## Evidence\nTests.\nThis feature uses LangGraph orchestration and worker queues.\nPrompt injection and tool boundary controls are documented.",
                 encoding="utf-8",
             )
             findings = verify_project(target, write=False)
@@ -466,16 +397,7 @@ class SicarioCliBehaviorTests(unittest.TestCase):
             spec_dir = target / "specs" / "001-plan"
             spec_dir.mkdir(parents=True)
             (spec_dir / "plan.md").write_text(
-                "\n".join(
-                    [
-                        "# Implementation Plan",
-                        "## Threat Model",
-                        "## Supply Chain",
-                        "## Rollback",
-                        "## Human Approval",
-                        "## Evidence",
-                    ]
-                ),
+                "# Implementation Plan\n## Threat Model\n## Supply Chain\n## Rollback\n## Human Approval\n## Evidence",
                 encoding="utf-8",
             )
             findings = verify_project(target, write=False)
@@ -1425,8 +1347,8 @@ class BrownfieldSafeAdoptionTests(unittest.TestCase):
             src = {p.name: p.read_bytes() for p in source.glob("*.rule.json")}
             pkg = {p.name: p.read_bytes() for p in packaged.glob("*.rule.json")}
             self.assertEqual(set(src), set(pkg), f"rule files differ between trees for {preset}")
-            for name in src:
-                self.assertEqual(src[name], pkg[name], f"{preset}/{name} drifted")
+            for name, blob in src.items():
+                self.assertEqual(blob, pkg[name], f"{preset}/{name} drifted")
 
     def test_a_run_that_loads_no_rules_fails_instead_of_passing(self) -> None:
         """Zero rules loaded must be a finding, not a pass.
@@ -1604,7 +1526,7 @@ def _forbidden_rule(**params: object) -> dict:
     return rule
 
 
-def _write_matches_on(path: Path, lines: "list[int]", value: str = "z" * 20) -> None:
+def _write_matches_on(path: Path, lines: list[int], value: str = "z" * 20) -> None:
     """Write a file whose credential-shaped assignments land on ``lines`` (1-based)."""
     body = [f"filler line {i}" for i in range(1, max(lines) + 1)]
     for line in lines:
@@ -1657,7 +1579,7 @@ class ManagedDirectoryRestoreTests(unittest.TestCase):
         return buffer.getvalue()
 
     @staticmethod
-    def _report_lines(output: str, outcome: str) -> "list[str]":
+    def _report_lines(output: str, outcome: str) -> list[str]:
         return [line for line in output.splitlines() if line.strip().startswith(f"[{outcome}]")]
 
     def test_deleted_control_map_is_restored_on_reinit(self) -> None:
@@ -1667,7 +1589,7 @@ class ManagedDirectoryRestoreTests(unittest.TestCase):
             self._init(target)
 
             maps_dir = target / "docs" / "compliance" / "control-maps"
-            victim = sorted(maps_dir.glob("*.json"))[0]
+            victim = min(maps_dir.glob("*.json"))
             original = victim.read_bytes()
             victim.unlink()
             self.assertFalse(victim.exists())
@@ -1690,7 +1612,7 @@ class ManagedDirectoryRestoreTests(unittest.TestCase):
 
             nested = target / ".specify" / "presets" / "sicario-core" / "rules"
             self.assertTrue(nested.is_dir(), "expected a nested subdirectory to exercise")
-            victim = sorted(nested.glob("*.json"))[0]
+            victim = min(nested.glob("*.json"))
             original = victim.read_bytes()
             victim.unlink()
 
@@ -1751,7 +1673,7 @@ class ManagedDirectoryRestoreTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             target = Path(tmp) / "project"
             self._init(target)
-            victim = sorted((target / "docs" / "compliance" / "control-maps").glob("*.json"))[0]
+            victim = min((target / "docs" / "compliance" / "control-maps").glob("*.json"))
             victim.unlink()
 
             output = self._init(target, "--dry-run")
@@ -1768,7 +1690,7 @@ class ManagedDirectoryRestoreTests(unittest.TestCase):
             self._init(target)
 
             maps_dir = target / "docs" / "compliance" / "control-maps"
-            customized = sorted(maps_dir.glob("*sicario.json"))[0]
+            customized = min(maps_dir.glob("*sicario.json"))
             customized.write_text('{"local": "edited"}\n', encoding="utf-8")
 
             output = self._init(target, "--force")
@@ -2065,7 +1987,7 @@ class RegexForbiddenCompletenessTests(unittest.TestCase):
 
     # --- FR-010..FR-016 / SEC-003..SEC-005: caps and overflow ---------------
 
-    def _overflow(self, findings: "list[dict]") -> dict:
+    def _overflow(self, findings: list[dict]) -> dict:
         from sicario_cli.rules.kinds.regex_forbidden import TRUNCATION_FINDING_CODE
 
         overflow = [f for f in findings if f["code"] == TRUNCATION_FINDING_CODE]
@@ -2211,9 +2133,8 @@ class RegexForbiddenCompletenessTests(unittest.TestCase):
         from sicario_cli.rules.kinds.regex_forbidden import evaluate_detailed
 
         rule = _forbidden_rule(max_findings_per_file=0)
-        with tempfile.TemporaryDirectory() as tmp:
-            with self.assertRaises(ValueError):
-                evaluate_detailed(rule, Path(tmp))
+        with tempfile.TemporaryDirectory() as tmp, self.assertRaises(ValueError):
+            evaluate_detailed(rule, Path(tmp))
 
     # --- SEC-011: unreadable and undecodable files are counted --------------
 
@@ -3527,7 +3448,7 @@ class AssetRootEvidenceTests(unittest.TestCase):
 
         importlib.reload(cli_module)
 
-    def _cli_with_asset_root(self, env_value: "str | None"):
+    def _cli_with_asset_root(self, env_value: str | None):
         """Reload sicario_cli.cli with SICARIO_ASSET_ROOT set (or unset)."""
         if env_value is None:
             os.environ.pop("SICARIO_ASSET_ROOT", None)
