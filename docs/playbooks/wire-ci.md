@@ -136,7 +136,7 @@ The **Checks** panel on the PR shows `sicario-verify / SicarioSpec verify`.
 This surface is graphical — the capture below comes from the reference
 repository's Actions run.
 
-![The pull-request checks panel: the SicarioSpec verify check green on the fix PR](../assets/guides/wire-ci/pr-checks-panel--v0.7.0.png)
+![The pull-request checks panel: the SicarioSpec verify check green on the fix PR](../assets/guides/wire-ci/pr-checks-panel--v0.6.0.png)
 
 *Capture class: **tool-captured** (FR-030b) — automated browser capture of the real rendered page, taken logged-out. Reference run: [`SiCar10mw/sicario-refrun-wire-ci`](https://github.com/SiCar10mw/sicario-refrun-wire-ci), captured 2026-07-30 at captured-version 0.7.0; PR [#1](https://github.com/SiCar10mw/sicario-refrun-wire-ci/pull/1) — the reference run's fix branch is named `restore-threat-model` where this playbook uses `demo/red-gate`. Re-performable by re-running the reference repository's documented steps and re-capturing.*
 
@@ -172,7 +172,7 @@ sicario verify failed with 1 finding(s)
 The command exits `1`, the step fails, and the job — therefore the check —
 goes red. Each finding line reads: severity, finding code, path, message.
 
-![The Actions run view of the failing SicarioSpec verify job, exit code 1 in the annotations](../assets/guides/wire-ci/ci-run-failing--v0.7.0.png)
+![The Actions run view of the failing SicarioSpec verify job, exit code 1 in the annotations](../assets/guides/wire-ci/ci-run-failing--v0.6.0.png)
 
 *Capture class: **tool-captured** (FR-030b) — automated browser capture of the real rendered page, taken logged-out. Reference run: [`SiCar10mw/sicario-refrun-wire-ci`](https://github.com/SiCar10mw/sicario-refrun-wire-ci), captured 2026-07-30 at captured-version 0.7.0; run [30563433822](https://github.com/SiCar10mw/sicario-refrun-wire-ci/actions/runs/30563433822) — in the reference run the failure was staged by a push to `main` rather than a PR branch; same workflow, same red, same exit-code-1 annotation. Re-performable by re-running the reference repository's documented steps and re-capturing.*
 
@@ -203,7 +203,7 @@ sicario verify passed
 
 Exit code `0`; the `sicario-verify` check on the pull request turns green.
 
-![The Actions run view of the passing SicarioSpec verify job](../assets/guides/wire-ci/ci-run-passing--v0.7.0.png)
+![The Actions run view of the passing SicarioSpec verify job](../assets/guides/wire-ci/ci-run-passing--v0.6.0.png)
 
 *Capture class: **tool-captured** (FR-030b) — automated browser capture of the real rendered page, taken logged-out. Reference run: [`SiCar10mw/sicario-refrun-wire-ci`](https://github.com/SiCar10mw/sicario-refrun-wire-ci), captured 2026-07-30 at captured-version 0.7.0; run [30563339414](https://github.com/SiCar10mw/sicario-refrun-wire-ci/actions/runs/30563339414) — the reference run's wired-baseline passing run of this same job; its *post-fix* green appears as the check in the PR-panel capture above. Re-performable by re-running the reference repository's documented steps and re-capturing.*
 
