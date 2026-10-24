@@ -1,25 +1,24 @@
 from pathlib import Path
-from typing import Any, Dict, List
-
+from typing import Any
 
 _REQUIRED_TAGS = {"owner", "system", "environment", "data-classification", "retention"}
 
 
-def _resolve_paths(pattern: str, root: Path) -> List[Path]:
+def _resolve_paths(pattern: str, root: Path) -> list[Path]:
     if any(c in pattern for c in "*?["):
         return sorted(root.glob(pattern))
     target = root / pattern
     return [target] if target.exists() else []
 
 
-def evaluate(rule: Dict[str, Any], root: Path) -> List[Dict[str, str]]:
+def evaluate(rule: dict[str, Any], root: Path) -> list[dict[str, str]]:
     targets = _resolve_paths(rule["path"], root)
     if not targets:
         return []
 
     params = rule.get("params", {})
     required = set(params.get("required_columns", list(_REQUIRED_TAGS)))
-    findings: List[Dict[str, str]] = []
+    findings: list[dict[str, str]] = []
 
     for target in targets:
         try:

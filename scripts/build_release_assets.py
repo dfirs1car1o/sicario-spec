@@ -12,7 +12,6 @@ from datetime import date
 from pathlib import Path
 from zipfile import ZIP_DEFLATED, ZipFile
 
-
 REPO_URL = "https://github.com/dfirs1car1o/sicario-spec"
 DOCS_URL = "https://dfirs1car1o.github.io/sicario-spec/"
 CATALOG_BASE_URL = "https://raw.githubusercontent.com/dfirs1car1o/sicario-spec/main/catalogs"

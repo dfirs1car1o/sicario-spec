@@ -1,20 +1,20 @@
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any
 
 
-def _resolve_paths(pattern: str, root: Path) -> List[Path]:
+def _resolve_paths(pattern: str, root: Path) -> list[Path]:
     if any(c in pattern for c in "*?["):
         return sorted(root.glob(pattern))
     target = root / pattern
     return [target] if target.exists() else []
 
 
-def evaluate(rule: Dict[str, Any], root: Path) -> List[Dict[str, str]]:
+def evaluate(rule: dict[str, Any], root: Path) -> list[dict[str, str]]:
     targets = _resolve_paths(rule["path"], root)
     if not targets:
         return []
 
-    findings: List[Dict[str, str]] = []
+    findings: list[dict[str, str]] = []
     for target in targets:
         try:
             text = target.read_text(encoding="utf-8")
@@ -22,7 +22,7 @@ def evaluate(rule: Dict[str, Any], root: Path) -> List[Dict[str, str]]:
             continue
 
         text_lower = text.lower()
-        missing: List[str] = []
+        missing: list[str] = []
         for heading in rule.get("params", {}).get("headings", []):
             if heading.lower() not in text_lower:
                 missing.append(heading)

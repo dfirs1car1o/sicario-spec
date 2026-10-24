@@ -43,10 +43,10 @@ no coverage concept.
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any, Dict, List, Tuple
+from typing import Any
 
 
-def _resolve_paths(pattern: str, root: Path) -> List[Path]:
+def _resolve_paths(pattern: str, root: Path) -> list[Path]:
     """Resolve a rule target to a deterministically ordered list of paths.
 
     Ordering is by repository-relative POSIX path, so it does not depend on
@@ -59,8 +59,8 @@ def _resolve_paths(pattern: str, root: Path) -> List[Path]:
 
 
 def _scan_file_for_invalid_rows(
-    target: Path, root: Path, forbidden: "set[str]"
-) -> List[Tuple[str, int]]:
+    target: Path, root: Path, forbidden: set[str]
+) -> list[tuple[str, int]]:
     """Every (repo-relative path, line number) of an invalid active risk row in ``target``."""
     if target.is_dir():
         return []
@@ -78,7 +78,7 @@ def _scan_file_for_invalid_rows(
         # was redundant (S5713).
         return []
 
-    found: List[Tuple[str, int]] = []
+    found: list[tuple[str, int]] = []
     for line_number, line in enumerate(text.splitlines(), start=1):
         stripped = line.strip()
         if not stripped.startswith("|"):
@@ -95,13 +95,13 @@ def _scan_file_for_invalid_rows(
     return found
 
 
-def evaluate(rule: Dict[str, Any], root: Path) -> List[Dict[str, Any]]:
+def evaluate(rule: dict[str, Any], root: Path) -> list[dict[str, Any]]:
     targets = _resolve_paths(rule["path"], root)
     if not targets:
         return []
 
     forbidden = {v.lower() for v in rule.get("params", {}).get("forbidden_values", [])}
-    candidates: List[Tuple[str, int]] = []
+    candidates: list[tuple[str, int]] = []
     for target in targets:
         candidates.extend(_scan_file_for_invalid_rows(target, root, forbidden))
 
