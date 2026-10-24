@@ -2,7 +2,7 @@
 title: "Playbook: Choosing Profiles, Presets, And Frameworks At Initial Setup"
 sidebar_label: "Choosing profiles & presets"
 guide-slug: initial-setup-selection
-captured-version: 0.6.0
+captured-version: 0.7.0
 reference-run-repository: platform-infra
 reference-run-date: "2026-07-28"
 ---
@@ -26,8 +26,8 @@ ships a service without the obligations that do.
 
 ## Starting State
 
-- SicarioSpec CLI 0.6.0 installed (either install path from the
-  walkthrough); `sicario --version` prints `sicario 0.6.0`.
+- SicarioSpec CLI 0.7.0 installed (either install path from the
+  walkthrough); `sicario --version` prints `sicario 0.7.0`.
 - A target repository (new or existing — init is brownfield-safe either
   way), not yet initialized.
 - If `sicario` is not on your `PATH`, substitute
@@ -40,10 +40,10 @@ marker. Verified blocks are exact at the captured version; illustrative
 blocks are visibly labeled and representative rather than exact. Absolute
 paths are normalized to `/work/<repo-name>`. All quoted output comes from a
 reference run: net-new repository `platform-infra`, run date 2026-07-28,
-SicarioSpec 0.6.0.
+SicarioSpec 0.7.0.
 
 **Staleness note**: the tables below are derived from the shipped
-composition metadata at captured-version 0.6.0 — the CLI's
+composition metadata at captured-version 0.7.0 — the CLI's
 profile-to-preset and profile-to-framework tables and each preset's
 manifest — not from CLI output. Composition can change in a release without
 any output string changing, so these tables are re-checked against the
@@ -100,7 +100,7 @@ form; the substance is yours to supply (the
 
 ## Step 2 — Look Up The Shipped Profiles
 
-Composition table at captured-version 0.6.0 (`core` and `docs` are aliases
+Composition table at captured-version 0.7.0 (`core` and `docs` are aliases
 of the `public-core` composition):
 
 | Profile | Repository kind it fits | Presets composed | Framework defaults (effective) |
@@ -334,6 +334,6 @@ is the stated reason this playbook carries no screenshots.
 ## About This Playbook's Captures
 
 Reference run: repository `platform-infra`, run date 2026-07-28, captured
-against SicarioSpec 0.6.0; the repository contains nothing but what these
+against SicarioSpec 0.7.0; the repository contains nothing but what these
 steps create. Tables derive from the shipped composition metadata at the
 same version, as stated in the staleness note above.

@@ -1,4 +1,21 @@
-## 0.6.0 - 2026-07-28
+# Changelog
+
+All notable changes to the SicarioSpec Core preset are tracked here.
+
+## Unreleased
+
+No unreleased changes yet.
+
+## [0.7.0] - 2026-10-24
+
+### Changed
+
+- Version aligned with the SicarioSpec v0.7.0 release. Core templates and
+  rules are unchanged from 0.6.0; the release's template-floor fix (#73)
+  brought the *other* presets up to core's section floor and added an
+  invariant test that keeps them there.
+
+## [0.6.0] - 2026-07-28
 
 - Three new critical secret rules (041 AWS access key ids, 042 provider
   tokens, 043 private key material), with left-boundary guards so `risk-*`
@@ -9,14 +26,6 @@
   template can win the resolution race without weakening the gate.
 - Caps (`max_findings_per_file` / `max_findings_per_rule`) documented in the
   schema; invalid caps fail the gate as `SICARIO-RULE-INVALID`.
-
-# Changelog
-
-All notable changes to the SicarioSpec Core preset are tracked here.
-
-## Unreleased
-
-No unreleased changes yet.
 
 ## [0.5.1] - 2026-06-25
 

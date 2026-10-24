@@ -2,7 +2,7 @@
 title: "Playbook: Wire the Gate into CI"
 sidebar_label: "Wire the gate into CI"
 guide-slug: wire-ci
-captured-version: 0.6.0
+captured-version: 0.7.0
 reference-run-repository: refrun-ci
 reference-run-date: "2026-07-28"
 ---
@@ -25,7 +25,7 @@ a known failure on purpose.
 
 ## Starting state
 
-- A repository initialized with `sicario init` at SicarioSpec 0.6.0
+- A repository initialized with `sicario init` at SicarioSpec 0.7.0
   (captured with `--profile appsec`), committed to git, hosted on GitHub,
   with `sicario verify .` passing locally.
 - A shell with Python 3.9+ and the SicarioSpec CLI installed. If `sicario`
@@ -77,7 +77,7 @@ jobs:
       # Installs SicarioSpec itself (not this repository) pinned to the
       # release your governance is authored against. The pin IS the version
       # whose rules you get: bump the tag here when you upgrade SicarioSpec.
-      - run: python -m pip install "git+https://github.com/dfirs1car1o/sicario-spec.git@v0.6.0"
+      - run: python -m pip install "git+https://github.com/dfirs1car1o/sicario-spec.git@v0.7.0"
       - run: sicario verify .
 ```
 
@@ -109,11 +109,11 @@ Four facts matter:
   layer to disagree with your local run: CI red means the same command you
   run locally would be red.
 - **The install step installs SicarioSpec itself, pinned.** `python -m pip
-  install "git+https://github.com/dfirs1car1o/sicario-spec.git@v0.6.0"`
+  install "git+https://github.com/dfirs1car1o/sicario-spec.git@v0.7.0"`
   installs the gate regardless of what your own repository's packaging
   declares, and pins it to the release your repository is governed by — an
   unpinned install could otherwise pull a newer gate whose findings differ
-  from the version your repository was authored against. Bump the `@v0.6.0`
+  from the version your repository was authored against. Bump the `@v0.7.0`
   ref when you deliberately upgrade SicarioSpec.
 
 If your `.github/workflows/sicario-verify.yml` still reads
@@ -138,7 +138,7 @@ repository's Actions run.
 
 ![The pull-request checks panel: the SicarioSpec verify check green on the fix PR](../assets/guides/wire-ci/pr-checks-panel--v0.6.0.png)
 
-*Capture class: **tool-captured** (FR-030b) — automated browser capture of the real rendered page, taken logged-out. Reference run: [`SiCar10mw/sicario-refrun-wire-ci`](https://github.com/SiCar10mw/sicario-refrun-wire-ci), captured 2026-07-30 at captured-version 0.6.0; PR [#1](https://github.com/SiCar10mw/sicario-refrun-wire-ci/pull/1) — the reference run's fix branch is named `restore-threat-model` where this playbook uses `demo/red-gate`. Re-performable by re-running the reference repository's documented steps and re-capturing.*
+*Capture class: **tool-captured** (FR-030b) — automated browser capture of the real rendered page, taken logged-out. Reference run: [`SiCar10mw/sicario-refrun-wire-ci`](https://github.com/SiCar10mw/sicario-refrun-wire-ci), captured 2026-07-30 at captured-version 0.7.0; PR [#1](https://github.com/SiCar10mw/sicario-refrun-wire-ci/pull/1) — the reference run's fix branch is named `restore-threat-model` where this playbook uses `demo/red-gate`. Re-performable by re-running the reference repository's documented steps and re-capturing.*
 
 ### 4. Stage a failing finding and watch the check go red
 
@@ -174,7 +174,7 @@ goes red. Each finding line reads: severity, finding code, path, message.
 
 ![The Actions run view of the failing SicarioSpec verify job, exit code 1 in the annotations](../assets/guides/wire-ci/ci-run-failing--v0.6.0.png)
 
-*Capture class: **tool-captured** (FR-030b) — automated browser capture of the real rendered page, taken logged-out. Reference run: [`SiCar10mw/sicario-refrun-wire-ci`](https://github.com/SiCar10mw/sicario-refrun-wire-ci), captured 2026-07-30 at captured-version 0.6.0; run [30563433822](https://github.com/SiCar10mw/sicario-refrun-wire-ci/actions/runs/30563433822) — in the reference run the failure was staged by a push to `main` rather than a PR branch; same workflow, same red, same exit-code-1 annotation. Re-performable by re-running the reference repository's documented steps and re-capturing.*
+*Capture class: **tool-captured** (FR-030b) — automated browser capture of the real rendered page, taken logged-out. Reference run: [`SiCar10mw/sicario-refrun-wire-ci`](https://github.com/SiCar10mw/sicario-refrun-wire-ci), captured 2026-07-30 at captured-version 0.7.0; run [30563433822](https://github.com/SiCar10mw/sicario-refrun-wire-ci/actions/runs/30563433822) — in the reference run the failure was staged by a push to `main` rather than a PR branch; same workflow, same red, same exit-code-1 annotation. Re-performable by re-running the reference repository's documented steps and re-capturing.*
 
 ### 5. Fix and re-run to green
 
@@ -205,7 +205,7 @@ Exit code `0`; the `sicario-verify` check on the pull request turns green.
 
 ![The Actions run view of the passing SicarioSpec verify job](../assets/guides/wire-ci/ci-run-passing--v0.6.0.png)
 
-*Capture class: **tool-captured** (FR-030b) — automated browser capture of the real rendered page, taken logged-out. Reference run: [`SiCar10mw/sicario-refrun-wire-ci`](https://github.com/SiCar10mw/sicario-refrun-wire-ci), captured 2026-07-30 at captured-version 0.6.0; run [30563339414](https://github.com/SiCar10mw/sicario-refrun-wire-ci/actions/runs/30563339414) — the reference run's wired-baseline passing run of this same job; its *post-fix* green appears as the check in the PR-panel capture above. Re-performable by re-running the reference repository's documented steps and re-capturing.*
+*Capture class: **tool-captured** (FR-030b) — automated browser capture of the real rendered page, taken logged-out. Reference run: [`SiCar10mw/sicario-refrun-wire-ci`](https://github.com/SiCar10mw/sicario-refrun-wire-ci), captured 2026-07-30 at captured-version 0.7.0; run [30563339414](https://github.com/SiCar10mw/sicario-refrun-wire-ci/actions/runs/30563339414) — the reference run's wired-baseline passing run of this same job; its *post-fix* green appears as the check in the PR-panel capture above. Re-performable by re-running the reference repository's documented steps and re-capturing.*
 
 ### 6. Know where the evidence artifacts land in CI
 
@@ -260,7 +260,7 @@ You are done when all of the following hold:
 Every quoted block above is labeled `verified` (re-executable and compared
 against a real run) or `illustrative` (representative). Terminal output was
 captured from a reference run on a net-new repository (`refrun-ci`, run
-date 2026-07-28, SicarioSpec 0.6.0, module form `python3 -m sicario_cli.cli`
+date 2026-07-28, SicarioSpec 0.7.0, module form `python3 -m sicario_cli.cli`
 from the source checkout), with working-directory paths normalized to
 `~/work/<repo>`. The three GitHub Actions surfaces are graphical and carry
 tool-captured assets from the hosted reference-run repository

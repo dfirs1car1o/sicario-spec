@@ -8,6 +8,49 @@ improve the security model.
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-10-24
+
+### Added
+
+- **Advanced Track — graph and loop engineering** (spec 008, #85/#86). Six
+  lessons on spec-graph and loop engineering under `docs/guides/`, plus a new
+  `examples/spec-graph/` package: a typed graph contract
+  (`graph.schema.json` covering the grant and architecture kind
+  vocabularies), two synthetic example graphs, and a stdlib-only
+  `spec_graph_checklist.py` helper that walks a graph (traversal rules
+  R1–R13, per-family cycle detection, deploys-closure blast radius) and
+  emits an obligation checklist, gap list, and `--to-mermaid` rendering
+  derived from the same JSON. Everything sits on the authoring side of the
+  Two-Tier Authority: `sicario verify` is unchanged and remains the sole
+  pass/fail authority — the helper renders no verdict, always exits 0, and
+  never emits finding codes or verdict vocabulary.
+
+### Changed
+
+- **Spec Kit compatibility re-verified against v1.2.3** (Oct 22, 2026). The
+  full bundle smoke — `specify init`, catalog add, `bundle install
+  sicario-spec`, all 12 components at their declared priorities, composed
+  `spec-template` resolution — passes on Spec Kit v1.2.3, and
+  `specify bundle validate` reports the manifest well-formed and valid. The
+  release workflow's pinned Spec Kit smoke-test ref now tracks v1.2.3.
+- **Lint toolchain bumped to ruff 0.17.2** (from 0.15.18, hash-pinned) and
+  the codebase modernized to the rules it enforces: PEP 585 builtin
+  generics and PEP 604 optionals replace `typing.Dict/List/Tuple/Optional`,
+  plus `ClassVar` on a mutable class attribute, explicit
+  `subprocess.run(..., check=False)` where the return code is handled
+  manually, and executable bits on shebang'd scripts. No behavior change:
+  the full suite, `sicario verify`, and all verified guide outputs pass
+  unchanged.
+
+### Security
+
+- **docs-site dependency sweep.** Cleared every patchable Dependabot alert
+  on `docs-site/package-lock.json` (38 open, including 2 critical), batch
+  merging the pending lockfile bumps and forcing `qs` and
+  `postcss-selector-parser` past vulnerable parent ranges via npm
+  `overrides`. These are dev-only static-site build dependencies; the
+  shipped Python package has no runtime dependencies and is unaffected.
+
 ### Fixed
 
 - **Deleting one file inside a SicarioSpec-managed directory was

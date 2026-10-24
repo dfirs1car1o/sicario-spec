@@ -2,7 +2,7 @@
 title: "Advanced Track: Graph And Loop Engineering"
 sidebar_label: "Advanced Track"
 guide-slug: advanced-track
-captured-version: 0.6.0
+captured-version: 0.7.0
 reference-run-repository: "(in-repo: examples/spec-graph helper runs)"
 reference-run-date: "2026-08-04"
 ---
