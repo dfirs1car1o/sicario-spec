@@ -1,8 +1,8 @@
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any
 
 
-def evaluate(rule: Dict[str, Any], root: Path) -> List[Dict[str, str]]:
+def evaluate(rule: dict[str, Any], root: Path) -> list[dict[str, str]]:
     target = root / rule["path"]
     if target.exists():
         return []

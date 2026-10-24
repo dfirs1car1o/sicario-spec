@@ -7,11 +7,10 @@ set of brownfield-safe write/overlay/copy utilities.
 from __future__ import annotations
 
 import shutil
+from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import List, Optional, Sequence, Tuple
-
 
 # Per-file outcome codes used in the final report.
 OUTCOME_CREATED = "created"
@@ -54,7 +53,7 @@ class FileReport:
     detail: str = ""
 
 
-def _record(reports: List[FileReport], path: Path, outcome: str, detail: str = "") -> None:
+def _record(reports: list[FileReport], path: Path, outcome: str, detail: str = "") -> None:
     reports.append(FileReport(path=str(path), outcome=outcome, detail=detail))
 
 
@@ -69,7 +68,7 @@ def _backup_path(path: Path) -> Path:
     return candidate
 
 
-def _backup_file(path: Path, *, dry_run: bool) -> Optional[Path]:
+def _backup_file(path: Path, *, dry_run: bool) -> Path | None:
     """Back up an existing file before modifying or overwriting it."""
     if not path.exists() or dry_run:
         return None
@@ -109,8 +108,8 @@ def _ensure_gitignore_rule(
     pattern: str = BACKUP_IGNORE_PATTERN,
     comment: str = BACKUP_IGNORE_COMMENT,
     dry_run: bool,
-    actions: List[str],
-    reports: Optional[List[FileReport]] = None,
+    actions: list[str],
+    reports: list[FileReport] | None = None,
 ) -> None:
     """Idempotently ensure ``pattern`` actually ignores backups in the target repo.
 
@@ -193,8 +192,8 @@ def _merge_tree(
     dst: Path,
     *,
     dry_run: bool,
-    actions: List[str],
-    reports: Optional[List[FileReport]] = None,
+    actions: list[str],
+    reports: list[FileReport] | None = None,
 ) -> None:
     """Restore only the shipped files that are MISSING from an existing directory.
 
@@ -220,7 +219,7 @@ def _merge_tree(
     ``--force`` (handled by the caller) keeps its unchanged meaning: replace the
     whole directory after taking a timestamped backup.
     """
-    missing: List[Tuple[Path, Path]] = []
+    missing: list[tuple[Path, Path]] = []
     present = 0
     for source_file in sorted(path for path in src.rglob("*") if path.is_file()):
         destination = dst / source_file.relative_to(src)
@@ -264,8 +263,8 @@ def _copy_tree(
     *,
     force: bool,
     dry_run: bool,
-    actions: List[str],
-    reports: Optional[List[FileReport]] = None,
+    actions: list[str],
+    reports: list[FileReport] | None = None,
 ) -> None:
     if not src.exists():
         raise SystemExit(f"Source does not exist: {src}")
@@ -309,8 +308,8 @@ def _write_text(
     *,
     force: bool,
     dry_run: bool,
-    actions: List[str],
-    reports: Optional[List[FileReport]] = None,
+    actions: list[str],
+    reports: list[FileReport] | None = None,
 ) -> None:
     """Write a generated file.
 
@@ -382,9 +381,9 @@ def _overlay_text(
     *,
     force: bool,
     dry_run: bool,
-    actions: List[str],
-    reports: List[FileReport],
-    full_content: Optional[str] = None,
+    actions: list[str],
+    reports: list[FileReport],
+    full_content: str | None = None,
 ) -> None:
     """Non-destructively overlay SicarioSpec content onto an existing file.
 
@@ -468,10 +467,10 @@ def _print_report(reports: Sequence[FileReport], *, dry_run: bool, force: bool) 
         header += " (--force full-overwrite; backups taken)"
     else:
         header += " (brownfield-safe: merge/overlay/preserve/restore)"
-    print("")
+    print()
     print(header)
     print("-" * len(header))
-    counts: "dict[str, int]" = {}
+    counts: dict[str, int] = {}
     for report in reports:
         counts[report.outcome] = counts.get(report.outcome, 0) + 1
         suffix = f" — {report.detail}" if report.detail else ""

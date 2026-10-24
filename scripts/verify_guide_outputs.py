@@ -85,7 +85,6 @@ import sys
 import tempfile
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_GUIDE_GLOBS = ("docs/guides/*.md", "docs/playbooks/*.md")
@@ -124,12 +123,12 @@ KNOWN_STREAMS = {"stdout", "stderr"}
 @dataclass
 class Fence:
     lang: str
-    attrs: Dict[str, str]
+    attrs: dict[str, str]
     content: str
     line_no: int
 
 
-def parse_frontmatter(text: str) -> Tuple[Dict[str, str], str]:
+def parse_frontmatter(text: str) -> tuple[dict[str, str], str]:
     """Split leading ``---``-delimited YAML-ish frontmatter from the body.
 
     Only flat ``key: value`` scalars are needed by this script (guide-slug,
@@ -138,7 +137,7 @@ def parse_frontmatter(text: str) -> Tuple[Dict[str, str], str]:
     lines = text.splitlines()
     if not lines or lines[0].strip() != "---":
         return {}, text
-    meta: Dict[str, str] = {}
+    meta: dict[str, str] = {}
     end = None
     for i in range(1, len(lines)):
         if lines[i].strip() == "---":
@@ -156,7 +155,7 @@ def parse_frontmatter(text: str) -> Tuple[Dict[str, str], str]:
     return meta, body
 
 
-def _parse_attrs(rest: str) -> Dict[str, str]:
+def _parse_attrs(rest: str) -> dict[str, str]:
     attrs = {}
     for key, value in ATTR_RE.findall(rest):
         if len(value) >= 2 and value[0] == value[-1] == '"':
@@ -165,9 +164,9 @@ def _parse_attrs(rest: str) -> Dict[str, str]:
     return attrs
 
 
-def iter_fences(body: str) -> List[Fence]:
+def iter_fences(body: str) -> list[Fence]:
     lines = body.splitlines()
-    fences: List[Fence] = []
+    fences: list[Fence] = []
     i = 0
     while i < len(lines):
         m = FENCE_OPEN_RE.match(lines[i])
@@ -229,8 +228,8 @@ def normalize_paths(text: str, real_root: str, placeholder: str) -> str:
 
 
 def apply_normalizations(
-    observed: str, quoted: str, normalize_keys: List[str], real_root: str, placeholder: str
-) -> Tuple[str, str]:
+    observed: str, quoted: str, normalize_keys: list[str], real_root: str, placeholder: str
+) -> tuple[str, str]:
     for key in normalize_keys:
         key = key.strip()
         if not key:
@@ -275,8 +274,8 @@ class ExecResult:
 
 
 def run_fence_script(
-    content: str, cwd: Path, env: Dict[str, str], cwd_marker: Path
-) -> Tuple[ExecResult, str]:
+    content: str, cwd: Path, env: dict[str, str], cwd_marker: Path
+) -> tuple[ExecResult, str]:
     script = content + f"\npwd > {shlex.quote(str(cwd_marker))}\n"
     proc = subprocess.run(
         ["bash", "-c", script],
@@ -285,6 +284,7 @@ def run_fence_script(
         capture_output=True,
         text=True,
         timeout=120,
+        check=False,
     )
     new_cwd = cwd.as_posix()
     if cwd_marker.exists():
@@ -326,10 +326,10 @@ class GuideReport:
     path: Path
     slug: str
     verified_reexecuted: int = 0
-    verified_failed: List[Mismatch] = field(default_factory=list)
+    verified_failed: list[Mismatch] = field(default_factory=list)
     illustrative_skipped: int = 0
-    unpaired_verified: List[str] = field(default_factory=list)
-    structural_errors: List[str] = field(default_factory=list)
+    unpaired_verified: list[str] = field(default_factory=list)
+    structural_errors: list[str] = field(default_factory=list)
 
     @property
     def ok(self) -> bool:
@@ -347,7 +347,7 @@ def _installed_version() -> str:
 
 
 def _check_captured_version(
-    path: Path, meta: Dict[str, str], installed_version: str, report: GuideReport
+    path: Path, meta: dict[str, str], installed_version: str, report: GuideReport
 ) -> None:
     """FR-052's enforcement hook: a release that bumps VERSION without
     updating the guides must fail loudly here, not slide through."""
@@ -363,7 +363,7 @@ def _check_captured_version(
 
 
 def _validate_output_block(
-    path: Path, fence: Fence, output_blocks: Dict[str, Fence], report: GuideReport
+    path: Path, fence: Fence, output_blocks: dict[str, Fence], report: GuideReport
 ) -> None:
     """Validate one fence's sicario-block/sicario-output/sicario-normalize/
     sicario-stream attributes (FR-050) and, if valid, add it to
@@ -424,23 +424,23 @@ def _validate_output_block(
     output_blocks[block_id] = fence
 
 
-def _build_output_blocks(path: Path, fences: List[Fence], report: GuideReport) -> Dict[str, Fence]:
+def _build_output_blocks(path: Path, fences: list[Fence], report: GuideReport) -> dict[str, Fence]:
     """Build the block-id -> output fence map, validating FR-050 along the way."""
-    output_blocks: Dict[str, Fence] = {}
+    output_blocks: dict[str, Fence] = {}
     for fence in fences:
         _validate_output_block(path, fence, output_blocks, report)
     return output_blocks
 
 
 def _pair_cmd_fences(
-    path: Path, fences: List[Fence], output_blocks: Dict[str, Fence], report: GuideReport
-) -> "set[str]":
+    path: Path, fences: list[Fence], output_blocks: dict[str, Fence], report: GuideReport
+) -> set[str]:
     """Match every sicario-cmd fence to the output blocks it claims.
 
     Returns the set of block ids claimed by some sicario-cmd fence.
     """
-    paired_block_ids: "set[str]" = set()
-    claimed_by: Dict[str, int] = {}
+    paired_block_ids: set[str] = set()
+    claimed_by: dict[str, int] = {}
     for fence in fences:
         cmd_attr = fence.attrs.get("sicario-cmd")
         if not cmd_attr or cmd_attr == "setup":
@@ -468,7 +468,7 @@ def _pair_cmd_fences(
 
 
 def _mark_unpaired_verified(
-    path: Path, output_blocks: Dict[str, Fence], paired_block_ids: "set[str]", report: GuideReport
+    path: Path, output_blocks: dict[str, Fence], paired_block_ids: set[str], report: GuideReport
 ) -> None:
     for block_id, fence in output_blocks.items():
         if fence.attrs.get("sicario-output") == "verified" and block_id not in paired_block_ids:
@@ -506,7 +506,7 @@ def _handle_write_fence(
 
 def _advance_cwd_or_abort(
     new_cwd: str, scratch_root_resolved: Path, fence: Fence, path: Path, report: GuideReport
-) -> "Tuple[Path, bool]":
+) -> tuple[Path, bool]:
     """Resolve a fence's post-execution cwd and confirm it stayed contained.
 
     Returns (resolved cwd, aborted). The caller only adopts the resolved cwd
@@ -534,8 +534,8 @@ def _advance_cwd_or_abort(
 
 
 def _group_blocks_by_stream(
-    cmd_attr: str, output_blocks: Dict[str, Fence], report: GuideReport
-) -> Dict[str, List[str]]:
+    cmd_attr: str, output_blocks: dict[str, Fence], report: GuideReport
+) -> dict[str, list[str]]:
     """Group a sicario-cmd fence's paired output blocks by which stream they
     check against.
 
@@ -544,7 +544,7 @@ def _group_blocks_by_stream(
     json` document on stdout paired with its stderr summary line as a second
     block). Illustrative targets are counted here and never diffed.
     """
-    by_stream: Dict[str, List[str]] = {}
+    by_stream: dict[str, list[str]] = {}
     for block_id in cmd_attr.split(","):
         block_id = block_id.strip()
         out_fence = output_blocks.get(block_id)
@@ -560,9 +560,9 @@ def _group_blocks_by_stream(
 
 def _compare_stream(
     stream: str,
-    block_ids: List[str],
+    block_ids: list[str],
     result: ExecResult,
-    output_blocks: Dict[str, Fence],
+    output_blocks: dict[str, Fence],
     scratch_root: Path,
     placeholder: str,
     report: GuideReport,
@@ -570,7 +570,7 @@ def _compare_stream(
     """Diff one stream's concatenated quoted blocks against the observed output."""
     observed = result.stdout if stream == "stdout" else result.stderr
     quoted = "".join(output_blocks[b].content for b in block_ids)
-    normalize_keys: List[str] = []
+    normalize_keys: list[str] = []
     for b in block_ids:
         normalize_keys.extend(output_blocks[b].attrs.get("sicario-normalize", "").split(","))
     observed_n, quoted_n = apply_normalizations(
@@ -599,14 +599,14 @@ def _handle_cmd_fence(
     idx: int,
     cwd: Path,
     scratch_root_resolved: Path,
-    env: Dict[str, str],
+    env: dict[str, str],
     marker_dir: Path,
-    output_blocks: Dict[str, Fence],
+    output_blocks: dict[str, Fence],
     scratch_root: Path,
     placeholder: str,
     path: Path,
     report: GuideReport,
-) -> "Tuple[Path, bool]":
+) -> tuple[Path, bool]:
     """Execute one sicario-cmd fence: advance cwd, handle setup-vs-paired,
     diff paired output blocks. Returns (new cwd, aborted)."""
     cmd_attr = fence.attrs["sicario-cmd"]
@@ -644,11 +644,11 @@ def _handle_cmd_fence(
 
 
 def _run_fences(
-    fences: List[Fence],
+    fences: list[Fence],
     scratch_root: Path,
     marker_dir: Path,
-    env: Dict[str, str],
-    output_blocks: Dict[str, Fence],
+    env: dict[str, str],
+    output_blocks: dict[str, Fence],
     placeholder: str,
     path: Path,
     report: GuideReport,
@@ -693,7 +693,7 @@ def _run_fences(
 
 
 def _count_unreached_illustrative(
-    output_blocks: Dict[str, Fence], paired_block_ids: "set[str]", report: GuideReport
+    output_blocks: dict[str, Fence], paired_block_ids: set[str], report: GuideReport
 ) -> None:
     """Count illustrative blocks never reached via a sicario-cmd execution."""
     for block_id, fence in output_blocks.items():
@@ -780,14 +780,14 @@ def format_report(report: GuideReport) -> str:
     return "\n".join(lines)
 
 
-def discover_guides() -> List[Path]:
-    paths: List[Path] = []
+def discover_guides() -> list[Path]:
+    paths: list[Path] = []
     for pattern in DEFAULT_GUIDE_GLOBS:
         paths.extend(sorted(REPO_ROOT.glob(pattern)))
     return paths
 
 
-def main(argv: Optional[List[str]] = None) -> int:
+def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument(
         "paths",

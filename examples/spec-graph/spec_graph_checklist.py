@@ -887,8 +887,10 @@ def _uncontrolled_crossing_gaps(graph: SpecGraph) -> list[str]:
     if not crossings:
         return []
     return [
-        f"  [gap] {len(crossings)} crossing edge(s) each still need a control and an "
-        f"evidence row: {', '.join(str(edge['id']) for edge in crossings)}"
+        (
+            f"  [gap] {len(crossings)} crossing edge(s) each still need a control and an "
+            f"evidence row: {', '.join(str(edge['id']) for edge in crossings)}"
+        )
     ]
 
 

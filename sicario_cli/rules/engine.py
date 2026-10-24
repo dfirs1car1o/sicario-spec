@@ -4,7 +4,7 @@ import json
 import re
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 
 class RuleValidationError(Exception):
@@ -37,7 +37,7 @@ KIND_REQUIRES_PARAMS = {
 }
 
 
-def _validate_rule_id(rid: Any) -> List[str]:
+def _validate_rule_id(rid: Any) -> list[str]:
     # fullmatch, not match: `$` in re.match also matches just BEFORE a trailing
     # newline, so an id like "SICARIO-X\n" validated and then rendered
     # identically to the real id in evidence — a grep-poisoning primitive.
@@ -46,22 +46,22 @@ def _validate_rule_id(rid: Any) -> List[str]:
     return []
 
 
-def _validate_severity(sev: Any) -> List[str]:
+def _validate_severity(sev: Any) -> list[str]:
     if sev not in ALLOWED_SEVERITIES:
         return [f"severity '{sev}' must be one of {sorted(ALLOWED_SEVERITIES)}"]
     return []
 
 
-def _validate_kind(kind: Any) -> List[str]:
+def _validate_kind(kind: Any) -> list[str]:
     if kind not in ALLOWED_KINDS:
         return [f"kind '{kind}' must be one of {sorted(ALLOWED_KINDS)}"]
     return []
 
 
-def _validate_rule_params(kind: Any, rule: Dict[str, Any]) -> List[str]:
+def _validate_rule_params(kind: Any, rule: dict[str, Any]) -> list[str]:
     """Validate ``rule.params``: object shape, kind-required keys, and
     regex-forbidden caps."""
-    errors: List[str] = []
+    errors: list[str] = []
     params = rule.get("params")
     if params is not None and not isinstance(params, dict):
         errors.append("params must be an object")
@@ -86,8 +86,8 @@ def _validate_rule_params(kind: Any, rule: Dict[str, Any]) -> List[str]:
     return errors
 
 
-def _validate_rule(rule: Dict[str, Any]) -> List[str]:
-    errors: List[str] = []
+def _validate_rule(rule: dict[str, Any]) -> list[str]:
+    errors: list[str] = []
 
     for required_field in ("id", "severity", "kind", "path", "message"):
         if required_field not in rule:
@@ -174,8 +174,8 @@ def _detail_value(value: Any) -> Any:
 
 
 def _override_details(
-    superseded: Dict[str, Any], winning: Dict[str, Any], changed: List[str]
-) -> Dict[str, Any]:
+    superseded: dict[str, Any], winning: dict[str, Any], changed: list[str]
+) -> dict[str, Any]:
     """From/to values for the changes a reviewer cannot judge from names alone.
 
     The gate cannot decide whether a `params.pattern` change is a narrowing or
@@ -191,7 +191,7 @@ def _override_details(
     at the top of the record; `message` is cosmetic and needs no detail. Keys
     are inserted in sorted order so the record is deterministic.
     """
-    details: Dict[str, Any] = {}
+    details: dict[str, Any] = {}
     for field_name in sorted(("kind", "path")):
         if field_name in changed:
             details[field_name] = {
@@ -203,7 +203,7 @@ def _override_details(
         current = winning.get("params")
         previous = previous if isinstance(previous, dict) else {}
         current = current if isinstance(current, dict) else {}
-        param_details: Dict[str, Any] = {}
+        param_details: dict[str, Any] = {}
         for key in sorted(set(previous) | set(current)):
             if previous.get(key) != current.get(key):
                 param_details[key] = {
@@ -214,7 +214,7 @@ def _override_details(
     return details
 
 
-def _rule_diff(superseded: Dict[str, Any], winning: Dict[str, Any]) -> List[str]:
+def _rule_diff(superseded: dict[str, Any], winning: dict[str, Any]) -> list[str]:
     """Names of every field whose value differs between two rules sharing an id.
 
     `enabled` is normalised to its effective value first, so a shipped rule that
@@ -231,13 +231,13 @@ def _rule_diff(superseded: Dict[str, Any], winning: Dict[str, Any]) -> List[str]
 
 def _override_record(
     rule_id: str,
-    superseded: Dict[str, Any],
-    winning: Dict[str, Any],
-    superseded_ref: Dict[str, str],
-    winning_ref: Dict[str, str],
-    changed: List[str],
+    superseded: dict[str, Any],
+    winning: dict[str, Any],
+    superseded_ref: dict[str, str],
+    winning_ref: dict[str, str],
+    changed: list[str],
     original_severity: Any,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Build the evidence record for one rule replaced by a later rule file.
 
     ``original_severity`` is the severity of the FIRST definition ever loaded
@@ -276,7 +276,7 @@ def _override_record(
     }
 
 
-def _load_rule_file(path: Path) -> Optional[Dict[str, Any]]:
+def _load_rule_file(path: Path) -> dict[str, Any] | None:
     try:
         data = json.loads(path.read_text(encoding="utf-8"))
     except (json.JSONDecodeError, UnicodeDecodeError, OSError):
@@ -288,7 +288,7 @@ def _load_rule_file(path: Path) -> Optional[Dict[str, Any]]:
 
 def _load_and_validate_rule_file(
     rule_file: Path, origin: str
-) -> "tuple[Optional[Dict[str, Any]], Optional[Dict[str, Any]]]":
+) -> tuple[dict[str, Any] | None, dict[str, Any] | None]:
     """Load and validate one rule file. Returns ``(data, load_error)``; exactly
     one of the two is ``None``."""
     data = _load_rule_file(rule_file)
@@ -322,22 +322,22 @@ class RuleRunReport:
     (SEC-006).
     """
 
-    findings: List[Dict[str, Any]] = field(default_factory=list)
-    coverage: List[Dict[str, Any]] = field(default_factory=list)
-    disabled_rules: List[Dict[str, Any]] = field(default_factory=list)
+    findings: list[dict[str, Any]] = field(default_factory=list)
+    coverage: list[dict[str, Any]] = field(default_factory=list)
+    disabled_rules: list[dict[str, Any]] = field(default_factory=list)
     #: Every rule replaced by a later rule file with the same `id`, in the order
     #: the replacements happened. Evidence only — an override is a documented,
     #: legitimate action and never produces a finding or changes the verdict.
     #: Its whole purpose is that the action cannot be taken invisibly.
-    overrides: List[Dict[str, Any]] = field(default_factory=list)
+    overrides: list[dict[str, Any]] = field(default_factory=list)
     #: Rule files that could not be loaded or failed validation. These DO reach
     #: the verdict: a rule that does not run is a gap in enforcement, and a gap
     #: that reports "pass" is worse than a failure. See load_rules.
-    load_errors: List[Dict[str, Any]] = field(default_factory=list)
+    load_errors: list[dict[str, Any]] = field(default_factory=list)
     #: Ids that actually ended up enforced. Lets the caller tell a rejected
     #: rule file that left no enforcement from one whose id is still covered
     #: by a valid definition in the other directory.
-    loaded_rule_ids: List[str] = field(default_factory=list)
+    loaded_rule_ids: list[str] = field(default_factory=list)
 
 
 class RuleEngine:
@@ -347,22 +347,22 @@ class RuleEngine:
     # earlier version loaded the schema into `self._schema` here and never read
     # it, which made rules look schema-validated when they were not.
     def __init__(self) -> None:
-        self.load_errors: List[Dict[str, Any]] = []
-        self.overrides: List[Dict[str, Any]] = []
+        self.load_errors: list[dict[str, Any]] = []
+        self.overrides: list[dict[str, Any]] = []
         #: id -> severity of the FIRST valid definition loaded for that id (the
         #: shipped severity when a shipped rule exists). This is the anchor for
         #: override `impact` ranking and for the severity shown in
         #: `disabled_rules`, so a chain of overriding files cannot demote the
         #: severity context step by step before disabling the rule.
-        self.original_severities: Dict[str, str] = {}
+        self.original_severities: dict[str, str] = {}
 
     def _accumulate_rule(
         self,
-        data: Dict[str, Any],
-        ref: Dict[str, str],
-        rules: List[Dict[str, Any]],
-        seen_ids: Dict[str, int],
-        provenance: Dict[str, Dict[str, str]],
+        data: dict[str, Any],
+        ref: dict[str, str],
+        rules: list[dict[str, Any]],
+        seen_ids: dict[str, int],
+        provenance: dict[str, dict[str, str]],
     ) -> None:
         """Add one freshly loaded rule to ``rules``, recording an override if it
         replaces an earlier definition of the same id."""
@@ -400,9 +400,9 @@ class RuleEngine:
 
     def load_rules(
         self,
-        rule_dirs: List[Path],
-        origins: Optional[List[str]] = None,
-    ) -> List[Dict[str, Any]]:
+        rule_dirs: list[Path],
+        origins: list[str] | None = None,
+    ) -> list[dict[str, Any]]:
         """Load and validate every rule file, recording any that cannot be used.
 
         A rule file that fails to parse or fails validation is NOT silently
@@ -437,8 +437,8 @@ class RuleEngine:
         defaults to the directory paths, which are fine for debugging but are
         machine-specific — callers that write evidence should pass real labels.
         """
-        rules: List[Dict[str, Any]] = []
-        seen_ids: Dict[str, int] = {}
+        rules: list[dict[str, Any]] = []
+        seen_ids: dict[str, int] = {}
         # id -> where the last definition of that id that CHANGED anything came
         # from. A byte-equivalent redefinition (the `sicario init` verbatim
         # copies, above all) must not re-anchor this: it changed nothing, so
@@ -446,7 +446,7 @@ class RuleEngine:
         # before it. Otherwise `superseded_origin` would read "project" instead
         # of "shipped" in every normally-initialised project, and a reviewer or
         # CI filter on `superseded_origin == "shipped"` would never match.
-        provenance: Dict[str, Dict[str, str]] = {}
+        provenance: dict[str, dict[str, str]] = {}
         self.load_errors = []
         self.overrides = []
         self.original_severities = {}
@@ -468,7 +468,7 @@ class RuleEngine:
 
         return rules
 
-    def evaluate(self, rule: Dict[str, Any], root: Path) -> List[Dict[str, Any]]:
+    def evaluate(self, rule: dict[str, Any], root: Path) -> list[dict[str, Any]]:
         from sicario_cli.rules.kinds import evaluate as kind_evaluate
 
         if not rule.get("enabled", True):
@@ -478,8 +478,8 @@ class RuleEngine:
     def run_detailed(
         self,
         root: Path,
-        rule_dirs: Optional[List[Path]] = None,
-        origins: Optional[List[str]] = None,
+        rule_dirs: list[Path] | None = None,
+        origins: list[str] | None = None,
     ) -> RuleRunReport:
         from sicario_cli.rules.kinds import evaluate_detailed as kind_evaluate_detailed
 
@@ -520,7 +520,7 @@ class RuleEngine:
     def run(
         self,
         root: Path,
-        rule_dirs: Optional[List[Path]] = None,
-        origins: Optional[List[str]] = None,
-    ) -> List[Dict[str, Any]]:
+        rule_dirs: list[Path] | None = None,
+        origins: list[str] | None = None,
+    ) -> list[dict[str, Any]]:
         return self.run_detailed(root, rule_dirs=rule_dirs, origins=origins).findings
