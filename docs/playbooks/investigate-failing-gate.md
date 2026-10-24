@@ -2,7 +2,7 @@
 title: "Playbook: Investigate a Failing Gate"
 sidebar_label: "Investigate a Failing Gate"
 guide-slug: investigate-failing-gate
-captured-version: 0.6.0
+captured-version: 0.7.0
 reference-run-repository: refrun-rules/failing-app
 reference-run-date: "2026-07-28"
 ---
@@ -40,7 +40,7 @@ reading the check in CI itself, see the [CI playbook](wire-ci.md).
 
 ## Prerequisites and starting state
 
-- Python 3.9+ and SicarioSpec 0.6.0. Commands use the module form
+- Python 3.9+ and SicarioSpec 0.7.0. Commands use the module form
   `python3 -m sicario_cli.cli`; if `sicario` is on your PATH it is
   equivalent. `git` and a POSIX shell (bash or zsh) on macOS or Linux; on
   Windows use WSL.

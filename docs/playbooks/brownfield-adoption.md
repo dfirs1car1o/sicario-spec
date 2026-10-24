@@ -2,7 +2,7 @@
 title: "Playbook: Adopt SicarioSpec in a Brownfield Repository"
 sidebar_label: "Brownfield adoption"
 guide-slug: brownfield-adoption
-captured-version: 0.6.0
+captured-version: 0.7.0
 reference-run-repository: refrun-rules/brownfield-app
 reference-run-date: "2026-07-28"
 ---
@@ -43,7 +43,7 @@ playbook carries no screenshots (stated per the visual-asset policy).
 
 ## Prerequisites and starting state
 
-- Python 3.9+ and SicarioSpec 0.6.0. Commands below use the module form
+- Python 3.9+ and SicarioSpec 0.7.0. Commands below use the module form
   `python3 -m sicario_cli.cli`, which works on every install; if the `sicario`
   command is on your PATH, `sicario init` / `sicario verify` are equivalent.
 - `git`, and a POSIX shell (bash or zsh) on macOS or Linux. On Windows, use

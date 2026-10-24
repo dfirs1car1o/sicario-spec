@@ -2,7 +2,7 @@
 title: "Start Here: Six Lessons"
 sidebar_label: "Start here"
 guide-slug: start-here
-captured-version: 0.6.0
+captured-version: 0.7.0
 reference-run-repository: "(none — navigation page, no captured output)"
 reference-run-date: "2026-07-31"
 ---

@@ -2,7 +2,7 @@
 title: "Playbook: Read Gate Evidence as a Reviewer"
 sidebar_label: "Read evidence as a reviewer"
 guide-slug: read-evidence-as-reviewer
-captured-version: 0.6.0
+captured-version: 0.7.0
 reference-run-repository: refrun-reviewer
 reference-run-date: "2026-07-28"
 ---
@@ -27,7 +27,7 @@ viewer works.
 ## Starting state
 
 - A `generated/sicario/gate-summary.json` produced by `sicario verify` at
-  SicarioSpec 0.6.0. (Each verify run rewrites it in the scanned
+  SicarioSpec 0.7.0. (Each verify run rewrites it in the scanned
   repository; in CI it lives in the runner workspace unless uploaded — see
   [Wire the gate into CI](./wire-ci.md).)
 - The evidence quoted below comes from a reference repository containing
@@ -252,7 +252,7 @@ makes that visible:
   `redirected_by_env: true` should not exist — treat one as evidence of
   tampering with the evidence.
 - **`shipped_rules_dir` / `shipped_rule_file_count`** — the shipped rules
-  directory and how many top-level rule files it held (21 at 0.6.0). A
+  directory and how many top-level rule files it held (21 at 0.7.0). A
   count far below the release's shipped set is the decoy-root signature.
 
 ### 5. Read coverage: scanned, skipped, excluded — and who decided
@@ -360,7 +360,7 @@ answer those four for a real run, the playbook did its job.
 Every quoted block above is labeled `verified` (re-executable and compared
 against a real run) or `illustrative` (representative). All evidence was
 captured from a reference run on a net-new repository (`refrun-reviewer`,
-run date 2026-07-28, SicarioSpec 0.6.0, module form
+run date 2026-07-28, SicarioSpec 0.7.0, module form
 `python3 -m sicario_cli.cli` from the source checkout): an `appsec`-profile
 init, one vendored file under `node_modules/`, and one project override
 rule disabling the shipped secret scan — staged exactly so this playbook

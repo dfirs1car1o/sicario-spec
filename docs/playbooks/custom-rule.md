@@ -2,7 +2,7 @@
 title: "Playbook: Add a Custom Project Rule"
 sidebar_label: "Add a Custom Project Rule"
 guide-slug: custom-rule
-captured-version: 0.6.0
+captured-version: 0.7.0
 reference-run-repository: refrun-rules/custom-rule-app
 reference-run-date: "2026-07-28"
 ---
@@ -37,7 +37,7 @@ screenshots (stated per the visual-asset policy).
 
 ## Prerequisites and starting state
 
-- Python 3.9+ and SicarioSpec 0.6.0. Commands use the module form
+- Python 3.9+ and SicarioSpec 0.7.0. Commands use the module form
   `python3 -m sicario_cli.cli`; if `sicario` is on your PATH it is equivalent.
 - A POSIX shell (bash or zsh) on macOS or Linux; on Windows use WSL.
 - Starting state: a repository freshly initialized with

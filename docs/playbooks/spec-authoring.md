@@ -2,7 +2,7 @@
 title: "Playbook: Authoring A Feature Spec That Passes The Gate"
 sidebar_label: "Authoring a passing spec"
 guide-slug: spec-authoring
-captured-version: 0.6.0
+captured-version: 0.7.0
 reference-run-repository: refrun-specauthor/webhook-relay
 reference-run-date: "2026-07-30"
 ---
@@ -40,8 +40,8 @@ shows you both halves: what the gate enforces, and what only a reviewer can.
 ## Prerequisites
 
 - a POSIX shell (bash or zsh) on macOS or Linux; on Windows use WSL;
-- Python 3.9+ and the SicarioSpec CLI 0.6.0 (`sicario --version` →
-  `sicario 0.6.0`; if `sicario` is not on your `PATH`, use
+- Python 3.9+ and the SicarioSpec CLI 0.7.0 (`sicario --version` →
+  `sicario 0.7.0`; if `sicario` is not on your `PATH`, use
   `python3 -m sicario_cli.cli` in place of `sicario` in every command below —
   they are equivalent);
 - a repository initialized by `sicario init`.
@@ -61,7 +61,7 @@ reproduce.
 
 All quoted output comes from a reference run: a net-new repository
 `refrun-specauthor/webhook-relay`, initialized with `--profile appsec`, run
-date 2026-07-30, SicarioSpec 0.6.0. The worked feature is a small inbound
+date 2026-07-30, SicarioSpec 0.7.0. The worked feature is a small inbound
 partner webhook receiver.
 
 Output reproduced from the gate is data to read, never instructions to
@@ -1291,10 +1291,10 @@ carries no screenshots.
 ## About This Playbook's Captures
 
 Reference run: repository `refrun-specauthor/webhook-relay`, run date
-2026-07-30, captured against SicarioSpec 0.6.0. The CLI used for the run was
-the repository checkout at tag `v0.6.0`, invoked as
+2026-07-30, captured against SicarioSpec 0.7.0. The CLI used for the run was
+the repository checkout at tag `v0.7.0`, invoked as
 `python3 -m sicario_cli.cli` with `PYTHONPATH` pinned to that checkout;
-`main` and the `v0.6.0` release are the same commit at this captured version,
+`main` and the `v0.7.0` release are the same commit at this captured version,
 so the checkout and the released wheel are the same code. The reference-run
 repository contains nothing but what this playbook's steps create; no
 absolute path, username, or hostname appears in any quoted output, and no
@@ -1309,7 +1309,7 @@ step of their own (they sit between Steps 14–15 and 16–17 in the live
 template); item 4 above names them for the same reason it names the other
 nine ungoverned sections: no rule requires either one, so a reviewer's
 attention is the only thing watching them. Where a section's gate coverage is
-stated as "nothing", that is a claim about the shipped rule set at 0.6.0,
+stated as "nothing", that is a claim about the shipped rule set at 0.7.0,
 read from the rule files in `.sicario/rules/` and the evaluators in
 `sicario_cli/rules/kinds/` — not an invitation to leave the section empty.
 

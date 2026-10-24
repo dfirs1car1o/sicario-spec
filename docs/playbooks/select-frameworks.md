@@ -2,7 +2,7 @@
 title: "Playbook: Select Compliance Frameworks"
 sidebar_label: "Select frameworks"
 guide-slug: select-frameworks
-captured-version: 0.6.0
+captured-version: 0.7.0
 reference-run-repository: refrun-frameworks
 reference-run-date: "2026-07-28"
 ---
@@ -28,7 +28,7 @@ this playbook is the workflow.
 
 ## Starting state
 
-- A repository initialized with `sicario init` at SicarioSpec 0.6.0, using
+- A repository initialized with `sicario init` at SicarioSpec 0.7.0, using
   `--profile appsec` (any profile works; quoted output below was captured
   with `appsec`).
 - `sicario verify .` currently passes.
@@ -291,7 +291,7 @@ You are done when all of the following hold:
 Every quoted block above is labeled `verified` (re-executable and compared
 against a real run) or `illustrative` (representative). All output was
 captured from a reference run on a net-new repository (`refrun-frameworks`,
-run date 2026-07-28, SicarioSpec 0.6.0, module form
+run date 2026-07-28, SicarioSpec 0.7.0, module form
 `python3 -m sicario_cli.cli` from the source checkout). Absolute paths in
 captured output were normalized: the working directory to `~/work/<repo>`
 and the SicarioSpec installation to `~/tools/sicario-spec`.

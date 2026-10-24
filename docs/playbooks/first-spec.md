@@ -2,7 +2,7 @@
 title: "Playbook: Running The First Spec From A Fresh Init"
 sidebar_label: "Your first spec"
 guide-slug: first-spec
-captured-version: 0.6.0
+captured-version: 0.7.0
 reference-run-repository: payments-api
 reference-run-date: "2026-07-28"
 ---
@@ -29,8 +29,8 @@ The baseline path requires exactly this, and nothing else:
 
 - a POSIX shell (bash or zsh; on Windows, substitute `py -3 -m` for the
   `python3 -m` forms and `copy` for `cp`);
-- Python 3.9+ and the SicarioSpec CLI 0.6.0
-  (`sicario --version` → `sicario 0.6.0`; use
+- Python 3.9+ and the SicarioSpec CLI 0.7.0
+  (`sicario --version` → `sicario 0.7.0`; use
   `python3 -m sicario_cli.cli` everywhere if `sicario` is not on `PATH`);
 - a repository initialized by `sicario init` (the walkthrough's end state:
   `sicario verify .` exits `0`).
@@ -44,7 +44,7 @@ Quoted output blocks carry a machine-readable `verified` or `illustrative`
 marker; verified blocks are exact at the captured version, illustrative
 blocks are visibly labeled and representative. All quoted output comes from
 a reference run: a net-new repository `payments-api`, initialized with
-`--profile appsec`, run date 2026-07-28, SicarioSpec 0.6.0.
+`--profile appsec`, run date 2026-07-28, SicarioSpec 0.7.0.
 
 ## Starting State
 
@@ -304,7 +304,7 @@ view, which is the stated reason this playbook carries no screenshots.
 ## About This Playbook's Captures
 
 Reference run: repository `payments-api`, run date 2026-07-28, captured
-against SicarioSpec 0.6.0. The repository contains nothing but what this
+against SicarioSpec 0.7.0. The repository contains nothing but what this
 playbook's steps create; absolute paths do not appear in quoted output, and
 the module-form/`PATH` note from the prerequisites applies to every quoted
 command. This playbook's first-run acceptance evaluation is performed
